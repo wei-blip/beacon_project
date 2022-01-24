@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "modules/tflite-micro",
+		"source" : "/home/rts/zephyr-2.7.0/zephyr/modules/tflite-micro"
+	}
+}

@@ -1,0 +1,6 @@
+zephyr_library()
+
+zephyr_library_sources_ifdef(CONFIG_DW1000 deca_device.c)
+zephyr_library_sources_ifdef(CONFIG_DW1000 deca_params_init.c)
+zephyr_library_sources_ifdef(CONFIG_DW1000 deca_range_tables.c)
+zephyr_library_sources_ifdef(CONFIG_DW1000 dw1000.c)

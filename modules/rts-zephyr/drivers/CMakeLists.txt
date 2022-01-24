@@ -1,0 +1,1 @@
+add_subdirectory_ifdef(CONFIG_DW1000 uwb)

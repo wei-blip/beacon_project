@@ -1,0 +1,5 @@
+menu "Sub Systems and OS Services"
+
+rsource "meshposition/Kconfig"
+
+endmenu

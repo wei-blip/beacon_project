@@ -1,0 +1,3 @@
+zephyr_library()
+zephyr_library_sources_ifdef(CONFIG_MESHPOSITION meshposition.cc)
+zephyr_library_sources_ifdef(CONFIG_MESHPOSITION mesh_twr.cc)

@@ -1,0 +1,218 @@
+menu "UWB"
+
+menuconfig DW1000
+	bool "DW1000 Tranceiver"
+	help
+		Include DW1000 Tranceiver drivers in config
+
+if DW1000
+
+config DW1000_INIT_PRIO
+    int "Driver initialization priority"
+    default 80
+    help
+        Set the initialization priority number. Do not mess with it unless
+        you know what you are doing. Beware DW1000 requires gpio and spi to
+        be ready first (and sometime gpio should be the very first as spi
+        might need it too). And of course it has to start before the net stack.
+
+menu "Startup flags"
+
+config DW1000_STARTUP_LOADUCODE
+    bool "Load uCode"
+    default n
+    help
+        this can be called on power up or after wake up to load ucode
+config DW1000_STARTUP_DW_WAKE_UP
+    bool "DW WakeUp"
+    default n
+    help
+        init after wake up - will not load ucode / ucode will not run
+config DW1000_STARTUP_DW_WUP_NO_UCODE
+    bool "DW WakeUp - no uCode"
+    default n
+    help
+        init after wake up - ucode has not already been loaded / ucode is not used
+config DW1000_STARTUP_DW_WUP_RD_OTPREV
+    bool "DW WakeUp - read OTP Rev"
+    default n
+    help
+       init after wakeup - read OTP rev after wake up
+config DW1000_STARTUP_READ_OTP_PID
+    bool "Read OTP Part ID"
+    default n
+    help
+       read part ID from OTP
+config DW1000_STARTUP_READ_OTP_LID
+    bool "Read OTP Lot ID"
+    default n
+    help
+       read lot ID from OTP
+config DW1000_STARTUP_READ_OTP_BAT
+    bool "Read OTP Battery"
+    default n
+    help
+       read ref voltage from OTP
+config DW1000_STARTUP_READ_OTP_TMP
+    bool "Read OTP Temperature"
+    default n
+    help
+       read ref temperature from OTP
+endmenu
+
+menu "Default PHY configuration"
+
+config DW1000_CHANNEL_NO
+    int "RF channel number"
+    default 5
+    range 1 7
+    help
+        Channel number {1, 2, 3, 4, 5, 7}.
+
+choice DW1000_PRF
+    bool "PRF"
+    default DW1000_PRF_64M
+    help
+        Pulse Repetition Frequency.
+config DW1000_PRF_16M
+    bool "16 MHz"
+config DW1000_PRF_64M
+    bool "64 MHz"
+endchoice
+
+choice DW1000_PLEN
+    bool "Preamble length"
+    default DW1000_PLEN_128
+    help
+        Preamble length. Used in TX only.
+config DW1000_PLEN_4096
+    bool "4096"
+    help
+        Standard preamble length 4096 symbols
+config DW1000_PLEN_2048
+    bool "2048"
+    help
+        Non-standard preamble length 2048 symbols
+config DW1000_PLEN_1536
+    bool "1536"
+    help
+        Non-standard preamble length 1536 symbols
+config DW1000_PLEN_1024
+    bool "1024"
+    help
+        Standard preamble length 1024 symbols
+config DW1000_PLEN_512
+    bool "512"
+    help
+        Non-standard preamble length 512 symbols
+config DW1000_PLEN_256
+    bool "256"
+    help
+        Non-standard preamble length 256 symbols
+config DW1000_PLEN_128
+    bool "128"
+    help
+        Non-standard preamble length 128 symbols
+config DW1000_PLEN_64
+    bool "64"
+    help
+        Standard preamble length 64 symbols
+endchoice
+
+choice DW1000_RX_PAC
+    bool "RX PAC"
+    default DW1000_RX_PAC8
+    help
+        Preamble acquisition chunk size. Used in RX only.
+config DW1000_RX_PAC8
+    bool "8"
+    help
+        PAC  8 (recommended for RX of preamble length  128 and below).
+config DW1000_RX_PAC16
+    bool "16"
+    help
+        PAC 16 (recommended for RX of preamble length  256).
+config DW1000_RX_PAC32
+    bool "32"
+    help
+        PAC 32 (recommended for RX of preamble length  512).
+config DW1000_RX_PAC64
+    bool "64"
+    help
+        PAC 64 (recommended for RX of preamble length 1024 and up).
+endchoice
+
+config DW1000_TX_PREAMBLE_CODE
+    int "TX preamble code"
+    default 9
+    range 1 25
+    help
+        TX preamble code. Used in TX only.
+
+config DW1000_RX_PREAMBLE_CODE
+    int "RX preamble code"
+    default 9
+    range 1 25
+    help
+        RX preamble code. Used in RX only.
+
+choice DW1000_SFD
+    bool "SFD"
+    default DW1000_SFD_NON_STD
+    help
+        Use standard or non-standard SFD for better performance.
+config DW1000_SFD_STD
+    bool "standard"
+    help
+        Use standard SFD.
+config DW1000_SFD_NON_STD
+    bool "non-standard"
+    help
+        Use non-standard SFD for better performance.
+endchoice
+
+choice DW1000_BR
+    bool "Baudrate"
+    default DW1000_BR_6M8
+    help
+        Data Rate
+config DW1000_BR_110K
+    bool "110 kbps"
+    help
+        UWB bit rate 110 kbits/s
+config DW1000_BR_850K
+    bool "850 kbps"
+    help
+        UWB bit rate 850 kbits/s
+config DW1000_BR_6M8
+    bool "6.8 Mbps"
+    help
+        UWB bit rate 6.8 Mbits/s
+endchoice
+
+choice DW1000_PHR_MODE
+    bool "PHY header mode."
+    default DW1000_PHR_MODE_EXT
+    help
+        PHR mode
+config DW1000_PHR_MODE_STD
+    bool "standard"
+    help
+        standard PHR mode
+config DW1000_PHR_MODE_EXT
+    bool "extended"
+    help
+        DW proprietary extended frames PHR mode
+endchoice
+
+config DW1000_SFD_TIMEOUT
+    int "SFD timeout"
+    default 129
+    help
+        SFD timeout (preamble length + 1 + SFD length - PAC size).
+
+endmenu
+
+endif
+
+endmenu

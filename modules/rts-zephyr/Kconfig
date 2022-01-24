@@ -1,0 +1,6 @@
+menu "RTS"
+
+rsource "drivers/Kconfig"
+rsource "subsys/Kconfig"
+
+endmenu

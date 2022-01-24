@@ -1,0 +1,2 @@
+ccache /opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-ar qc libdrivers__spi.a CMakeFiles/drivers__spi.dir/spi_ll_stm32.c.obj
+ccache /opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-ranlib libdrivers__spi.a

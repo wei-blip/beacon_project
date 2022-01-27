@@ -15,4 +15,5 @@ empty_file.o: /home/rts/zephyr-2.7.0/zephyr/misc/empty_file.c \
  /home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l452re/arduino_r3_connector.dtsi \
  /home/rts/zephyr-2.7.0/modules/hal/stm32/dts/st/l4/stm32l452r(c-e)tx-pinctrl.dtsi \
  /home/rts/zephyr-2.7.0/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl.h \
- /home/rts/zephyr-2.7.0/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl-common.h
+ /home/rts/zephyr-2.7.0/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl-common.h \
+ /home/rts/tmp/beacon_project_rzd/radio_signalman/app/boards/nucleo_l452re.overlay

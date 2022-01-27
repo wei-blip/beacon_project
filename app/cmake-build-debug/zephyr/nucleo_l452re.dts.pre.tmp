@@ -1375,3 +1375,26 @@ arduino_spi: &spi1 {};
   led0 = &green_led;
  };
 };
+&spi1 {
+    status = "okay";
+    cs-gpios = <&gpiob 6 ((1 << 0))>;
+    lora0: sx1278@0 {
+        compatible = "semtech,sx1276";
+        reg = <0>;
+        label = "sx1278";
+        reset-gpios = <&gpiob 0 ((1 << 0) | ((1 << 1) | (1 << 2)))>;
+        dio-gpios = <&gpioc 0 ((0 << 0) | (1 << 5))>,
+                    <&gpioc 1 ((0 << 0) | (1 << 5))>,
+                    <&gpioc 2 ((0 << 0) | (1 << 5))>,
+                    <&gpioa 3 ((0 << 0) | (1 << 5))>;
+        power-amplifier-output = "pa-boost";
+        spi-max-frequency = <500000>;
+    };
+};
+&pll {
+    status = "okay";
+    div-m = <1>;
+    mul-n = <20>;
+    div-r = <4>;
+    clocks = <&clk_hsi>;
+};

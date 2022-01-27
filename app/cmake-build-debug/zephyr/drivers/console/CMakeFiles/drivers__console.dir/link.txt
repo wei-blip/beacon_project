@@ -1,2 +1,0 @@
-ccache /opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-ar qc libdrivers__console.a CMakeFiles/drivers__console.dir/uart_console.c.obj
-ccache /opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-ranlib libdrivers__console.a

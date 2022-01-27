@@ -1,0 +1,47 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Copyright (c) 2021 Planet Innovation
+ */
+
+&spi1 {
+    status = "okay";
+    cs-gpios = <&gpiob 6 (GPIO_ACTIVE_LOW)>;
+    lora0: sx1278@0 {
+        compatible = "semtech,sx1276";
+        reg = <0>;
+        label = "sx1278";
+        reset-gpios = <&gpiob 0 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>; // GPIO_ACTIVE_LOW
+        dio-gpios = <&gpioc 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpioc 1 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpioc 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpioa 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+        power-amplifier-output = "pa-boost";
+        spi-max-frequency = <500000>;
+    };
+};
+
+&pll {
+    status = "okay";
+    div-m = <1>;            /*  16 / 1  = 16MHz  */
+    mul-n = <20>;           /*  16 * 20 = 320MHz */
+    div-r = <4>;            /* 320 / 4  = 80MHz  */
+    clocks = <&clk_hsi>;
+};
+
+/*
+&spi1{
+    status = "okay";
+    cs-gpios = <&gpiob 2 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    uwb: dw1000@0 {
+        compatible = "decawave,dw1000";
+        reg = <0>;
+        label = "DW1000";
+        spi-max-frequency = <8000000>;
+        reset-gpios = <&gpioa 8 (GPIO_ACTIVE_LOW)>;
+        int-gpios = <&gpiob 10 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+        tx-ant-delay=<0x4042>;
+        rx-ant-delay=<0x4042>;
+    };
+};
+*/

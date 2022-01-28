@@ -21,13 +21,13 @@ APPLICATION_BINARY_DIR:PATH=/home/rts/tmp/beacon_project_rzd/radio_signalman/app
 APPLICATION_SOURCE_DIR:PATH=/home/rts/tmp/beacon_project_rzd/radio_signalman/app
 
 //Path to a file.
-BOARD_DIR:PATH=/home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l452re
+BOARD_DIR:PATH=/home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l152re
 
 //Path to a program.
 BOSSAC:FILEPATH=/opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/bossac
 
 //Selected board
-CACHED_BOARD:STRING=nucleo_l452re
+CACHED_BOARD:STRING=nucleo_l152re
 
 //If desired, you can build the application usingthe configuration
 // settings specified in an alternate .conf file using this parameter.
@@ -297,7 +297,7 @@ DTC:FILEPATH=/opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/dtc
 // parameter. These settings will override the settings in the
 // board's .dts file. Multiple files may be listed, e.g. DTC_OVERLAY_FILE="dts1.overlay
 // dts2.overlay"
-DTC_OVERLAY_FILE:STRING=/home/rts/tmp/beacon_project_rzd/radio_signalman/app/boards/nucleo_l452re.overlay
+DTC_OVERLAY_FILE:STRING=/home/rts/tmp/beacon_project_rzd/radio_signalman/app/boards/nucleo_l152re.overlay
 
 //Git command line client
 GIT_EXECUTABLE:FILEPATH=/usr/bin/git

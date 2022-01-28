@@ -974,6 +974,7 @@ arduino_serial: &usart2 {};
  status = "okay";
 };
 &spi1 {
+    pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
     status = "okay";
     cs-gpios = <&gpiob 6 ((1 << 0))>;
     lora0: sx1278@0 {

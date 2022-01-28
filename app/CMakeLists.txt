@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 if(NOT DEFINED BOARD)
-    set(BOARD nucleo_l452re)
+    set(BOARD nucleo_l152re)
 endif()
 #set(BOARD decawave_dwm1001_dev)
 

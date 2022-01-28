@@ -33,7 +33,8 @@ struct k_sem sem_anti_dream_msg;
 struct gpio_callback button_anti_dream_cb;
 struct gpio_callback button_alarm_cb;
 #endif
-struct k_sem sem_proc_data;
+//struct k_sem sem_proc_data;
+struct k_sem sem_lora_busy;
 struct k_queue queue_rssi;
 struct device* button_alarm_gpio_dev_ptr;
 struct device* button_anti_dream_gpio_dev_ptr;
@@ -91,7 +92,8 @@ int system_init(uint8_t tim_duration_min, unsigned int sem_anti_dream_init_val, 
                   K_SECONDS(tim_duration_min * 60));
 
     k_sem_init(&sem_anti_dream_msg, sem_anti_dream_init_val, sem_anti_dream_lim);
-    k_sem_init(&sem_proc_data, sem_proc_data_init_val, sem_proc_data_lim);
+//    k_sem_init(&sem_proc_data, sem_proc_data_init_val, sem_proc_data_lim);
+    k_sem_init(&sem_lora_busy, SEM_LORA_BUSY_INIT_VAL, SEM_LORA_BUSY_LIM);
 
     k_queue_init(&queue_rssi);
 
@@ -141,20 +143,12 @@ int system_init(unsigned int sem_proc_data_init_val, unsigned int sem_proc_data_
     /// Init IRQ end
 
     //// Kernel services init begin
-    k_sem_init(&sem_proc_data, sem_proc_data_init_val, sem_proc_data_lim);
+//    k_sem_init(&sem_proc_data, sem_proc_data_init_val, sem_proc_data_lim);
+    k_sem_init(&sem_lora_busy, SEM_LORA_BUSY_INIT_VAL, SEM_LORA_BUSY_LIM);
 
     k_queue_init(&queue_rssi);
 
     k_work_init(&sender, send_msg);
-    // Threads init
-//    volatile k_tid_t t1 = k_thread_create(&thread_data_proc, &thread_stack_data_proc, STACK_SIZE, processing_data,
-//                    0, 0, 0,
-//                    THREAD_PRIORITY, 0, K_NO_WAIT);
-//    volatile k_tid_t t2 = k_thread_create(&thread_recv, &thread_stack_recv, STACK_SIZE, recv_msg,
-//                    0, 0, 0,
-//                    THREAD_PRIORITY, 0, K_NO_WAIT);
-//    k_thread_start(&thread_data_proc);
-//    k_thread_start(&thread_recv);
     /// Kernel services init end
     return 0;
 }
@@ -192,18 +186,20 @@ static uint8_t reverse(uint8_t input) {
 }
 
 int send_msg() {
-    int rc;
+    volatile int rc;
     uint32_t new_msg = 0;
     read_write_message(&new_msg, &tx_msg, true);
     for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
         tx_buf[i] = (new_msg & (0x000000FF << i*8) ) >> i*8;
         tx_buf[i] = reverse(tx_buf[i]);
     }
+    while( k_sem_take(&sem_lora_busy, K_SECONDS(1)) < 0 );
     if (!lora_cfg.tx) {
         lora_cfg.tx = true;
-        lora_config(lora_dev_ptr, &lora_cfg);
+        rc = lora_config(lora_dev_ptr, &lora_cfg);
     }
     rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
+    k_sem_give(&sem_lora_busy);
     return rc;
 }
 
@@ -223,6 +219,7 @@ void recv_msg(void) {
     while(1) {
         printk("thread_1\n");
         if (lora_dev_ptr) {
+            while( k_sem_take(&sem_lora_busy, K_SECONDS(1)) < 0 );
             if (lora_cfg.tx) {
                 lora_cfg.tx = false;
                 lora_config(lora_dev_ptr, &lora_cfg);
@@ -232,6 +229,7 @@ void recv_msg(void) {
                 k_msgq_put(&msgq_rx_buf, &rx_msg_,K_NO_WAIT);
                 k_queue_append(&queue_rssi, &rssi);
             }
+            k_sem_give(&sem_lora_busy);
 #ifdef BASE_STATION
             if (!k_sem_take(&sem_anti_dream_msg, K_NO_WAIT)) {
                 /// Create message for signalman 1

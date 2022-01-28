@@ -39,6 +39,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/stm32/stm32cube/stm32l4xx/cmake_install.cmake")
+  include("/home/rts/tmp/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/stm32/stm32cube/stm32l1xx/cmake_install.cmake")
 endif()
 

@@ -12,10 +12,12 @@
 #include <errno.h>
 
 
-#define BASE_STATION
+#define PERIPHERAL
 #define QUEUE_LEN_IN_ELEMENTS 10
 #define SEM_PROC_DATA_INIT_VAL 0
 #define SEM_PROC_DATA_LIM 1
+#define SEM_LORA_BUSY_INIT_VAL 1
+#define SEM_LORA_BUSY_LIM 1
 
 #ifdef BASE_STATION
 #define SEM_ANTI_DREAM_INIT_VAL  0

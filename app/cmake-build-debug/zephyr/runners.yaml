@@ -1,7 +1,6 @@
 # Available runners configured by board.cmake.
 runners:
 - openocd
-- jlink
 
 # Default flash runner if --runner is not given.
 flash-runner: openocd
@@ -11,7 +10,7 @@ debug-runner: openocd
 
 # Common runner configuration values.
 config:
-  board_dir: /home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l452re
+  board_dir: /home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l152re
   # Build outputs:
   elf_file: zephyr.elf
   hex_file: zephyr.hex
@@ -29,7 +28,3 @@ args:
     - flash write_image erase
     - --cmd-verify
     - verify_image
-  jlink:
-    - --dt-flash=y
-    - --device=STM32L452RE
-    - --speed=4000

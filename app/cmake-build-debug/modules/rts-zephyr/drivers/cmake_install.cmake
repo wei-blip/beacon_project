@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/tmp/beacon_project_rzd/radio_signalman/modules/rts-zephyr/drivers
+# Install script for directory: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/modules/rts-zephyr/drivers
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

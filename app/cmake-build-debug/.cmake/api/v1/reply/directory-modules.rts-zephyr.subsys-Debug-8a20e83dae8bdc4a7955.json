@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "modules/rts-zephyr/subsys",
+		"source" : "/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/modules/rts-zephyr/subsys"
+	}
+}

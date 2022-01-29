@@ -39,6 +39,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/pm/policy/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/pm/policy/cmake_install.cmake")
 endif()
 

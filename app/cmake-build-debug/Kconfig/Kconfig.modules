@@ -64,8 +64,8 @@ config ZEPHYR_TRUSTED_FIRMWARE_M_MODULE
 	bool
 	default y
 endmenu
-menu "rts-zephyr (/home/rts/tmp/beacon_project_rzd/radio_signalman/app/../modules/rts-zephyr)"
-osource "/home/rts/tmp/beacon_project_rzd/radio_signalman/modules/rts-zephyr/Kconfig"
+menu "rts-zephyr (/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/../modules/rts-zephyr)"
+osource "/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/modules/rts-zephyr/Kconfig"
 config ZEPHYR_RTS_ZEPHYR_MODULE
 	bool
 	default y

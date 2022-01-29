@@ -12,19 +12,25 @@
 #include <errno.h>
 
 
-#define PERIPHERAL
+#define BASE_STATION
 #define QUEUE_LEN_IN_ELEMENTS 10
 #define SEM_PROC_DATA_INIT_VAL 0
 #define SEM_PROC_DATA_LIM 1
 #define SEM_LORA_BUSY_INIT_VAL 1
 #define SEM_LORA_BUSY_LIM 1
-
+#define SEM_CUR_DEVICE_SLOT_INIT_VAL 0
+#define SEM_CUR_DEVICE_SLOT_LIM 1
+#define SLOT_TIME_MSEC 500
 #ifdef BASE_STATION
 #define SEM_ANTI_DREAM_INIT_VAL  0
 #define SEM_ANTI_DREAM_LIM 1
 #define TIMER_DURATION_MIN 1
 
+extern struct message_s sync_msg;
+
 #else
+#define DEVICE_NUM 3
+#define CURRENT_DEVICE_NUM
 #define BUTTON_ALARM_GPIO_PORT "GPIOC"
 #define BUTTON_ANTI_DREAM_GPIO_PORT "GPIOC"
 #define BUTTON_ALARM_GPIO_PIN 13
@@ -60,22 +66,23 @@ extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
 extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
 
 extern struct message_s rx_msg;
-extern struct message_s tx_msg;
+//extern struct message_s tx_msg;
+
 
 extern struct device* lora_dev_ptr;
 extern struct lora_modem_config lora_cfg;
 
 
 #ifdef BASE_STATION
-int system_init(uint8_t tim_duration_min, unsigned int sem_anti_dream_init_val, unsigned int sem_anti_dream_lim,
-        unsigned int sem_proc_data_init_val, unsigned int sem_proc_data_lim);
+void system_init();
 
 #else
 int system_init(unsigned int sem_proc_data_init_val, unsigned int sem_proc_data_lim);
 #endif
 
-int send_msg();
-void recv_msg();
-void processing_data();
+void send_task();
+void recv_task();
+void proc_task();
+//void transcieve_task();
 
 #endif //RADIO_SIGNALMAN_LORA_RUSSIA_RAILWAYS_H

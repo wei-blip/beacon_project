@@ -17,7 +17,7 @@ struct message_s {
     uint8_t message_type;
     uint8_t direction;
     uint8_t battery_level;
-    uint8_t people_in_safe_zone;
+    uint8_t workers_in_safe_zone;
 };
 
 enum MESSAGE_FIELD_POSITIONS_e {
@@ -68,7 +68,8 @@ enum message_type {
     MESSAGE_TYPE_TRAIN_PASSED = 0x05,
     MESSAGE_TYPE_PEOPLE_IN_SAFE_ZONE = 0x06,
     MESSAGE_TYPE_CONNECTION_QUALITY_TEST = 0x07,
-    MESSAGE_TYPE_RESET_DEVICE = 0x08
+    MESSAGE_TYPE_RESET_DEVICE = 0x08,
+    MESSAGE_TYPE_SYNC = 0x09
 };
 
 enum message_direction {
@@ -81,7 +82,7 @@ enum battery_level {
     BATTERY_LEVEL_CRITICAL = 0x01
 };
 
-enum people_in_safe_zone_ids{
+enum workers_ids {
     FIRST_PEOPLE_ID = 0x01,
     SECOND_PEOPLE_ID = 0x02,
     THIRD_PEOPLE_ID = 0x04,

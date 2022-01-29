@@ -1,1 +1,1 @@
-osource "/home/rts/tmp/beacon_project_rzd/radio_signalman/app/../modules/rts-zephyr/boards/shields/*/Kconfig.defconfig"
+osource "/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/../modules/rts-zephyr/boards/shields/*/Kconfig.defconfig"

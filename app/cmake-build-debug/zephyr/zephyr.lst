@@ -2856,12 +2856,12 @@ static inline int lora_recv(const struct device *dev, uint8_t *data,
  8001cb8:	0800bd18 	.word	0x0800bd18
  8001cbc:	200006c0 	.word	0x200006c0
 
-08001cc0 <processing_data>:
-void processing_data() {
+08001cc0 <processing_task>:
+void processing_task() {
  8001cc0:	b530      	push	{r4, r5, lr}
  8001cc2:	b085      	sub	sp, #20
     uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
- 8001cc4:	4b22      	ldr	r3, [pc, #136]	; (8001d50 <processing_data+0x90>)
+ 8001cc4:	4b22      	ldr	r3, [pc, #136]	; (8001d50 <processing_task+0x90>)
  8001cc6:	881b      	ldrh	r3, [r3, #0]
  8001cc8:	f8ad 300c 	strh.w	r3, [sp, #12]
  8001ccc:	2300      	movs	r3, #0
@@ -2870,7 +2870,7 @@ void processing_data() {
  8001cd2:	f8ad 300a 	strh.w	r3, [sp, #10]
     uint32_t cur_msg = 0;
  8001cd6:	9301      	str	r3, [sp, #4]
- 8001cd8:	e01b      	b.n	8001d12 <processing_data+0x52>
+ 8001cd8:	e01b      	b.n	8001d12 <processing_task+0x52>
                 rx_buf[i] = reverse(rx_buf[i]);
  8001cda:	ab04      	add	r3, sp, #16
  8001cdc:	191d      	adds	r5, r3, r4
@@ -2887,21 +2887,21 @@ void processing_data() {
  8001cf4:	3401      	adds	r4, #1
  8001cf6:	b2e4      	uxtb	r4, r4
  8001cf8:	2c02      	cmp	r4, #2
- 8001cfa:	d9ee      	bls.n	8001cda <processing_data+0x1a>
+ 8001cfa:	d9ee      	bls.n	8001cda <processing_task+0x1a>
             read_write_message(&cur_msg, &rx_msg, false); // rx_msg struct is fill
- 8001cfc:	4c15      	ldr	r4, [pc, #84]	; (8001d54 <processing_data+0x94>)
+ 8001cfc:	4c15      	ldr	r4, [pc, #84]	; (8001d54 <processing_task+0x94>)
  8001cfe:	2200      	movs	r2, #0
  8001d00:	4621      	mov	r1, r4
  8001d02:	a801      	add	r0, sp, #4
  8001d04:	f7ff fe12 	bl	800192c <read_write_message>
             if ( rx_msg.receiver_addr != cur_dev_addr )
  8001d08:	7862      	ldrb	r2, [r4, #1]
- 8001d0a:	4b13      	ldr	r3, [pc, #76]	; (8001d58 <processing_data+0x98>)
+ 8001d0a:	4b13      	ldr	r3, [pc, #76]	; (8001d58 <processing_task+0x98>)
  8001d0c:	781b      	ldrb	r3, [r3, #0]
  8001d0e:	429a      	cmp	r2, r3
- 8001d10:	d018      	beq.n	8001d44 <processing_data+0x84>
+ 8001d10:	d018      	beq.n	8001d44 <processing_task+0x84>
         printk("thread_2\n");
- 8001d12:	4812      	ldr	r0, [pc, #72]	; (8001d5c <processing_data+0x9c>)
+ 8001d12:	4812      	ldr	r0, [pc, #72]	; (8001d5c <processing_task+0x9c>)
  8001d14:	f007 f9b5 	bl	8009082 <printk>
 				 struct k_msgq_attrs *attrs);
 
@@ -2909,13 +2909,13 @@ void processing_data() {
 static inline uint32_t z_impl_k_msgq_num_free_get(struct k_msgq *msgq)
 {
 	return msgq->max_msgs - msgq->used_msgs;
- 8001d18:	4a11      	ldr	r2, [pc, #68]	; (8001d60 <processing_data+0xa0>)
+ 8001d18:	4a11      	ldr	r2, [pc, #68]	; (8001d60 <processing_task+0xa0>)
  8001d1a:	6913      	ldr	r3, [r2, #16]
  8001d1c:	6a52      	ldr	r2, [r2, #36]	; 0x24
  8001d1e:	1a9b      	subs	r3, r3, r2
         if ( k_msgq_num_free_get(&msgq_rx_buf) != QUEUE_LEN_IN_ELEMENTS ) {
  8001d20:	2b0a      	cmp	r3, #10
- 8001d22:	d00f      	beq.n	8001d44 <processing_data+0x84>
+ 8001d22:	d00f      	beq.n	8001d44 <processing_task+0x84>
             k_msgq_get(&msgq_rx_buf, &rx_buf,K_NO_WAIT);
  8001d24:	2400      	movs	r4, #0
  8001d26:	2500      	movs	r5, #0
@@ -2928,20 +2928,20 @@ static inline uint32_t z_impl_k_msgq_num_free_get(struct k_msgq *msgq)
  8001d28:	4622      	mov	r2, r4
  8001d2a:	462b      	mov	r3, r5
  8001d2c:	a903      	add	r1, sp, #12
- 8001d2e:	480c      	ldr	r0, [pc, #48]	; (8001d60 <processing_data+0xa0>)
+ 8001d2e:	480c      	ldr	r0, [pc, #48]	; (8001d60 <processing_task+0xa0>)
  8001d30:	f004 f99c 	bl	800606c <z_impl_k_msgq_get>
  8001d34:	4622      	mov	r2, r4
  8001d36:	462b      	mov	r3, r5
  8001d38:	f10d 010a 	add.w	r1, sp, #10
- 8001d3c:	4809      	ldr	r0, [pc, #36]	; (8001d64 <processing_data+0xa4>)
+ 8001d3c:	4809      	ldr	r0, [pc, #36]	; (8001d64 <processing_task+0xa4>)
  8001d3e:	f004 f995 	bl	800606c <z_impl_k_msgq_get>
             for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
- 8001d42:	e7d9      	b.n	8001cf8 <processing_data+0x38>
+ 8001d42:	e7d9      	b.n	8001cf8 <processing_task+0x38>
 	return z_impl_k_sleep(timeout);
  8001d44:	200a      	movs	r0, #10
  8001d46:	2100      	movs	r1, #0
  8001d48:	f004 fffe 	bl	8006d48 <z_impl_k_sleep>
- 8001d4c:	e7e1      	b.n	8001d12 <processing_data+0x52>
+ 8001d4c:	e7e1      	b.n	8001d12 <processing_task+0x52>
  8001d4e:	bf00      	nop
  8001d50:	0800bbd8 	.word	0x0800bbd8
  8001d54:	200006ec 	.word	0x200006ec

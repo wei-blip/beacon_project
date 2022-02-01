@@ -1,12 +1,10 @@
 /usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G Ninja /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app
-Including boilerplate (Freestanding): /home/rts/zephyr-2.7.0/zephyr/cmake/app/boilerplate.cmake
+Including boilerplate (Zephyr base (cached)): /home/rts/zephyr-2.7.0/zephyr/cmake/app/boilerplate.cmake
 -- Application: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app
 -- Zephyr version: 2.7.0 (/home/rts/zephyr-2.7.0/zephyr), build: zephyr-v2.7.0
--- Found Python3: /usr/bin/python3.10 (found suitable exact version "3.10.1") found components: Interpreter 
 -- Found west (found suitable version "0.12.0", minimum required is "0.7.1")
 -- Board: nucleo_l152re
 -- Cache files will be written to: /home/rts/.cache/zephyr
--- ZEPHYR_TOOLCHAIN_VARIANT not set, trying to locate Zephyr SDK
 -- Using toolchain: zephyr 0.13.1 (/opt/zephyr-sdk)
 -- Found dtc: /opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.6.0", minimum required is "1.4.6")
 -- Found BOARD.dts: /home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l152re/nucleo_l152re.dts
@@ -16,15 +14,20 @@ nucleo_l152re.dts.pre.tmp:410.28-425.5: Warning (simple_bus_reg): /soc/timers@40
 -- Generated devicetree_unfixed.h: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/devicetree_unfixed.h
 -- Generated device_extern.h: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/device_extern.h
 -- Including generated dts.cmake file: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/dts.cmake
+
+warning: The choice symbol ENTROPY_DEVICE_RANDOM_GENERATOR (defined at subsys/random/Kconfig:37) was
+selected (set =y), but no symbol ended up as the choice selection. See
+http://docs.zephyrproject.org/latest/reference/kconfig/CONFIG_ENTROPY_DEVICE_RANDOM_GENERATOR.html
+and/or look up ENTROPY_DEVICE_RANDOM_GENERATOR in the menuconfig/guiconfig interface. The
+Application Development Primer, Setting Configuration Values, and Kconfig - Tips and Best Practices
+sections of the manual might be helpful too.
+
 Parsing /home/rts/zephyr-2.7.0/zephyr/Kconfig
-Loaded configuration '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/.config'
-No change to configuration in '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/.config'
-No change to Kconfig header in '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/autoconf.h'
-/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb: error while loading shared libraries: libpython3.8.so.1.0: cannot open shared object file: No such file or directory
--- The C compiler identification is GNU 10.3.0
--- The CXX compiler identification is GNU 10.3.0
--- The ASM compiler identification is GNU
--- Found assembler: /opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
+Loaded configuration '/home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l152re/nucleo_l152re_defconfig'
+Merged configuration 'prj.Debug.conf'
+Merged configuration 'prj.conf'
+Configuration saved to '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/.config'
+Kconfig header saved to '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/autoconf.h'
 -- Configuring done
 -- Generating done
 -- Build files have been written to: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug

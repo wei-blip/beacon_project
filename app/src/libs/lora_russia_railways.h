@@ -12,25 +12,27 @@
 #include <errno.h>
 
 
-#define BASE_STATION
+#define PERIPHERAL
 #define QUEUE_LEN_IN_ELEMENTS 10
-#define SEM_PROC_DATA_INIT_VAL 0
-#define SEM_PROC_DATA_LIM 1
 #define SEM_LORA_BUSY_INIT_VAL 1
 #define SEM_LORA_BUSY_LIM 1
-#define SEM_CUR_DEVICE_SLOT_INIT_VAL 0
-#define SEM_CUR_DEVICE_SLOT_LIM 1
+//#define SEM_CUR_DEVICE_SLOT_INIT_VAL 0
+//#define SEM_CUR_DEVICE_SLOT_LIM 1
+//#define SEM_STOP_RECV_LIM 1
 #define SLOT_TIME_MSEC 500
-#ifdef BASE_STATION
-#define SEM_ANTI_DREAM_INIT_VAL  0
-#define SEM_ANTI_DREAM_LIM 1
-#define TIMER_DURATION_MIN 1
+
+//#ifdef BASE_STATION
+//#define SEM_STOP_RECV_INIT_VAL 0
+//#else
+//#define SEM_STOP_RECV_INIT_VAL 1
+//#endif
 
 extern struct message_s sync_msg;
 
-#else
+#ifdef PERIPHERAL
 #define DEVICE_NUM 3
-#define CURRENT_DEVICE_NUM
+#define CURRENT_DEVICE_NUM 0  // counter start value equal zero
+#define DEVICE_SESSION_TIMEOUT_MSEC SLOT_TIME_MSEC*CURRENT_DEVICE_NUM
 #define BUTTON_ALARM_GPIO_PORT "GPIOC"
 #define BUTTON_ANTI_DREAM_GPIO_PORT "GPIOC"
 #define BUTTON_ALARM_GPIO_PIN 13
@@ -62,10 +64,10 @@ enum LIGHT_UP_LEDS {
 
 //extern struct device* lora_dev_ptr;
 
-extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
-extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
+//extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
+//extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
 
-extern struct message_s rx_msg;
+//extern struct message_s rx_msg;
 //extern struct message_s tx_msg;
 
 
@@ -77,7 +79,7 @@ extern struct lora_modem_config lora_cfg;
 void system_init();
 
 #else
-int system_init(unsigned int sem_proc_data_init_val, unsigned int sem_proc_data_lim);
+void system_init();
 #endif
 
 void send_task();

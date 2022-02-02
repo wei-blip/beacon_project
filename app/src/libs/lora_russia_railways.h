@@ -16,16 +16,7 @@
 #define QUEUE_LEN_IN_ELEMENTS 10
 #define SEM_LORA_BUSY_INIT_VAL 1
 #define SEM_LORA_BUSY_LIM 1
-//#define SEM_CUR_DEVICE_SLOT_INIT_VAL 0
-//#define SEM_CUR_DEVICE_SLOT_LIM 1
-//#define SEM_STOP_RECV_LIM 1
 #define SLOT_TIME_MSEC 500
-
-//#ifdef BASE_STATION
-//#define SEM_STOP_RECV_INIT_VAL 0
-//#else
-//#define SEM_STOP_RECV_INIT_VAL 1
-//#endif
 
 extern struct message_s sync_msg;
 

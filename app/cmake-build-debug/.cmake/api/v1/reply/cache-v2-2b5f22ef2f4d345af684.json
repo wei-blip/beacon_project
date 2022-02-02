@@ -26,18 +26,6 @@
 			"value" : "/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app"
 		},
 		{
-			"name" : "BOARD",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : "Selected board"
-				}
-			],
-			"type" : "STRING",
-			"value" : "nucleo_l152re"
-		},
-		{
 			"name" : "BOARD_DIR",
 			"properties" : 
 			[
@@ -534,11 +522,15 @@
 			"properties" : 
 			[
 				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
 					"name" : "HELPSTRING",
-					"value" : "Path to a program."
+					"value" : "C compiler"
 				}
 			],
-			"type" : "FILEPATH",
+			"type" : "STRING",
 			"value" : "/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc"
 		},
 		{
@@ -1747,7 +1739,7 @@
 				}
 			],
 			"type" : "PATH",
-			"value" : "/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake"
+			"value" : "Zephyr_DIR-NOTFOUND"
 		},
 		{
 			"name" : "_Python3_EXECUTABLE",

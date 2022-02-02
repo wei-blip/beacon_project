@@ -36,8 +36,11 @@ K_MSGQ_DEFINE(msgq_rx_msg, MESSAGE_LEN_IN_BYTES, QUEUE_LEN_IN_ELEMENTS, 1);
 // queue for rssi values
 K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
 
+
+#ifdef PERIPHERAL
 // starting session timeout timer
 struct k_timer session_timeout_timer;
+#endif
 // periodic timer (for syncro)
 struct k_timer periodic_timer;
 
@@ -58,7 +61,8 @@ struct device* button_anti_dream_gpio_dev_ptr;
 
 /// Enum area begin
 enum receiver_addr cur_dev_addr = RECV_SIGNALMAN_1;
-enum workers_ids people_in_safe_zone = FIRST_PEOPLE_ID;
+enum workers_ids cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
+enum battery_level cur_battery_level = BATTERY_LEVEL_GOOD;
 /// Enum area end
 
 
@@ -225,8 +229,14 @@ _Noreturn void send_task(void) {
 //            k_wakeup(recv_task_id);
 //            k_sleep(K_FOREVER);
 //        }
-        if ( ( k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT) != 0) ||
-        (k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT) != 0) ) {
+        LOG_DBG("Check queues");
+        if ( k_msgq_num_used_get(&msgq_tx_msg_prio) ) {
+            k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+        }
+        else if ( k_msgq_num_used_get(&msgq_tx_msg) ) {
+            k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
+        }
+        else {
             k_thread_resume(recv_task_id);
             k_sleep(K_FOREVER);
             continue;
@@ -237,12 +247,15 @@ _Noreturn void send_task(void) {
             tx_buf[i] = (new_msg & (0x000000FF << i*8) ) >> i*8;
             tx_buf[i] = reverse(tx_buf[i]);
         }
+        LOG_DBG("Take semaphore sem_lora_busy");
         k_sem_take(&sem_lora_busy, K_FOREVER);
         if (!lora_cfg.tx) {
             lora_cfg.tx = true;
             rc = lora_config(lora_dev_ptr, &lora_cfg);
         }
+        LOG_DBG("Send message");
         rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
+        LOG_DBG("Give semaphore sem_lora_busy");
         k_sem_give(&sem_lora_busy);
 //        k_sem_give(&sem_stop_recv);
         k_wakeup(recv_task_id);
@@ -267,6 +280,7 @@ _Noreturn void recv_task(void) {
     uint8_t ind = 0;
 #ifdef PERIPHERAL
     // Receive first sync message
+    LOG_DBG("Start sync");
     rc = lora_recv(lora_dev_ptr, rx_msg, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
     if (rc > 0) {
         k_msgq_put(&msgq_rx_msg, &rx_msg, K_NO_WAIT);
@@ -280,6 +294,7 @@ _Noreturn void recv_task(void) {
 //        if ( rc < 0 ) {
 //            k_sleep(K_FOREVER);
 //        }
+        LOG_DBG("Take semaphore sem_lora_busy");
         k_sem_take(&sem_lora_busy, K_FOREVER);
         if (lora_cfg.tx) {
             lora_cfg.tx = false;
@@ -287,6 +302,7 @@ _Noreturn void recv_task(void) {
         }
         ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
 //        while( ticks < 3*SLOT_TIME_MSEC ) {
+        LOG_DBG("Start receiving");
         rc = lora_recv(lora_dev_ptr, rx_msg, MESSAGE_LEN_IN_BYTES, K_MSEC(ticks), &rssi, &snr);
         if (rc > 0) {
             k_msgq_put(&msgq_rx_msg, &rx_msg, K_NO_WAIT);
@@ -294,6 +310,7 @@ _Noreturn void recv_task(void) {
         }
 //            ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
 //        }
+        LOG_DBG("Give semaphore sem_lora_busy");
         k_sem_give(&sem_lora_busy);
 //        k_sleep(K_FOREVER);
 //        k_sem_give(&sem_stop_recv);
@@ -306,6 +323,7 @@ _Noreturn void proc_task() {
     uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
     int16_t rssi = 0;
     uint32_t cur_msg = 0;
+    struct message_s tx_msg = {0};
     while(1) {
         if ( k_msgq_num_free_get(&msgq_rx_msg) != QUEUE_LEN_IN_ELEMENTS ) {
             k_msgq_get(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
@@ -324,9 +342,52 @@ _Noreturn void proc_task() {
                 continue;
             }
 #ifdef PERIPHERAL
-            if ( rx_msg.message_type == MESSAGE_TYPE_SYNC ) {
-                k_timer_stop(&periodic_timer);
-                k_timer_start(&session_timeout_timer, K_MSEC(DEVICE_SESSION_TIMEOUT_MSEC), K_NO_WAIT);
+            LOG_DBG("Message type:");
+            switch (rx_msg.message_type) {
+                case MESSAGE_TYPE_SYNC:
+                    LOG_DBG(" MESSAGE_TYPE_SYNC");
+                    k_timer_stop(&periodic_timer);
+                    k_timer_start(&session_timeout_timer, K_MSEC(DEVICE_SESSION_TIMEOUT_MSEC), K_NO_WAIT);
+                    break;
+                case MESSAGE_TYPE_ALARM:
+                    LOG_DBG(" MESSAGE_TYPE_ALARM");
+                    tx_msg.receiver_addr = rx_msg.sender_addr;
+                    tx_msg.sender_addr = cur_dev_addr;
+                    tx_msg.message_type = rx_msg.message_type;
+                    tx_msg.direction = RESPONSE;
+                    tx_msg.workers_in_safe_zone = cur_workers_in_safe_zone;
+                    tx_msg.battery_level = cur_battery_level;
+                    k_msgq_put(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+                    break;
+//                case MESSAGE_TYPE_ALL_IN_SAFE_ZONE:
+//                case MESSAGE_TYPE_PEOPLE_IN_SAFE_ZONE:
+                case MESSAGE_TYPE_DISABLE_ALARM:
+                    LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
+                    // Indication for signalman and brigade chief
+                    switch (rx_msg.sender_addr) {
+                        case SEND_BASE_STATION:
+                            // Indicate LED "Base station disabled alarm"
+                            LOG_DBG("Base station disabled alarm");
+                            break;
+                        case SEND_BRIGADE_CHIEF:
+                            // Indicate LED "Brigade chief disabled alarm"
+                            LOG_DBG("Brigade chief disabled alarm");
+                            break;
+                        default:
+                            LOG_DBG("Undefined sender address for this message type");
+                            break;
+                    }
+                case MESSAGE_TYPE_HOMEWARD:
+                    LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
+                    // Indication for signalman and brigade chief
+                case MESSAGE_TYPE_RESET_DEVICE:
+                    LOG_DBG(" MESSAGE_TYPE_RESET_DEVICE");
+                    // Something that reboot system
+//                case MESSAGE_TYPE_ANTI_DREAM:
+//                    LOG_DBG(" MESSAGE_TYPE_ANTI_DREAM");
+                case MESSAGE_TYPE_TRAIN_PASSED:
+                    LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
+                    break;
             }
 #endif
             con_qual_leds_num = check_rssi(&rssi);
@@ -402,24 +463,35 @@ static uint8_t check_rssi(const int16_t rssi) {
 
 
 void periodic_timer_handler(struct k_timer* tim) {
+    LOG_DBG("Periodic timer handler");
+    LOG_DBG("Take semaphore sem_lora_busy");
     if ( !k_sem_take(&sem_lora_busy, K_FOREVER) ) {
         k_thread_suspend(recv_task_id);
     }
-    k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
-    LOG_DBG("Timer handler");
+    LOG_DBG("Give semaphore sem_lora_busy");
+    k_sem_give(&sem_lora_busy);
+#ifdef BASE_STATION
+    static uint8_t count = 0;
+    if (count == 10) {
+        k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
+        count = 0;
+    }
+    count++;
+#endif
     k_wakeup(send_task_id);
 }
 
 #ifdef PERIPHERAL
 void session_timeout_timer_handler(struct k_timer* tim) {
+    LOG_DBG("Session timer handler");
     k_wakeup(send_task_id);
     k_timer_start(&periodic_timer, K_MSEC(4*SLOT_TIME_MSEC), K_MSEC(4*SLOT_TIME_MSEC));
 //    k_sem_give(&sem_stop_recv);
 }
 
 void button_alarm_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins) {
+    LOG_DBG("Button alarm pressed");
     struct message_s alarm_msg = {0};
-    printk("button alarm pressed");
     alarm_msg.receiver_addr = RECV_BASE_STATION;
     alarm_msg.sender_addr = cur_dev_addr;
     alarm_msg.message_type = MESSAGE_TYPE_ALARM;

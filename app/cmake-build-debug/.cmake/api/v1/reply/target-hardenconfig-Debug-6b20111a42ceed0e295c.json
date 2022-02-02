@@ -45,7 +45,7 @@
 			{
 				"command" : 2,
 				"file" : 2,
-				"line" : 40,
+				"line" : 102,
 				"parent" : 4
 			},
 			{
@@ -76,8 +76,8 @@
 			}
 		]
 	},
-	"id" : "guiconfig::@6890427a1f51a3e7e1df",
-	"name" : "guiconfig",
+	"id" : "hardenconfig::@6890427a1f51a3e7e1df",
+	"name" : "hardenconfig",
 	"paths" : 
 	{
 		"build" : ".",
@@ -105,13 +105,13 @@
 		{
 			"backtrace" : 10,
 			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/guiconfig",
+			"path" : "cmake-build-debug/CMakeFiles/hardenconfig",
 			"sourceGroupIndex" : 0
 		},
 		{
 			"backtrace" : 0,
 			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/guiconfig.rule",
+			"path" : "cmake-build-debug/CMakeFiles/hardenconfig.rule",
 			"sourceGroupIndex" : 1
 		}
 	],

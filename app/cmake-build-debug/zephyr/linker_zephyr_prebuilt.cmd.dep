@@ -1,5 +1,5 @@
 zephyr/linker_zephyr_prebuilt.cmd: \
- /home/rts/zephyr-2.7.0/zephyr/soc/arm/st_stm32/stm32l1/linker.ld \
+ /home/rts/zephyr-2.7.0/zephyr/soc/arm/st_stm32/stm32l4/linker.ld \
  /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/autoconf.h \
  /home/rts/zephyr-2.7.0/zephyr/include/arch/arm/aarch32/cortex_m/scripts/linker.ld \
  /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/autoconf.h \

@@ -38,8 +38,8 @@
 /home/rts/zephyr-2.7.0/zephyr/arch/arm/core/aarch32/cortex_m/tz/Kconfig
 /home/rts/zephyr-2.7.0/zephyr/arch/arm/core/aarch32/mpu/Kconfig
 /home/rts/zephyr-2.7.0/zephyr/boards/Kconfig
-/home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l152re/Kconfig.board
-/home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l152re/Kconfig.defconfig
+/home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l452re/Kconfig.board
+/home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l452re/Kconfig.defconfig
 /home/rts/zephyr-2.7.0/zephyr/boards/shields/adafruit_2_8_tft_touch_v2/Kconfig.defconfig
 /home/rts/zephyr-2.7.0/zephyr/boards/shields/adafruit_2_8_tft_touch_v2/Kconfig.shield
 /home/rts/zephyr-2.7.0/zephyr/boards/shields/adafruit_winc1500/Kconfig.defconfig

@@ -50,9 +50,7 @@ struct gpio_callback button_anti_dream_cb;
 struct gpio_callback button_alarm_cb;
 #endif
 
-struct k_sem sem_stop_recv;
 struct k_sem sem_lora_busy;
-struct k_sem sem_cur_device_slot;
 
 struct device* button_alarm_gpio_dev_ptr;
 struct device* button_anti_dream_gpio_dev_ptr;
@@ -60,7 +58,12 @@ struct device* button_anti_dream_gpio_dev_ptr;
 
 
 /// Enum area begin
+#ifdef BASE_STATION
+enum receiver_addr cur_dev_addr = RECV_BASE_STATION;
+#elif PERIPHERAL
 enum receiver_addr cur_dev_addr = RECV_SIGNALMAN_1;
+#endif
+
 enum workers_ids cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
 enum battery_level cur_battery_level = BATTERY_LEVEL_GOOD;
 /// Enum area end
@@ -108,16 +111,8 @@ void system_init() {
 
     //// Kernel services init begin
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
-//    k_timer_init(&tx_slot_timer, tx_slot_timer_handler, NULL);
 
-//    k_sem_init(&sem_anti_dream_msg, SEM_ANTI_DREAM_INIT_VAL, SEM_ANTI_DREAM_LIM);
-//    k_sem_init(&sem_proc_data, sem_proc_data_init_val, sem_proc_data_lim);
     k_sem_init(&sem_lora_busy, SEM_LORA_BUSY_INIT_VAL, SEM_LORA_BUSY_LIM);
-//    k_sem_init(&sem_cur_device_slot, SEM_CUR_DEVICE_SLOT_INIT_VAL, SEM_CUR_DEVICE_SLOT_LIM);
-//    k_sem_init(&sem_stop_recv, SEM_STOP_RECV_INIT_VAL, SEM_STOP_RECV_LIM);
-
-
-//    k_work_init(&sender, send_msg);
     /// Kernel services init end
 
     /// Send sync message
@@ -130,7 +125,6 @@ void system_init() {
     k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
 
     k_timer_start(&periodic_timer, K_MSEC(4*SLOT_TIME_MSEC), K_MSEC(4*SLOT_TIME_MSEC));
-//    k_timer_start(&tx_slot_timer, K_MSEC(SLOT_TIME_MSEC), K_NO_WAIT);
 }
 #else
 void system_init() {
@@ -225,10 +219,6 @@ _Noreturn void send_task(void) {
     volatile int rc = 0;
     uint32_t new_msg = 0;
     while(1) {
-//        if(!k_sem_count_get(&sem_stop_recv)) {  // if semaphore free this thread go to sleep, because recv_task should take this semaphore
-//            k_wakeup(recv_task_id);
-//            k_sleep(K_FOREVER);
-//        }
         LOG_DBG("Check queues");
         if ( k_msgq_num_used_get(&msgq_tx_msg_prio) ) {
             k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
@@ -241,7 +231,7 @@ _Noreturn void send_task(void) {
             k_sleep(K_FOREVER);
             continue;
         }
-//        rc = k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+
         read_write_message(&new_msg, &tx_msg, true);
         for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
             tx_buf[i] = (new_msg & (0x000000FF << i*8) ) >> i*8;
@@ -255,9 +245,9 @@ _Noreturn void send_task(void) {
         }
         LOG_DBG("Send message");
         rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
+        LOG_DBG("Message sending");
         LOG_DBG("Give semaphore sem_lora_busy");
         k_sem_give(&sem_lora_busy);
-//        k_sem_give(&sem_stop_recv);
         k_wakeup(recv_task_id);
         k_sleep(K_FOREVER);
     }
@@ -290,10 +280,6 @@ _Noreturn void recv_task(void) {
 #endif
 
     while(1) {
-//        rc = k_sem_take(&sem_stop_recv, K_NO_WAIT);
-//        if ( rc < 0 ) {
-//            k_sleep(K_FOREVER);
-//        }
         LOG_DBG("Take semaphore sem_lora_busy");
         k_sem_take(&sem_lora_busy, K_FOREVER);
         if (lora_cfg.tx) {
@@ -301,19 +287,14 @@ _Noreturn void recv_task(void) {
             lora_config(lora_dev_ptr, &lora_cfg);
         }
         ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
-//        while( ticks < 3*SLOT_TIME_MSEC ) {
         LOG_DBG("Start receiving");
         rc = lora_recv(lora_dev_ptr, rx_msg, MESSAGE_LEN_IN_BYTES, K_MSEC(ticks), &rssi, &snr);
         if (rc > 0) {
             k_msgq_put(&msgq_rx_msg, &rx_msg, K_NO_WAIT);
             k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
         }
-//            ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
-//        }
         LOG_DBG("Give semaphore sem_lora_busy");
         k_sem_give(&sem_lora_busy);
-//        k_sleep(K_FOREVER);
-//        k_sem_give(&sem_stop_recv);
     }
 }
 
@@ -324,12 +305,14 @@ _Noreturn void proc_task() {
     int16_t rssi = 0;
     uint32_t cur_msg = 0;
     struct message_s tx_msg = {0};
+    struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
+
     while(1) {
         if ( k_msgq_num_free_get(&msgq_rx_msg) != QUEUE_LEN_IN_ELEMENTS ) {
             k_msgq_get(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
             k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
 
-            //// Processing receive data
+            /// Processing receive data
             for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
                 rx_buf[i] = reverse(rx_buf[i]);
                 cur_msg |= (rx_buf[i]) << i*8;
@@ -341,61 +324,199 @@ _Noreturn void proc_task() {
                 LOG_DBG("Packet is filtered");
                 continue;
             }
-#ifdef PERIPHERAL
-            LOG_DBG("Message type:");
-            switch (rx_msg.message_type) {
-                case MESSAGE_TYPE_SYNC:
-                    LOG_DBG(" MESSAGE_TYPE_SYNC");
-                    k_timer_stop(&periodic_timer);
-                    k_timer_start(&session_timeout_timer, K_MSEC(DEVICE_SESSION_TIMEOUT_MSEC), K_NO_WAIT);
-                    break;
-                case MESSAGE_TYPE_ALARM:
-                    LOG_DBG(" MESSAGE_TYPE_ALARM");
-                    tx_msg.receiver_addr = rx_msg.sender_addr;
-                    tx_msg.sender_addr = cur_dev_addr;
+
+            LOG_DBG("Message direction");
+#ifdef BASE_STATION
+
+            switch (rx_msg.direction) {
+                case REQUEST:
+                    LOG_DBG(" REQUEST");
+                    LOG_DBG("Message type:");
+
+                    tx_msg.sender_addr = rx_msg.sender_addr;
                     tx_msg.message_type = rx_msg.message_type;
+                    tx_msg.workers_in_safe_zone = 0;
+                    tx_msg.battery_level = BATTERY_LEVEL_GOOD; // change it after
+                    tx_msg.receiver_addr = RECV_BROADCAST;
                     tx_msg.direction = RESPONSE;
-                    tx_msg.workers_in_safe_zone = cur_workers_in_safe_zone;
-                    tx_msg.battery_level = cur_battery_level;
-                    k_msgq_put(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
-                    break;
-//                case MESSAGE_TYPE_ALL_IN_SAFE_ZONE:
-//                case MESSAGE_TYPE_PEOPLE_IN_SAFE_ZONE:
-                case MESSAGE_TYPE_DISABLE_ALARM:
-                    LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
-                    // Indication for signalman and brigade chief
-                    switch (rx_msg.sender_addr) {
-                        case SEND_BASE_STATION:
-                            // Indicate LED "Base station disabled alarm"
-                            LOG_DBG("Base station disabled alarm");
+
+                    switch (rx_msg.message_type) {
+                        case MESSAGE_TYPE_DISABLE_ALARM:
+                            LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
+                            tx_msg.direction = REQUEST;
+                            switch (rx_msg.sender_addr) {
+                                case SEND_BRIGADE_CHIEF:
+                                    LOG_DBG("Brigade chief disabled alarm");
+                                    break;
+                                default:
+                                    LOG_DBG("Undefined sender address for this message type");
+                                    break;
+                            }
+                            msgq_cur_msg_tx_ptr = &msgq_tx_msg;
                             break;
-                        case SEND_BRIGADE_CHIEF:
-                            // Indicate LED "Brigade chief disabled alarm"
-                            LOG_DBG("Brigade chief disabled alarm");
+                        case MESSAGE_TYPE_ALARM:
+                            LOG_DBG(" MESSAGE_TYPE_ALARM");
+                            // TODO: On signalization, calculate workers_safe_zone
+                            msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio;
+                            break;
+                        case MESSAGE_TYPE_TRAIN_PASSED:
+                            LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
+                            msgq_cur_msg_tx_ptr = &msgq_tx_msg;
+                            break;
+                            // TODO: Off signalization
+                        case MESSAGE_TYPE_HOMEWARD:
+                            LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
+                            msgq_cur_msg_tx_ptr = NULL;
                             break;
                         default:
-                            LOG_DBG("Undefined sender address for this message type");
-                            break;
+                            LOG_DBG("Not correct message type");
+                            msgq_cur_msg_tx_ptr = NULL;
                     }
-                case MESSAGE_TYPE_HOMEWARD:
-                    LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
-                    // Indication for signalman and brigade chief
-                case MESSAGE_TYPE_RESET_DEVICE:
-                    LOG_DBG(" MESSAGE_TYPE_RESET_DEVICE");
-                    // Something that reboot system
-//                case MESSAGE_TYPE_ANTI_DREAM:
-//                    LOG_DBG(" MESSAGE_TYPE_ANTI_DREAM");
-                case MESSAGE_TYPE_TRAIN_PASSED:
-                    LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
                     break;
+
+                case RESPONSE:
+                    LOG_DBG(" RESPONSE");
+                    LOG_DBG("Message type:");
+                    switch (rx_msg.message_type) {
+                        case MESSAGE_TYPE_DISABLE_ALARM:
+                            LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+                        case MESSAGE_TYPE_ALARM:
+                            LOG_DBG(" MESSAGE_TYPE_ALARM");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+                        case MESSAGE_TYPE_TRAIN_PASSED:
+                            LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+                        case MESSAGE_TYPE_HOMEWARD:
+                            LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+                        default:
+                            LOG_DBG("Not correct message type");
+                            msgq_cur_msg_tx_ptr = NULL;
+                    }
+                    break;
+
+                default:
+                    LOG_DBG("Not correct message direction");
+                    msgq_cur_msg_tx_ptr = NULL;
+            }
+
+#endif
+
+#ifdef PERIPHERAL
+
+            switch (rx_msg.direction) {
+                case REQUEST:
+                    LOG_DBG(" REQUEST");
+                    LOG_DBG("Message type:");
+
+                    tx_msg.sender_addr = cur_dev_addr;
+                    tx_msg.message_type = rx_msg.message_type;
+                    tx_msg.workers_in_safe_zone = 0;
+                    tx_msg.direction = RESPONSE;
+                    tx_msg.battery_level = BATTERY_LEVEL_GOOD; // change it after
+                    tx_msg.receiver_addr = RECV_BASE_STATION;
+
+                    switch (rx_msg.message_type) {
+                        case MESSAGE_TYPE_SYNC:
+                            LOG_DBG(" MESSAGE_TYPE_SYNC");
+                            k_timer_stop(&periodic_timer);
+                            k_timer_start(&session_timeout_timer, K_MSEC(DEVICE_SESSION_TIMEOUT_MSEC), K_NO_WAIT);
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+
+                        case MESSAGE_TYPE_DISABLE_ALARM:
+                            LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
+                            msgq_cur_msg_tx_ptr = &msgq_tx_msg;
+                            // TODO Indication for signalman and brigade chief
+                            switch (rx_msg.sender_addr) {
+                                case SEND_BASE_STATION:
+                                    // TODO Indicate LED "Base station disabled alarm"
+                                    LOG_DBG("Base station disabled alarm");
+                                    break;
+                                case SEND_BRIGADE_CHIEF:
+                                    // TODO Indicate LED "Brigade chief disabled alarm"
+                                    LOG_DBG("Brigade chief disabled alarm");
+                                    break;
+                                default:
+                                    LOG_DBG("Undefined sender address for this message type");
+                                    break;
+                            }
+                            break;
+
+                        case MESSAGE_TYPE_HOMEWARD:
+                            LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
+                            msgq_cur_msg_tx_ptr = &msgq_tx_msg;
+                            /// TODO Indication for signalman and brigade chief
+                            break;
+
+                        case MESSAGE_TYPE_ALARM:
+                            LOG_DBG(" MESSAGE_TYPE_ALARM");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            // Do nothing, because this message for base station
+                            break;
+
+                        case MESSAGE_TYPE_TRAIN_PASSED:
+                            LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            // Do nothing, because this message for base station
+                            break;
+
+                        default:
+                            LOG_DBG("Not correct message type");
+                            msgq_cur_msg_tx_ptr = NULL;
+                    }
+                    break;
+
+                case RESPONSE:
+                    LOG_DBG(" RESPONSE");
+                    LOG_DBG("Message type:");
+                    switch (rx_msg.message_type) {
+                        case MESSAGE_TYPE_DISABLE_ALARM:
+                            LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+
+                        case MESSAGE_TYPE_HOMEWARD:
+                            LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+
+                        case MESSAGE_TYPE_ALARM:
+                            LOG_DBG(" MESSAGE_TYPE_ALARM");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+
+                        case MESSAGE_TYPE_TRAIN_PASSED:
+                            LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+
+                        default:
+                            LOG_DBG("Not correct message type");
+                            msgq_cur_msg_tx_ptr = NULL;
+                    }
+                    break;
+
+                default:
+                    LOG_DBG("Not correct message direction");
+                    msgq_cur_msg_tx_ptr = NULL;
             }
 #endif
+            if (msgq_cur_msg_tx_ptr) {
+                k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg, K_NO_WAIT);
+            }
             con_qual_leds_num = check_rssi(&rssi);
             // ligth up leds
         }
         k_sleep(K_MSEC(1));
     }
 }
+
 
 static void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write) {
     uint8_t pos = 0;
@@ -430,6 +551,7 @@ static void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, boo
         }
     }
 }
+
 
 static uint8_t check_rssi(const int16_t rssi) {
     if ( rssi >= CONNECTION_QUALITY_RSSI_1 ) {
@@ -481,6 +603,7 @@ void periodic_timer_handler(struct k_timer* tim) {
     k_wakeup(send_task_id);
 }
 
+
 #ifdef PERIPHERAL
 void session_timeout_timer_handler(struct k_timer* tim) {
     LOG_DBG("Session timer handler");
@@ -488,6 +611,7 @@ void session_timeout_timer_handler(struct k_timer* tim) {
     k_timer_start(&periodic_timer, K_MSEC(4*SLOT_TIME_MSEC), K_MSEC(4*SLOT_TIME_MSEC));
 //    k_sem_give(&sem_stop_recv);
 }
+
 
 void button_alarm_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins) {
     LOG_DBG("Button alarm pressed");
@@ -501,15 +625,16 @@ void button_alarm_pressed_cb(const struct device* dev, struct gpio_callback* cb,
     k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
 }
 
-void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins) {
-    struct message_s anti_dream_msg = {0};
-    anti_dream_msg.receiver_addr = RECV_BASE_STATION;
-    anti_dream_msg.sender_addr = cur_dev_addr;
-    anti_dream_msg.message_type = MESSAGE_TYPE_ANTI_DREAM;
-    anti_dream_msg.direction = RESPONSE;
-//    tx_msg.battery_level =
-    anti_dream_msg.workers_in_safe_zone = 0;
-    k_msgq_put(&msgq_tx_msg, &anti_dream_msg, K_NO_WAIT);
-}
+
+//void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins) {
+//    struct message_s anti_dream_msg = {0};
+//    anti_dream_msg.receiver_addr = RECV_BASE_STATION;
+//    anti_dream_msg.sender_addr = cur_dev_addr;
+//    anti_dream_msg.message_type = MESSAGE_TYPE_ANTI_DREAM;
+//    anti_dream_msg.direction = RESPONSE;
+////    tx_msg.battery_level =
+//    anti_dream_msg.workers_in_safe_zone = 0;
+//    k_msgq_put(&msgq_tx_msg, &anti_dream_msg, K_NO_WAIT);
+//}
 #endif
 /// Function definition area end

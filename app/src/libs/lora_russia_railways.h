@@ -12,13 +12,15 @@
 #include <errno.h>
 
 
-#define PERIPHERAL
+#define BASE_STATION
 #define QUEUE_LEN_IN_ELEMENTS 10
 #define SEM_LORA_BUSY_INIT_VAL 1
 #define SEM_LORA_BUSY_LIM 1
 #define SLOT_TIME_MSEC 500
 
+#ifdef BASE_STATION
 extern struct message_s sync_msg;
+#endif
 
 #ifdef PERIPHERAL
 #define DEVICE_NUM 3

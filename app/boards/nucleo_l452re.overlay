@@ -24,8 +24,8 @@
 &pll {
     status = "okay";
     div-m = <1>;            /*  16 / 1  = 16MHz  */
-    mul-n = <20>;           /*  16 * 20 = 320MHz */
-    div-r = <4>;            /* 320 / 4  = 80MHz  */
+    mul-n = <8>;           /*  16 * 8 = 128MHz */
+    div-r = <4>;            /* 128 / 4  = 32MHz  */
     clocks = <&clk_hsi>;
 };
 

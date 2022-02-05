@@ -12,11 +12,17 @@
 #include <errno.h>
 
 
-#define BASE_STATION
+#define PERIPHERAL
+
+
 #define QUEUE_LEN_IN_ELEMENTS 10
 #define SEM_LORA_BUSY_INIT_VAL 1
 #define SEM_LORA_BUSY_LIM 1
-#define SLOT_TIME_MSEC 500
+
+#define PERIODIC_TIMER_DURATION_MSEC 980
+#define STOCK_TIME_MSEC 10
+#define CORRECT_VALUE_MSEC 1
+#define RECV_TIME_MSEC 900
 
 #ifdef BASE_STATION
 extern struct message_s sync_msg;
@@ -55,14 +61,10 @@ enum LIGHT_UP_LEDS {
     LIGHT_UP_EIGHT = 8
 };
 
-//extern struct device* lora_dev_ptr;
-
-//extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
-//extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
-
-//extern struct message_s rx_msg;
-//extern struct message_s tx_msg;
-
+typedef struct modem_state_s {
+    struct modem_state_s* next;
+    void (*trancieve_fun) ();
+} modem_state_t;
 
 extern struct device* lora_dev_ptr;
 extern struct lora_modem_config lora_cfg;
@@ -75,9 +77,10 @@ void system_init();
 void system_init();
 #endif
 
-void send_task();
-void recv_task();
-void proc_task();
-//void transcieve_task();
+void start_system(void);
+void send_msg(void);
+void recv_msg(void);
+void proc_task(void);
+void modem_task(void);
 
 #endif //RADIO_SIGNALMAN_LORA_RUSSIA_RAILWAYS_H

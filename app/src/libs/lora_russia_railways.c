@@ -11,18 +11,24 @@ LOG_MODULE_REGISTER(main);
 BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
              "No default LoRa radio specified in DT");
 
-//volatile uint32_t timeout_msec = SLOT_TIME_MSEC + SLOT_TIME_MSEC*CURRENT_DEVICE_NUM;
+uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
+uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 
 /// My threads ids begin
-extern const k_tid_t recv_task_id;
-extern const k_tid_t send_task_id;
 extern const k_tid_t proc_task_id;
+extern const k_tid_t modem_task_id;
+extern const k_tid_t start_system_id;
 /// My threads ids end
 
+static modem_state_t start_state;
+static modem_state_t transmit_state;
+static modem_state_t receive_1_state;
+static modem_state_t receive_2_state;
+static modem_state_t receive_3_state;
+static modem_state_t current_state;
 
 /// Structure area begin
 struct message_s sync_msg;
-struct message_s rx_msg;
 
 struct device* lora_dev_ptr;
 struct lora_modem_config lora_cfg;
@@ -35,14 +41,13 @@ K_MSGQ_DEFINE(msgq_tx_msg, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
 K_MSGQ_DEFINE(msgq_rx_msg, MESSAGE_LEN_IN_BYTES, QUEUE_LEN_IN_ELEMENTS, 1);
 // queue for rssi values
 K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
+// queue for function pointer
+K_MSGQ_DEFINE(msgq_fun_pointer, sizeof( void (*)(void) ), QUEUE_LEN_IN_ELEMENTS, 4);
 
 
-#ifdef PERIPHERAL
-// starting session timeout timer
-struct k_timer session_timeout_timer;
-#endif
 // periodic timer (for syncro)
 struct k_timer periodic_timer;
+//struct k_timer calibration_timer;
 
 
 #ifdef PERIPHERAL
@@ -54,13 +59,15 @@ struct k_sem sem_lora_busy;
 
 struct device* button_alarm_gpio_dev_ptr;
 struct device* button_anti_dream_gpio_dev_ptr;
+
+struct message_s tx_msg = {0};
 /// Structure area end
 
 
 /// Enum area begin
 #ifdef BASE_STATION
 enum receiver_addr cur_dev_addr = RECV_BASE_STATION;
-#elif PERIPHERAL
+#else
 enum receiver_addr cur_dev_addr = RECV_SIGNALMAN_1;
 #endif
 
@@ -75,9 +82,10 @@ static uint8_t reverse(uint8_t input);
 static void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write);
 static void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t* pos);
 static uint8_t check_rssi(const int16_t rssi);
+static void start_sync(void);
 
-void periodic_timer_handler(struct k_timer* tim); // callback for timer
-void session_timeout_timer_handler(struct k_timer* tim); // tx timeout callback timer
+void periodic_timer_handler(struct k_timer* tim); // callback for periodic_timer
+void calibration_timer_handler(struct k_timer* tim); // callback for calibration_timer
 
 #ifdef PERIPHERAL
 void button_alarm_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins);
@@ -90,13 +98,20 @@ void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback
 #ifdef BASE_STATION
 void system_init() {
     struct message_s sync_msg = {0};
+    //// Kernel services init begin
+    k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
+    k_timer_init(&calibration_timer, calibration_timer_handler, NULL);
+
+    k_sem_init(&sem_lora_busy, SEM_LORA_BUSY_INIT_VAL, SEM_LORA_BUSY_LIM);
+    /// Kernel services init end
+
     /// LoRa init begin
     lora_cfg.frequency = 433000000;
     lora_cfg.bandwidth = BW_125_KHZ;
-    lora_cfg.datarate = SF_10;
+    lora_cfg.datarate = SF_12;
     lora_cfg.preamble_len = 8;
     lora_cfg.coding_rate = CR_4_5;
-    lora_cfg.tx_power = 5;
+    lora_cfg.tx_power = 0;
     lora_cfg.tx = true;
 
     lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
@@ -104,34 +119,18 @@ void system_init() {
     if (!device_is_ready(lora_dev_ptr)) {
         return;
     }
+
     if ( lora_config(lora_dev_ptr, &lora_cfg) < 0 ) {
         return;
     }
     /// LoRa init end
-
-    //// Kernel services init begin
-    k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
-
-    k_sem_init(&sem_lora_busy, SEM_LORA_BUSY_INIT_VAL, SEM_LORA_BUSY_LIM);
-    /// Kernel services init end
-
-    /// Send sync message
-    sync_msg.receiver_addr = RECV_BROADCAST;
-    sync_msg.sender_addr = cur_dev_addr;
-    sync_msg.message_type = MESSAGE_TYPE_SYNC;
-    sync_msg.direction = REQUEST;
-    sync_msg.workers_in_safe_zone = 0;
-    sync_msg.battery_level = BATTERY_LEVEL_GOOD;
-    k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
-
-    k_timer_start(&periodic_timer, K_MSEC(4*SLOT_TIME_MSEC), K_MSEC(4*SLOT_TIME_MSEC));
 }
 #else
 void system_init() {
     /// LoRa init begin
     lora_cfg.frequency = 433000000;
     lora_cfg.bandwidth = BW_125_KHZ;
-    lora_cfg.datarate = SF_10;
+    lora_cfg.datarate = SF_12;
     lora_cfg.preamble_len = 8;
     lora_cfg.coding_rate = CR_4_5;
     lora_cfg.tx_power = 5;
@@ -169,10 +168,9 @@ void system_init() {
 
     //// Kernel services init begin
     k_sem_init(&sem_lora_busy, SEM_LORA_BUSY_INIT_VAL, SEM_LORA_BUSY_LIM);
-//    k_sem_init(&sem_stop_recv, SEM_STOP_RECV_INIT_VAL, SEM_STOP_RECV_LIM);
 
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
-    k_timer_init(&session_timeout_timer, session_timeout_timer_handler, NULL);
+//    k_timer_init(&calibration_timer, calibration_timer_handler, NULL);
     /// Kernel services init end
 }
 #endif
@@ -181,6 +179,7 @@ void system_init() {
 static void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len, uint8_t* pos) {
     uint8_t start_pos = *pos;
     while ( *pos < start_pos + field_len ) {
+        *msg_ptr &= ( ~BIT(*pos) ); // clear bit
         *msg_ptr |= ( field_val & BIT((*pos) - start_pos) ) << start_pos;
         (*pos)++;
     }
@@ -190,6 +189,7 @@ static void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t fie
 static void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t* field_val, uint8_t field_len, uint8_t* pos) {
     uint8_t start_pos = *pos;
     while ( *pos < start_pos + field_len ) {
+        *field_val &= ( ~BIT((*pos) - start_pos) ); // clear bit
         (*field_val) |= ( (*msg_ptr) & BIT((*pos) ) ) >> start_pos;
         (*pos)++;
     }
@@ -212,139 +212,227 @@ static uint8_t reverse(uint8_t input) {
     return output;
 }
 
-
-_Noreturn void send_task(void) {
-    uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
-    struct message_s tx_msg = {0};
-    volatile int rc = 0;
-    uint32_t new_msg = 0;
-    while(1) {
-        LOG_DBG("Check queues");
-        if ( k_msgq_num_used_get(&msgq_tx_msg_prio) ) {
-            k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
-        }
-        else if ( k_msgq_num_used_get(&msgq_tx_msg) ) {
-            k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
-        }
-        else {
-            k_thread_resume(recv_task_id);
-            k_sleep(K_FOREVER);
-            continue;
-        }
-
-        read_write_message(&new_msg, &tx_msg, true);
-        for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
-            tx_buf[i] = (new_msg & (0x000000FF << i*8) ) >> i*8;
-            tx_buf[i] = reverse(tx_buf[i]);
-        }
-        LOG_DBG("Take semaphore sem_lora_busy");
-        k_sem_take(&sem_lora_busy, K_FOREVER);
-        if (!lora_cfg.tx) {
-            lora_cfg.tx = true;
-            rc = lora_config(lora_dev_ptr, &lora_cfg);
-        }
-        LOG_DBG("Send message");
-        rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
-        LOG_DBG("Message sending");
-        LOG_DBG("Give semaphore sem_lora_busy");
-        k_sem_give(&sem_lora_busy);
-        k_wakeup(recv_task_id);
-        k_sleep(K_FOREVER);
-    }
-}
-
-
-_Noreturn void recv_task(void) {
 #ifdef BASE_STATION
-    system_init();
+void start_system(void) {
+    volatile int rc = -1;
+    uint32_t new_msg = 0;
 
+    system_init();
+    k_sleep(K_SECONDS(2));
+
+    /// Filling list elements begin
+    start_state.next = &transmit_state;
+    start_state.trancieve_fun = NULL;
+
+    receive_1_state.next = &receive_2_state;
+    receive_1_state.trancieve_fun = recv_msg;
+
+    receive_2_state.next = &receive_3_state;
+    receive_2_state.trancieve_fun = recv_msg;
+
+    receive_3_state.next = &transmit_state;
+    receive_3_state.trancieve_fun = recv_msg;
+
+    transmit_state.next = &receive_1_state;
+    transmit_state.trancieve_fun = send_msg;
+    /// Filling list elements end
+
+    /// Send sync message
+    sync_msg.receiver_addr = RECV_BROADCAST;
+    sync_msg.sender_addr = cur_dev_addr;
+    sync_msg.message_type = MESSAGE_TYPE_SYNC;
+    sync_msg.direction = REQUEST;
+    sync_msg.workers_in_safe_zone = 0;
+    sync_msg.battery_level = BATTERY_LEVEL_GOOD;
+    k_timer_start(&periodic_timer, K_MSEC(10000), K_NO_WAIT);
+    read_write_message(&new_msg, &sync_msg, true);
+    for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
+        tx_buf[i] = (new_msg & (0x000000FF << i*8) ) >> i*8;
+        tx_buf[i] = reverse(tx_buf[i]);
+    }
+//    volatile uint64_t ticks = k_ticks_to_ms_floor64(k_timer_remaining_ticks(&periodic_timer));
+    rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
+//    volatile uint64_t ticks_1 = k_ticks_to_ms_floor64(k_timer_remaining_ticks(&periodic_timer));
+    current_state = receive_1_state;
+    k_sleep(K_MSEC(150));
+    k_timer_start(&periodic_timer, K_MSEC(PERIODIC_TIMER_DURATION_MSEC),
+                  K_MSEC(PERIODIC_TIMER_DURATION_MSEC));
+}
 #else
-    system_init();
-
-#endif
-    volatile int rc = 0;
-    volatile uint32_t ticks = 0;
-    uint8_t rx_msg[MESSAGE_LEN_IN_BYTES] = {0};
+void start_system(void) {
+    volatile int rc = -1;
+    uint32_t new_msg = 0;
     int16_t rssi = 0;
     int8_t snr = 0;
-    uint8_t ind = 0;
-#ifdef PERIPHERAL
-    // Receive first sync message
-    LOG_DBG("Start sync");
-    rc = lora_recv(lora_dev_ptr, rx_msg, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
-    if (rc > 0) {
-        k_msgq_put(&msgq_rx_msg, &rx_msg, K_NO_WAIT);
-        k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
-        k_sleep(K_FOREVER);
-    }
+
+    system_init();
+
+    /// Filling list elements begin
+    start_state.next = &receive_1_state;
+    start_state.trancieve_fun = NULL;
+
+    receive_1_state.next = &receive_2_state;
+    receive_1_state.trancieve_fun = recv_msg;
+
+    receive_2_state.next = &receive_3_state;
+    receive_2_state.trancieve_fun = recv_msg;
+
+    receive_3_state.next = &transmit_state;
+    receive_3_state.trancieve_fun = recv_msg;
+
+    transmit_state.next = &receive_1_state;
+    transmit_state.trancieve_fun = send_msg;
+
+    current_state = start_state;
+    /// Filling list elements end
+
+    /// Send sync message
+//    k_timer_start(&periodic_timer, K_MSEC(PERIODIC_TIMER_DURATION_MSEC), K_MSEC(PERIODIC_TIMER_DURATION_MSEC));
+    rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
+//    if ( (rc > 0) ) {
+//        k_msgq_put(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
+//        k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
+//        k_wakeup(proc_task_id);
+//    }
+    current_state = transmit_state;
+    k_sleep(K_MSEC(150));
+    k_timer_start(&periodic_timer, K_MSEC(PERIODIC_TIMER_DURATION_MSEC),
+                  K_MSEC(PERIODIC_TIMER_DURATION_MSEC));
+}
 #endif
 
-    while(1) {
-        LOG_DBG("Take semaphore sem_lora_busy");
-        k_sem_take(&sem_lora_busy, K_FOREVER);
-        if (lora_cfg.tx) {
-            lora_cfg.tx = false;
-            lora_config(lora_dev_ptr, &lora_cfg);
+void send_msg(void) {
+    volatile int rc = 0;
+    uint32_t new_msg = 0;
+    struct k_msgq* cur_queue = NULL;
+//    LOG_DBG("Check queues");
+
+    if ( k_msgq_num_used_get(&msgq_tx_msg_prio) ) {
+//        LOG_DBG("Get message from priority queue");
+        rc = k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg_prio;
+    }
+    else if ( k_msgq_num_used_get(&msgq_tx_msg) ) {
+//        LOG_DBG("Get message from standart queue");
+        rc = k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg;
+    }
+    else {
+        return;
+    }
+
+    read_write_message(&new_msg, &tx_msg, true);
+    for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
+        tx_buf[i] = (new_msg & (0x000000FF << i*8) ) >> i*8;
+        tx_buf[i] = reverse(tx_buf[i]);
+    }
+
+    if (!lora_cfg.tx) {
+        lora_cfg.tx = true;
+        rc = lora_config(lora_dev_ptr, &lora_cfg);
+        if (rc < 0) {
+            LOG_DBG("Modem not configure!!!");
+            k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
+            return;
         }
-        ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
-        LOG_DBG("Start receiving");
-        rc = lora_recv(lora_dev_ptr, rx_msg, MESSAGE_LEN_IN_BYTES, K_MSEC(ticks), &rssi, &snr);
-        if (rc > 0) {
-            k_msgq_put(&msgq_rx_msg, &rx_msg, K_NO_WAIT);
-            k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
+    }
+//    LOG_DBG("Send message");
+    rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
+//    LOG_DBG("Message sending");
+}
+
+
+void recv_msg(void) {
+    volatile int rc = -1;
+    volatile uint32_t ticks = 0;
+//    uint8_t rx_msg[MESSAGE_LEN_IN_BYTES] = {0};
+    int16_t rssi = 0;
+    int8_t snr = 0;
+
+    if (lora_cfg.tx) {
+        lora_cfg.tx = false;
+        rc = lora_config(lora_dev_ptr, &lora_cfg);
+        if (rc < 0) {
+            return;
         }
-        LOG_DBG("Give semaphore sem_lora_busy");
-        k_sem_give(&sem_lora_busy);
+    }
+
+//    LOG_DBG("Start receiving");
+    rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES,K_MSEC(RECV_TIME_MSEC), &rssi, &snr);
+    if (rc > 0) {
+        k_msgq_put(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
+        k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
+        k_wakeup(proc_task_id);
     }
 }
 
+
+_Noreturn void modem_task() {
+    void (*f_ptr) (void) = NULL;
+    volatile int rc = 0;
+    while(1) {
+        if (k_msgq_num_used_get(&msgq_fun_pointer)) {
+            rc = k_msgq_get(&msgq_fun_pointer, &f_ptr, K_NO_WAIT);
+            if (rc < 0) {
+                continue;
+            }
+            f_ptr();
+        }
+        k_sleep(K_USEC(100));
+    }
+}
 
 _Noreturn void proc_task() {
     uint8_t con_qual_leds_num = 0;
-    uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
     int16_t rssi = 0;
     uint32_t cur_msg = 0;
-    struct message_s tx_msg = {0};
+    struct message_s tx_msg_proc = {0};
+    struct message_s rx_msg_proc = {0};
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
-
+    uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
     while(1) {
-        if ( k_msgq_num_free_get(&msgq_rx_msg) != QUEUE_LEN_IN_ELEMENTS ) {
-            k_msgq_get(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
+        if ( k_msgq_num_used_get(&msgq_rx_msg) ) {
+            k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
             k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
+            if (rx_buf_proc[0] == rx_buf_proc[1] == rx_buf_proc[2] == 0) {
+                LOG_DBG("Empty message");
+                continue;
+            }
 
             /// Processing receive data
+            cur_msg = 0;
             for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
-                rx_buf[i] = reverse(rx_buf[i]);
-                cur_msg |= (rx_buf[i]) << i*8;
+                rx_buf_proc[i] = reverse(rx_buf_proc[i]);
+                cur_msg |= (rx_buf_proc[i]) << i*8;
             }
-            LOG_DBG("Incoming packet...");
-            read_write_message(&cur_msg, &rx_msg, false); // rx_msg struct is fill
-            if ( (rx_msg.receiver_addr != RECV_BROADCAST) && (rx_msg.receiver_addr != cur_dev_addr) ) {
-                LOG_DBG("addr = 0x%02x, own addr = 0x%02x", rx_msg.receiver_addr, cur_dev_addr);
+//            LOG_DBG("Incoming packet...");
+            read_write_message(&cur_msg, &rx_msg_proc, false); // rx_msg struct is fill
+            if ( (rx_msg_proc.receiver_addr != RECV_BROADCAST) && (rx_msg_proc.receiver_addr != cur_dev_addr) ) {
+                LOG_DBG("addr = 0x%02x, own addr = 0x%02x", rx_msg_proc.receiver_addr, cur_dev_addr);
                 LOG_DBG("Packet is filtered");
                 continue;
             }
 
-            LOG_DBG("Message direction");
+//            LOG_DBG("Message direction");
 #ifdef BASE_STATION
 
-            switch (rx_msg.direction) {
+            switch (rx_msg_proc.direction) {
                 case REQUEST:
                     LOG_DBG(" REQUEST");
                     LOG_DBG("Message type:");
 
-                    tx_msg.sender_addr = rx_msg.sender_addr;
-                    tx_msg.message_type = rx_msg.message_type;
-                    tx_msg.workers_in_safe_zone = 0;
-                    tx_msg.battery_level = BATTERY_LEVEL_GOOD; // change it after
-                    tx_msg.receiver_addr = RECV_BROADCAST;
-                    tx_msg.direction = RESPONSE;
+                    tx_msg_proc.sender_addr = rx_msg_proc.sender_addr;
+                    tx_msg_proc.message_type = rx_msg_proc.message_type;
+                    tx_msg_proc.workers_in_safe_zone = 0;
+                    tx_msg_proc.battery_level = BATTERY_LEVEL_GOOD; // change it after
+                    tx_msg_proc.receiver_addr = RECV_BROADCAST;
+                    tx_msg_proc.direction = RESPONSE;
 
-                    switch (rx_msg.message_type) {
+                    switch (rx_msg_proc.message_type) {
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
-                            tx_msg.direction = REQUEST;
-                            switch (rx_msg.sender_addr) {
+                            tx_msg_proc.direction = REQUEST;
+                            switch (rx_msg_proc.sender_addr) {
                                 case SEND_BRIGADE_CHIEF:
                                     LOG_DBG("Brigade chief disabled alarm");
                                     break;
@@ -377,7 +465,7 @@ _Noreturn void proc_task() {
                 case RESPONSE:
                     LOG_DBG(" RESPONSE");
                     LOG_DBG("Message type:");
-                    switch (rx_msg.message_type) {
+                    switch (rx_msg_proc.message_type) {
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
                             msgq_cur_msg_tx_ptr = NULL;
@@ -409,23 +497,28 @@ _Noreturn void proc_task() {
 
 #ifdef PERIPHERAL
 
-            switch (rx_msg.direction) {
+            switch (rx_msg_proc.direction) {
                 case REQUEST:
                     LOG_DBG(" REQUEST");
-                    LOG_DBG("Message type:");
+//                    LOG_DBG("Message type:");
 
-                    tx_msg.sender_addr = cur_dev_addr;
-                    tx_msg.message_type = rx_msg.message_type;
-                    tx_msg.workers_in_safe_zone = 0;
-                    tx_msg.direction = RESPONSE;
-                    tx_msg.battery_level = BATTERY_LEVEL_GOOD; // change it after
-                    tx_msg.receiver_addr = RECV_BASE_STATION;
+                    tx_msg_proc.sender_addr = cur_dev_addr;
+                    tx_msg_proc.message_type = rx_msg_proc.message_type;
+                    tx_msg_proc.workers_in_safe_zone = 0;
+                    tx_msg_proc.direction = RESPONSE;
+                    tx_msg_proc.battery_level = BATTERY_LEVEL_GOOD; // change it after
+                    tx_msg_proc.receiver_addr = RECV_BASE_STATION;
 
-                    switch (rx_msg.message_type) {
+                    switch (rx_msg_proc.message_type) {
                         case MESSAGE_TYPE_SYNC:
                             LOG_DBG(" MESSAGE_TYPE_SYNC");
                             k_timer_stop(&periodic_timer);
-                            k_timer_start(&session_timeout_timer, K_MSEC(DEVICE_SESSION_TIMEOUT_MSEC), K_NO_WAIT);
+                            // little delay to account execution time
+                            k_sleep(K_MSEC(100));
+                            k_timer_start(&periodic_timer, K_MSEC(PERIODIC_TIMER_DURATION_MSEC),
+                                           K_MSEC(PERIODIC_TIMER_DURATION_MSEC));
+                            current_state = transmit_state;
+                            k_msgq_purge(&msgq_fun_pointer);
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
 
@@ -433,7 +526,7 @@ _Noreturn void proc_task() {
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
                             msgq_cur_msg_tx_ptr = &msgq_tx_msg;
                             // TODO Indication for signalman and brigade chief
-                            switch (rx_msg.sender_addr) {
+                            switch (rx_msg_proc.sender_addr) {
                                 case SEND_BASE_STATION:
                                     // TODO Indicate LED "Base station disabled alarm"
                                     LOG_DBG("Base station disabled alarm");
@@ -456,14 +549,15 @@ _Noreturn void proc_task() {
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
-                            msgq_cur_msg_tx_ptr = NULL;
-                            // Do nothing, because this message for base station
+                            if (rx_msg_proc.sender_addr == cur_dev_addr)
+                                msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio; // For response message
+                            else
+                                msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
                             break;
 
                         case MESSAGE_TYPE_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
-                            msgq_cur_msg_tx_ptr = NULL;
-                            // Do nothing, because this message for base station
+                            msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
                             break;
 
                         default:
@@ -475,7 +569,7 @@ _Noreturn void proc_task() {
                 case RESPONSE:
                     LOG_DBG(" RESPONSE");
                     LOG_DBG("Message type:");
-                    switch (rx_msg.message_type) {
+                    switch (rx_msg_proc.message_type) {
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
                             msgq_cur_msg_tx_ptr = NULL;
@@ -508,12 +602,12 @@ _Noreturn void proc_task() {
             }
 #endif
             if (msgq_cur_msg_tx_ptr) {
-                k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg, K_NO_WAIT);
+                k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
             }
             con_qual_leds_num = check_rssi(&rssi);
             // ligth up leds
         }
-        k_sleep(K_MSEC(1));
+        k_sleep(K_USEC(100));
     }
 }
 
@@ -585,34 +679,37 @@ static uint8_t check_rssi(const int16_t rssi) {
 
 
 void periodic_timer_handler(struct k_timer* tim) {
-    LOG_DBG("Periodic timer handler");
-    LOG_DBG("Take semaphore sem_lora_busy");
-    if ( !k_sem_take(&sem_lora_busy, K_FOREVER) ) {
-        k_thread_suspend(recv_task_id);
-    }
-    LOG_DBG("Give semaphore sem_lora_busy");
-    k_sem_give(&sem_lora_busy);
+//    LOG_DBG("Periodic timer handler");
+    current_state = (*current_state.next);
 #ifdef BASE_STATION
-    static uint8_t count = 0;
-    if (count == 10) {
+    static uint8_t count = 1;
+    if (count == 36) {      // should divide on 4
+        sync_msg.receiver_addr = RECV_BROADCAST;
+        sync_msg.sender_addr = cur_dev_addr;
+        sync_msg.message_type = MESSAGE_TYPE_SYNC;
+        sync_msg.direction = REQUEST;
+        sync_msg.workers_in_safe_zone = 0;
+        sync_msg.battery_level = BATTERY_LEVEL_GOOD;
         k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
         count = 0;
     }
     count++;
 #endif
-    k_wakeup(send_task_id);
+    k_msgq_put(&msgq_fun_pointer,&(current_state.trancieve_fun), K_NO_WAIT);
+    k_wakeup(modem_task_id);
 }
+
+//void calibration_timer_handler(struct k_timer* tim) {
+////    LOG_DBG("Start timer handler");
+//    current_state = (*current_state.next);
+//    k_timer_start(&periodic_timer, K_MSEC(PERIODIC_TIMER_DURATION_MSEC),
+//                  K_MSEC(PERIODIC_TIMER_DURATION_MSEC));
+//    k_msgq_put(&msgq_fun_pointer,&(current_state.trancieve_fun), K_NO_WAIT);
+//    k_wakeup(modem_task_id);
+//}
 
 
 #ifdef PERIPHERAL
-void session_timeout_timer_handler(struct k_timer* tim) {
-    LOG_DBG("Session timer handler");
-    k_wakeup(send_task_id);
-    k_timer_start(&periodic_timer, K_MSEC(4*SLOT_TIME_MSEC), K_MSEC(4*SLOT_TIME_MSEC));
-//    k_sem_give(&sem_stop_recv);
-}
-
-
 void button_alarm_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins) {
     LOG_DBG("Button alarm pressed");
     struct message_s alarm_msg = {0};

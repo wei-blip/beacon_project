@@ -1234,7 +1234,7 @@
 			compatible = "st,stm32l4-pll-clock";
 			status = "okay";
 			div-m = < 0x1 >;
-			mul-n = < 0x14 >;
+			mul-n = < 0x8 >;
 			div-p = < 0x7 >;
 			div-q = < 0x2 >;
 			div-r = < 0x4 >;

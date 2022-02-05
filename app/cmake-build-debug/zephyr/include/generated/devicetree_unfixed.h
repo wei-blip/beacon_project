@@ -1453,7 +1453,7 @@
 #define DT_N_S_clocks_S_pll_P_clocks_EXISTS 1
 #define DT_N_S_clocks_S_pll_P_div_m 1
 #define DT_N_S_clocks_S_pll_P_div_m_EXISTS 1
-#define DT_N_S_clocks_S_pll_P_mul_n 20
+#define DT_N_S_clocks_S_pll_P_mul_n 8
 #define DT_N_S_clocks_S_pll_P_mul_n_EXISTS 1
 #define DT_N_S_clocks_S_pll_P_div_p 7
 #define DT_N_S_clocks_S_pll_P_div_p_ENUM_IDX 0

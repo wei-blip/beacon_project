@@ -382,7 +382,9 @@
 			"sourceIndexes" : 
 			[
 				0,
-				1
+				1,
+				2,
+				3
 			]
 		}
 	],
@@ -420,7 +422,9 @@
 			"sourceIndexes" : 
 			[
 				0,
-				1
+				1,
+				2,
+				3
 			]
 		}
 	],
@@ -429,7 +433,19 @@
 		{
 			"backtrace" : 15,
 			"compileGroupIndex" : 0,
-			"path" : "src/libs/lora_russia_railways.c",
+			"path" : "src/libs/lora_russia_railways_base_station.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 15,
+			"compileGroupIndex" : 0,
+			"path" : "src/libs/lora_russia_railways_common.c",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 15,
+			"compileGroupIndex" : 0,
+			"path" : "src/libs/lora_russia_railways_peripheral.c",
 			"sourceGroupIndex" : 0
 		},
 		{

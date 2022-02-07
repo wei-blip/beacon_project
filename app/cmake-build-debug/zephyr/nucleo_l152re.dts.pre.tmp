@@ -985,7 +985,7 @@ arduino_serial: &usart2 {};
         dio-gpios = <&gpioc 0 ((0 << 0) | (1 << 5))>,
                     <&gpioc 1 ((0 << 0) | (1 << 5))>,
                     <&gpioc 2 ((0 << 0) | (1 << 5))>,
-                    <&gpioa 3 ((0 << 0) | (1 << 5))>;
+                    <&gpioc 3 ((0 << 0) | (1 << 5))>;
         power-amplifier-output = "pa-boost";
         spi-max-frequency = <500000>;
     };

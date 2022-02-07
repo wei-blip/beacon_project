@@ -15,20 +15,10 @@ Including boilerplate (Freestanding): /home/rts/zephyr-2.7.0/zephyr/cmake/app/bo
 -- Generated devicetree_unfixed.h: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/devicetree_unfixed.h
 -- Generated device_extern.h: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/device_extern.h
 -- Including generated dts.cmake file: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/dts.cmake
-
-warning: The choice symbol ENTROPY_DEVICE_RANDOM_GENERATOR (defined at subsys/random/Kconfig:37) was
-selected (set =y), but no symbol ended up as the choice selection. See
-http://docs.zephyrproject.org/latest/reference/kconfig/CONFIG_ENTROPY_DEVICE_RANDOM_GENERATOR.html
-and/or look up ENTROPY_DEVICE_RANDOM_GENERATOR in the menuconfig/guiconfig interface. The
-Application Development Primer, Setting Configuration Values, and Kconfig - Tips and Best Practices
-sections of the manual might be helpful too.
-
 Parsing /home/rts/zephyr-2.7.0/zephyr/Kconfig
-Loaded configuration '/home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l452re/nucleo_l452re_defconfig'
-Merged configuration 'prj.Debug.conf'
-Merged configuration 'prj.conf'
-Configuration saved to '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/.config'
-Kconfig header saved to '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/autoconf.h'
+Loaded configuration '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/.config'
+No change to configuration in '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/.config'
+No change to Kconfig header in '/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/autoconf.h'
 /opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb: error while loading shared libraries: libpython3.8.so.1.0: cannot open shared object file: No such file or directory
 -- The C compiler identification is GNU 10.3.0
 -- The CXX compiler identification is GNU 10.3.0

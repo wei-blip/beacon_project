@@ -92,7 +92,7 @@
 				reg = < 0x48000000 0x400 >;
 				clocks = < &rcc 0x1 0x1 >;
 				label = "GPIOA";
-				phandle = < 0xf >;
+				phandle = < 0x14 >;
 			};
 			gpiob: gpio@48000400 {
 				compatible = "st,stm32-gpio";
@@ -187,7 +187,7 @@
 			can1_rx_pa11: can1_rx_pa11 {
 				pinmux = < 0xb09 >;
 				bias-pull-up;
-				phandle = < 0x12 >;
+				phandle = < 0x11 >;
 			};
 			can1_rx_pb5: can1_rx_pb5 {
 				pinmux = < 0x1503 >;
@@ -203,7 +203,7 @@
 			};
 			can1_tx_pa12: can1_tx_pa12 {
 				pinmux = < 0xc09 >;
-				phandle = < 0x13 >;
+				phandle = < 0x12 >;
 			};
 			can1_tx_pb6: can1_tx_pb6 {
 				pinmux = < 0x1608 >;
@@ -555,7 +555,7 @@
 			};
 			tim2_ch1_pa0: tim2_ch1_pa0 {
 				pinmux = < 0x1 >;
-				phandle = < 0x10 >;
+				phandle = < 0xf >;
 			};
 			tim2_ch2_pa1: tim2_ch2_pa1 {
 				pinmux = < 0x101 >;
@@ -918,7 +918,7 @@
 				reg = < 0x0 >;
 				label = "sx1278";
 				reset-gpios = < &gpiob 0x0 0x7 >;
-				dio-gpios = < &gpioc 0x0 0x20 >, < &gpioc 0x1 0x20 >, < &gpioc 0x2 0x20 >, < &gpioa 0x3 0x20 >;
+				dio-gpios = < &gpioc 0x0 0x20 >, < &gpioc 0x1 0x20 >, < &gpioc 0x2 0x20 >, < &gpioc 0x3 0x20 >;
 				power-amplifier-output = "pa-boost";
 				spi-max-frequency = < 0x7a120 >;
 			};
@@ -1209,7 +1209,7 @@
 			compatible = "fixed-clock";
 			clock-frequency = < 0xf42400 >;
 			status = "okay";
-			phandle = < 0x14 >;
+			phandle = < 0x13 >;
 		};
 		clk_msi: clk-msi {
 			#clock-cells = < 0x0 >;
@@ -1246,7 +1246,7 @@
 		compatible = "usb-nop-xceiv";
 		#phy-cells = < 0x0 >;
 		label = "USB_FS_PHY";
-		phandle = < 0x11 >;
+		phandle = < 0x10 >;
 	};
 	arduino_header: connector {
 		compatible = "arduino-header-r3";

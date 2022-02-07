@@ -1877,8 +1877,7 @@
 
 /* Ordinals for what depends directly on this node: */
 #define DT_N_S_soc_S_pin_controller_48000000_S_gpio_48000000_SUPPORTS_ORDS \
-	22, /* /leds/led_0 */ \
-	233, /* /soc/spi@40013000/sx1278@0 */
+	22, /* /leds/led_0 */
 
 /* Existence and alternate IDs: */
 #define DT_N_S_soc_S_pin_controller_48000000_S_gpio_48000000_EXISTS 1
@@ -21835,7 +21834,6 @@
 /* Ordinals for what this node depends on directly: */
 #define DT_N_S_soc_S_spi_40013000_S_sx1278_0_REQUIRES_ORDS \
 	18, /* /soc/pin-controller@48000000/gpio@48000800 */ \
-	21, /* /soc/pin-controller@48000000/gpio@48000000 */ \
 	228, /* /soc/pin-controller@48000000/gpio@48000400 */ \
 	232, /* /soc/spi@40013000 */
 
@@ -21892,7 +21890,7 @@
 #define DT_N_S_soc_S_spi_40013000_S_sx1278_0_P_dio_gpios_IDX_2_VAL_flags 32
 #define DT_N_S_soc_S_spi_40013000_S_sx1278_0_P_dio_gpios_IDX_2_VAL_flags_EXISTS 1
 #define DT_N_S_soc_S_spi_40013000_S_sx1278_0_P_dio_gpios_IDX_3_EXISTS 1
-#define DT_N_S_soc_S_spi_40013000_S_sx1278_0_P_dio_gpios_IDX_3_PH DT_N_S_soc_S_pin_controller_48000000_S_gpio_48000000
+#define DT_N_S_soc_S_spi_40013000_S_sx1278_0_P_dio_gpios_IDX_3_PH DT_N_S_soc_S_pin_controller_48000000_S_gpio_48000800
 #define DT_N_S_soc_S_spi_40013000_S_sx1278_0_P_dio_gpios_IDX_3_VAL_pin 3
 #define DT_N_S_soc_S_spi_40013000_S_sx1278_0_P_dio_gpios_IDX_3_VAL_pin_EXISTS 1
 #define DT_N_S_soc_S_spi_40013000_S_sx1278_0_P_dio_gpios_IDX_3_VAL_flags 32

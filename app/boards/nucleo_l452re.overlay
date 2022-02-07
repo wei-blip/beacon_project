@@ -15,7 +15,7 @@
         dio-gpios = <&gpioc 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
                     <&gpioc 1 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
                     <&gpioc 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
-                    <&gpioa 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+                    <&gpioc 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
         power-amplifier-output = "pa-boost";
         spi-max-frequency = <500000>;
     };

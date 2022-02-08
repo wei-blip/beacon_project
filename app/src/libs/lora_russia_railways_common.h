@@ -1,40 +1,56 @@
 //
 // Created by rts on 05.02.2022.
 //
-
-#include "message_format.h"
-
 #ifndef RADIO_SIGNALMAN_LORA_RUSSIA_RAILWAYS_COMMON_H
 #define RADIO_SIGNALMAN_LORA_RUSSIA_RAILWAYS_COMMON_H
+
+#include <devicetree.h>
+#include <device.h>
+#include <errno.h>
+#include <drivers/lora.h>
+#include <drivers/gpio.h>
+
+#include "message_format.h"
+#include "indication.h"
+
+#define DEFAULT_RADIO_NODE DT_NODELABEL(lora0)
+BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
+             "No default LoRa radio specified in DT");
 
 #define QUEUE_LEN_IN_ELEMENTS 10
 
 #define CURRENT_DEVICE_NUM 1
 
 #define SLOT_TIME_MSEC 980UL
-#define PERIOD_TIME_MSEC 3920UL
-#define DURATION_TIME_MSEC 0U
+#define PERIOD_TIME_MSEC (4*SLOT_TIME_MSEC)
+#define DURATION_TIME_MSEC (SLOT_TIME_MSEC*(CURRENT_DEVICE_NUM-1))
 #define DELAY_TIME_MSEC 150U
 #define STOCK_TIME_MSEC 10
 #define CORRECT_VALUE_MSEC 10
 #define RECV_TIME_MSEC 900
 
+#define BUZZER_GPIO_PORT "GPIOA"
+#define BUZZER_GPIO_PIN 1
 
-void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len, uint8_t* pos);
+#define IS_SYNC_MSG ( (rx_buf[0] == 193) && (rx_buf[1] == 64) && (rx_buf[2] == 0) )
+
+void system_init(void);
 uint8_t reverse(uint8_t input);
+uint8_t check_rssi(int16_t rssi);
+void work_buzzer_handler(struct k_work *item);
 void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write);
+void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len, uint8_t* pos);
 void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t* pos);
-uint8_t check_rssi(const int16_t rssi);
 
 
 enum CONNECTION_QUALITY_RSSI {
-    CONNECTION_QUALITY_RSSI_1 = -50,
-    CONNECTION_QUALITY_RSSI_2 = -60,
-    CONNECTION_QUALITY_RSSI_3 = -70,
-    CONNECTION_QUALITY_RSSI_4 = -80,
-    CONNECTION_QUALITY_RSSI_5 = -90,
-    CONNECTION_QUALITY_RSSI_6 = -100,
-    CONNECTION_QUALITY_RSSI_7 = -110,
+    CONNECTION_QUALITY_RSSI_1 = -70,
+    CONNECTION_QUALITY_RSSI_2 = -80,
+    CONNECTION_QUALITY_RSSI_3 = -90,
+    CONNECTION_QUALITY_RSSI_4 = -100,
+    CONNECTION_QUALITY_RSSI_5 = -105,
+    CONNECTION_QUALITY_RSSI_6 = -110,
+    CONNECTION_QUALITY_RSSI_7 = -115,
     CONNECTION_QUALITY_RSSI_8 = -120
 };
 
@@ -60,5 +76,24 @@ typedef struct modem_state_s {
     struct modem_state_s* next;
     enum MODEM_STATES state;
 } modem_state_t;
+
+/// Extern variable declaration begin
+extern struct lora_modem_config lora_cfg;
+
+extern const struct device* lora_dev_ptr;
+
+extern struct k_timer periodic_timer;
+extern struct k_work work_buzzer;
+
+extern struct message_s tx_msg;
+
+extern struct k_msgq msgq_tx_msg_prio;
+extern struct k_msgq msgq_tx_msg;
+extern struct k_msgq msgq_rx_msg;
+extern struct k_msgq msgq_rssi;
+
+extern uint8_t tx_buf[];
+extern uint8_t rx_buf[];
+/// Extern variable declaration end
 
 #endif //RADIO_SIGNALMAN_LORA_RUSSIA_RAILWAYS_COMMON_H

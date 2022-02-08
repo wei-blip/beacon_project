@@ -1,0 +1,5 @@
+# RS_0022_100 board configuration
+
+config BOARD_RS_0022_100
+	bool "RS.0022-100 Board"
+	depends on SOC_STM32L452XX

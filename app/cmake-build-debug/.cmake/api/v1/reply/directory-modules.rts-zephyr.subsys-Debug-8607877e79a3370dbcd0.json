@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "modules/rts-zephyr/subsys",
+		"source" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/subsys"
+	}
+}

@@ -1,5 +1,6 @@
 menu "Device Drivers"
 
 rsource "uwb/Kconfig"
+rsource "led_strip/Kconfig"
 
 endmenu

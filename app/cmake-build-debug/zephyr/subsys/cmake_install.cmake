@@ -39,86 +39,86 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/debug/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/debug/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/logging/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/logging/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/cpp/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/cpp/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/fs/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/fs/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/ipc/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/ipc/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/mgmt/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/mgmt/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/random/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/random/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/storage/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/storage/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/fb/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/fb/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/portability/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/portability/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/pm/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/pm/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/stats/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/stats/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/task_wdt/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/task_wdt/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/testsuite/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/testsuite/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/tracing/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/tracing/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/canbus/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/canbus/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/subsys/modbus/cmake_install.cmake")
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/subsys/modbus/cmake_install.cmake")
 endif()
 

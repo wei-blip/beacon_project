@@ -4,7 +4,71 @@
 #include "lora_russia_railways_common.h"
 
 
-void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len, uint8_t* pos) {
+/// Extern variable definition and initialisation begin
+// priority queue for sending messages
+K_MSGQ_DEFINE(msgq_tx_msg_prio, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
+// none priority queue for sending messages
+K_MSGQ_DEFINE(msgq_tx_msg, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
+// queue for receiving messages
+K_MSGQ_DEFINE(msgq_rx_msg, MESSAGE_LEN_IN_BYTES, QUEUE_LEN_IN_ELEMENTS, 1);
+// queue for rssi values
+K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
+
+const struct device *lora_dev_ptr = {0};
+const struct device *buzzer_dev_ptr = {0};
+
+struct lora_modem_config lora_cfg = {0};
+
+struct k_timer periodic_timer = {0};
+struct k_work work_buzzer = {0};
+
+struct message_s tx_msg = {0};
+
+uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
+uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
+/// Extern variable definition and initialisation end
+
+
+void system_init(void)
+{
+    /// Kernel services init begin
+    k_work_init(&work_buzzer, work_buzzer_handler);
+    /// Kernel services init end
+    /// LoRa init begin
+#ifdef BASE_STATION
+    lora_cfg.frequency = 433000000;
+    lora_cfg.bandwidth = BW_125_KHZ;
+    lora_cfg.datarate = SF_12;
+    lora_cfg.preamble_len = 8;
+    lora_cfg.coding_rate = CR_4_5;
+    lora_cfg.tx_power = 0;
+    lora_cfg.tx = true;
+#else
+    lora_cfg.frequency = 433000000;
+    lora_cfg.bandwidth = BW_125_KHZ;
+    lora_cfg.datarate = SF_12;
+    lora_cfg.preamble_len = 8;
+    lora_cfg.coding_rate = CR_4_5;
+    lora_cfg.tx_power = 0;
+    lora_cfg.tx = false;
+#endif
+    lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
+    if (!device_is_ready(lora_dev_ptr)) {
+        k_sleep(K_FOREVER);
+    }
+    if ( lora_config(lora_dev_ptr, &lora_cfg) < 0 ) {
+        k_sleep(K_FOREVER);
+    }
+    /// LoRa init end
+
+    /// Buzzer init begin
+    buzzer_dev_ptr = device_get_binding(BUZZER_GPIO_PORT);
+    gpio_pin_configure(buzzer_dev_ptr, BUZZER_GPIO_PIN,(GPIO_OUTPUT | GPIO_ACTIVE_HIGH));
+    /// Buzzer init end
+}
+
+
+void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos) {
     uint8_t start_pos = *pos;
     while ( *pos < start_pos + field_len ) {
         *msg_ptr &= ( ~BIT(*pos) ); // clear bit
@@ -14,7 +78,8 @@ void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len,
 }
 
 
-void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t* field_val, uint8_t field_len, uint8_t* pos) {
+void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos)
+{
     uint8_t start_pos = *pos;
     while ( *pos < start_pos + field_len ) {
         *field_val &= ( ~BIT((*pos) - start_pos) ); // clear bit
@@ -24,7 +89,8 @@ void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t* field_val, uint8_t 
 }
 
 
-uint8_t reverse(uint8_t input) {
+uint8_t reverse(uint8_t input)
+{
     uint8_t output;
     uint8_t bit = 0;
     uint8_t pos = 0;
@@ -41,7 +107,8 @@ uint8_t reverse(uint8_t input) {
 }
 
 
-void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write) {
+void read_write_message(uint32_t *new_msg, struct message_s *msg_ptr, bool write)
+{
     uint8_t pos = 0;
     for (int cur_field = 0; cur_field < MESSAGE_FIELD_NUMBER; ++cur_field) {
         switch (cur_field) {
@@ -76,7 +143,8 @@ void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write
 }
 
 
-uint8_t check_rssi(const int16_t rssi) {
+uint8_t check_rssi(const int16_t rssi)
+{
     if ( rssi >= CONNECTION_QUALITY_RSSI_1 ) {
         return LIGHT_UP_EIGHT;
     }
@@ -104,4 +172,11 @@ uint8_t check_rssi(const int16_t rssi) {
     else if ( rssi < CONNECTION_QUALITY_RSSI_8 ) {
         return LIGHT_UP_ZERO;
     }
+}
+
+void work_buzzer_handler(struct k_work *item)
+{
+    gpio_pin_set(buzzer_dev_ptr, BUZZER_GPIO_PIN, 1);
+    k_msleep(20);
+    gpio_pin_set(buzzer_dev_ptr, BUZZER_GPIO_PIN, 0);
 }

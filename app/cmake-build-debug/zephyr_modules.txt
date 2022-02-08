@@ -39,4 +39,4 @@
 "tinycrypt":"/home/rts/zephyr-2.7.0/modules/crypto/tinycrypt":"/home/rts/zephyr-2.7.0/modules/crypto/tinycrypt"
 "TraceRecorder":"/home/rts/zephyr-2.7.0/modules/debug/TraceRecorder":"${ZEPHYR_TRACERECORDER_CMAKE_DIR}"
 "trusted-firmware-m":"/home/rts/zephyr-2.7.0/modules/tee/tfm":"${ZEPHYR_TRUSTED_FIRMWARE_M_CMAKE_DIR}"
-"rts-zephyr":"/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/../modules/rts-zephyr":"/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/modules/rts-zephyr"
+"rts-zephyr":"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/../modules/rts-zephyr":"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr"

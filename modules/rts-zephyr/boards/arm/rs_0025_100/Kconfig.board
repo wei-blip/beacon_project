@@ -1,0 +1,3 @@
+config BOARD_RS_0025_100
+	bool "RS.0025-100 Board"
+	depends on SOC_NRF52832_QFAA

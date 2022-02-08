@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/modules/rts-zephyr/subsys
+# Install script for directory: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/subsys
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -35,5 +35,10 @@ endif()
 # Set default install directory permissions.
 if(NOT DEFINED CMAKE_OBJDUMP)
   set(CMAKE_OBJDUMP "/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-objdump")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/subsys/led_utils/cmake_install.cmake")
 endif()
 

@@ -1,15 +1,15 @@
 zephyr/linker.cmd: \
- /home/rts/zephyr-2.7.0/zephyr/soc/arm/st_stm32/stm32l1/linker.ld \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/autoconf.h \
+ /home/rts/zephyr-2.7.0/zephyr/soc/arm/st_stm32/stm32l4/linker.ld \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/autoconf.h \
  /home/rts/zephyr-2.7.0/zephyr/include/arch/arm/aarch32/cortex_m/scripts/linker.ld \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/autoconf.h \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/autoconf.h \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/sections.h \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/section_tags.h \
  /home/rts/zephyr-2.7.0/zephyr/include/toolchain.h \
  /home/rts/zephyr-2.7.0/zephyr/include/toolchain/gcc.h \
  /home/rts/zephyr-2.7.0/zephyr/include/devicetree.h \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/devicetree_unfixed.h \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/devicetree_fixups.h \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/devicetree_unfixed.h \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/devicetree_fixups.h \
  /home/rts/zephyr-2.7.0/zephyr/include/sys/util.h \
  /home/rts/zephyr-2.7.0/zephyr/include/sys/util_macro.h \
  /home/rts/zephyr-2.7.0/zephyr/include/sys/util_internal.h \
@@ -28,30 +28,30 @@ zephyr/linker.cmd: \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/devicetree_regions.h \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/linker-defs.h \
  /home/rts/zephyr-2.7.0/zephyr/include/toolchain/common.h \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/offsets.h \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/offsets.h \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/devicetree_reserved.h \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/linker-tool.h \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/linker-tool-gcc.h \
  /home/rts/zephyr-2.7.0/zephyr/include/sys/mem_manage.h \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/rel-sections.ld \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/snippets-rom-start.ld \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/snippets-rom-start.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/../arch/common/rom_start_offset.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/../arch/arm/core/aarch32/vector_table.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/../arch/arm/core/aarch32/cortex_m/vector_table_pad.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/kobject-text.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/common-rom.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/thread-local-storage.ld \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/snippets-rodata.ld \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/snippets-rodata.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/kobject-rom.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/cplusplus-rom.ld \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/snippets-ram-sections.ld \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/snippets-ram-sections.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/../arch/common/ramfunc.ld \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/snippets-rwdata.ld \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/snippets-rwdata.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/common-ram.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/kobject-data.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/cplusplus-ram.ld \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/snippets-data-sections.ld \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/snippets-noinit.ld \
- /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/include/generated/snippets-sections.ld \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/snippets-data-sections.ld \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/snippets-noinit.ld \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/snippets-sections.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/intlist.ld \
  /home/rts/zephyr-2.7.0/zephyr/include/linker/debug-sections.ld

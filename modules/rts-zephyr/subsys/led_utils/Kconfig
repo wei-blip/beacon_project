@@ -1,0 +1,13 @@
+menuconfig LED_UTILS
+    bool "LED strip utility library"
+    default n
+    help
+        Enable LED utilities (HSV to RGB transform and gamma correction).
+
+if LED_UTILS
+	config LED_UTILS_USE_PRECALCULATED_GAMMA_TABLE
+		bool "Use precalculated gamma table"
+		default n
+		help
+		    Use precalculated table for gamma correction
+endif # LED_UTILS

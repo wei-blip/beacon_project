@@ -3,18 +3,10 @@
 //
 
 #include "lora_russia_railways_brigade_chief.h"
-#include <drivers/gpio.h>
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(brigade_chief);
 
-
-#define DEFAULT_RADIO_NODE DT_NODELABEL(lora0)
-BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
-             "No default LoRa radio specified in DT");
-
-uint8_t brigade_chief_tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
-uint8_t brigade_chief_rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 
 /// My threads ids begin
 extern const k_tid_t proc_task_id;
@@ -31,31 +23,13 @@ static modem_state_t brigade_chief_current_state;
 
 
 /// Structure area begin
-struct device* brigade_chief_lora_dev_ptr;
-struct lora_modem_config brigade_chief_lora_cfg;
-
-// priority queue for sending messages
-K_MSGQ_DEFINE(brigade_chief_msgq_tx_msg_prio, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
-// none priority queue for sending messages
-K_MSGQ_DEFINE(brigade_chief_msgq_tx_msg, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
-// queue for receiving messages
-K_MSGQ_DEFINE(brigade_chief_msgq_rx_msg, MESSAGE_LEN_IN_BYTES, QUEUE_LEN_IN_ELEMENTS, 1);
-// queue for rssi values
-K_MSGQ_DEFINE(brigade_chief_msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
-
-
-// periodic timer (for syncro)
-struct k_timer brigade_chief_periodic_timer;
-
 struct gpio_callback brigade_chief_button_disable_alarm_cb;
 struct gpio_callback brigade_chief_button_right_train_passed_cb;
 struct gpio_callback brigade_chief_button_left_train_passed_cb;
 
-struct device* brigade_chief_button_disable_alarm_gpio_dev_ptr;
-struct device* brigade_chief_button_left_train_passed_gpio_dev_ptr;
-struct device* brigade_chief_button_right_train_passed_gpio_dev_ptr;
-
-struct message_s brigade_chief_tx_msg = {0};
+const struct device* brigade_chief_button_disable_alarm_gpio_dev_ptr;
+const struct device* brigade_chief_button_left_train_passed_gpio_dev_ptr;
+const struct device* brigade_chief_button_right_train_passed_gpio_dev_ptr;
 /// Structure area end
 
 
@@ -81,35 +55,18 @@ static void recv_msg(void);
 //// Function definition area begin
 void brigade_chief_system_init(void)
 {
-    /// LoRa init begin
-    brigade_chief_lora_cfg.frequency = 433000000;
-    brigade_chief_lora_cfg.bandwidth = BW_125_KHZ;
-    brigade_chief_lora_cfg.datarate = SF_12;
-    brigade_chief_lora_cfg.preamble_len = 8;
-    brigade_chief_lora_cfg.coding_rate = CR_4_5;
-    brigade_chief_lora_cfg.tx_power = 5;
-    brigade_chief_lora_cfg.tx = false;
-
-    brigade_chief_lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
-    if (!device_is_ready(brigade_chief_lora_dev_ptr)) {
-        k_sleep(K_FOREVER);
-    }
-    if ( lora_config(brigade_chief_lora_dev_ptr, &signalman_lora_cfg) < 0 ) {
-        k_sleep(K_FOREVER);
-    }
-    /// LoRa init end
-
+    system_init();
     //// Init IRQ (change gpio init after tests) begin
-        brigade_chief_button_disable_alarm_gpio_dev_ptr = device_get_binding(BUTTON_DISABLE_ALARM_GPIO_PORT);
+    brigade_chief_button_disable_alarm_gpio_dev_ptr = device_get_binding(BUTTON_DISABLE_ALARM_GPIO_PORT);
 //        brigade_chief_button_left_train_passed_gpio_dev_ptr = device_get_binding(BUTTON_LEFT_TRAIN_PASSED_GPIO_PORT);
 //        brigade_chief_button_right_train_passed_gpio_dev_ptr = device_get_binding(BUTTON_RIGHT_TRAIN_PASSED_GPIO_PORT);
 
     gpio_pin_configure(brigade_chief_button_disable_alarm_gpio_dev_ptr, BUTTON_DISABLE_ALARM_GPIO_PIN,
-                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
+                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_HIGH));
 //    gpio_pin_configure(brigade_chief_button_left_train_passed_gpio_dev_ptr, BUTTON_LEFT_TRAIN_PASSED_GPIO_PIN,
-//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
+//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_HIGH));
 //    gpio_pin_configure(brigade_chief_button_right_train_passed_gpio_dev_ptr, BUTTON_RIGHT_TRAIN_PASSED_GPIO_PIN,
-//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
+//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_HIGH));
 
     gpio_pin_interrupt_configure(brigade_chief_button_disable_alarm_gpio_dev_ptr, BUTTON_DISABLE_ALARM_GPIO_PIN,
                                  GPIO_INT_EDGE_TO_ACTIVE);
@@ -133,7 +90,7 @@ void brigade_chief_system_init(void)
     /// Init IRQ end
 
     //// Kernel services init begin
-    k_timer_init(&brigade_chief_periodic_timer, brigade_chief_periodic_timer_handler, NULL);
+    k_timer_init(&periodic_timer, brigade_chief_periodic_timer_handler, NULL);
     /// Kernel services init end
 }
 
@@ -165,9 +122,9 @@ void brigade_chief_start_system(void)
     disable_alarm_msg.workers_in_safe_zone = 0;
 
     /// Receive sync message
-    rc = lora_recv(brigade_chief_lora_dev_ptr, brigade_chief_rx_buf, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
+    rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
     k_sleep(K_MSEC(DELAY_TIME_MSEC));
-    k_timer_start(&brigade_chief_periodic_timer, K_MSEC(DURATION_TIME_MSEC), K_MSEC(PERIOD_TIME_MSEC));
+    k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC), K_MSEC(PERIOD_TIME_MSEC));
 }
 
 
@@ -178,36 +135,36 @@ static void send_msg(void)
     struct k_msgq* cur_queue = NULL;
 //    LOG_DBG("Check queues");
 
-    if (brigade_chief_msgq_tx_msg_prio.used_msgs) {
+    if (msgq_tx_msg_prio.used_msgs) {
 //        LOG_DBG("Get message from priority queue");
-        k_msgq_get(&brigade_chief_msgq_tx_msg_prio, &brigade_chief_tx_msg, K_NO_WAIT);
-        cur_queue = &brigade_chief_msgq_tx_msg_prio;
-    } else if (brigade_chief_msgq_tx_msg.used_msgs) {
+        k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg_prio;
+    } else if (msgq_tx_msg.used_msgs) {
 //        LOG_DBG("Get message from standart queue");
-        k_msgq_get(&brigade_chief_msgq_tx_msg, &brigade_chief_tx_msg, K_NO_WAIT);
-        cur_queue = &brigade_chief_msgq_tx_msg;
+        k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg;
     } else {
         return;
     }
 
-    read_write_message(&new_msg, &brigade_chief_tx_msg, true);
+    read_write_message(&new_msg, &tx_msg, true);
     for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
-        brigade_chief_tx_buf[i] = (new_msg & (0x000000FF << i * 8) ) >> i * 8;
-        brigade_chief_tx_buf[i] = reverse(brigade_chief_tx_buf[i]);
+        tx_buf[i] = (new_msg & (0x000000FF << i * 8) ) >> i * 8;
+        tx_buf[i] = reverse(tx_buf[i]);
     }
 
-    if (!brigade_chief_lora_cfg.tx) {
-        brigade_chief_lora_cfg.tx = true;
-        rc = lora_config(brigade_chief_lora_dev_ptr, &brigade_chief_lora_cfg);
+    if (!lora_cfg.tx) {
+        lora_cfg.tx = true;
+        rc = lora_config(lora_dev_ptr, &lora_cfg);
         if (rc < 0) {
             LOG_DBG("Modem not configure!!!");
-            k_msgq_put(cur_queue, &brigade_chief_tx_msg, K_NO_WAIT);
+            k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
             return;
         }
     }
 //    LOG_DBG("Send message");
     if (brigade_chief_current_state.state == TRANSMIT) {
-        rc = lora_send(brigade_chief_lora_dev_ptr, brigade_chief_tx_buf, MESSAGE_LEN_IN_BYTES);
+        rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
     }
     else {
         return;
@@ -223,37 +180,35 @@ static void recv_msg(void)
     int16_t rssi = 0;
     int8_t snr = 0;
 
-    if (brigade_chief_lora_cfg.tx) {
-        brigade_chief_lora_cfg.tx = false;
-        rc = lora_config(brigade_chief_lora_dev_ptr, &brigade_chief_lora_cfg);
+    if (lora_cfg.tx) {
+        lora_cfg.tx = false;
+        rc = lora_config(lora_dev_ptr, &lora_cfg);
         if (rc < 0) {
             return;
         }
     }
 
-    ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&brigade_chief_periodic_timer));
+    ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
     if ( brigade_chief_current_state.state == RECEIVE ) {
-        rc = lora_recv(brigade_chief_lora_dev_ptr, brigade_chief_rx_buf, MESSAGE_LEN_IN_BYTES,
+        rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES,
                        K_MSEC(ticks), &rssi, &snr);
-    }
-    else {
+    } else {
         return;
     }
+
     if (rc > 0) {
         if (IS_SYNC_MSG) {
             LOG_DBG(" REQUEST");
             LOG_DBG(" MESSAGE_TYPE_SYNC");
-            k_timer_stop(&brigade_chief_periodic_timer);
+            k_timer_stop(&periodic_timer);
             brigade_chief_current_state = brigade_chief_recv_state;
             // little delay to account execution time
             k_sleep(K_MSEC(DELAY_TIME_MSEC));
-            k_timer_start(&brigade_chief_periodic_timer, K_MSEC(DURATION_TIME_MSEC), K_MSEC(PERIOD_TIME_MSEC));
+            k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC), K_MSEC(PERIOD_TIME_MSEC));
         }
-        else {
-            k_msgq_put(&brigade_chief_msgq_rx_msg, &brigade_chief_rx_buf, K_NO_WAIT);
-            k_msgq_put(&brigade_chief_msgq_rssi, &rssi, K_NO_WAIT);
-            k_wakeup(proc_task_id);
-        }
+        k_msgq_put(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
+        k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
+        k_wakeup(proc_task_id);
     }
 }
 
@@ -265,13 +220,13 @@ _Noreturn void brigade_chief_proc_task(void)
     uint32_t cur_msg = 0;
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
-    struct k_msgq* msgq_cur_msg_tx_ptr = &brigade_chief_msgq_tx_msg; // Default queue
+    struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
     uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
     k_sleep(K_FOREVER);
     while(1) {
-        if ( brigade_chief_msgq_rx_msg.used_msgs ) {
-            k_msgq_get(&brigade_chief_msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
-            k_msgq_get(&brigade_chief_msgq_rssi, &rssi, K_NO_WAIT);
+        if (msgq_rx_msg.used_msgs) {
+            k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
+            k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
             if (rx_buf_proc[0] == rx_buf_proc[1] == rx_buf_proc[2] == 0) {
                 LOG_DBG("Empty message");
                 continue;
@@ -308,7 +263,7 @@ _Noreturn void brigade_chief_proc_task(void)
                     switch (rx_msg_proc.message_type) {
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
-                            msgq_cur_msg_tx_ptr = &brigade_chief_msgq_rx_msg;
+                            msgq_cur_msg_tx_ptr = &msgq_rx_msg;
                             // TODO Indication for signalman and brigade chief
                             switch (rx_msg_proc.sender_addr) {
                                 case SEND_BASE_STATION:
@@ -327,14 +282,14 @@ _Noreturn void brigade_chief_proc_task(void)
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
-                            msgq_cur_msg_tx_ptr = &brigade_chief_msgq_rx_msg;
+                            msgq_cur_msg_tx_ptr = &msgq_rx_msg;
                             /// TODO Indication for signalman and brigade chief
                             break;
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             if (rx_msg_proc.sender_addr == brigade_chief_cur_dev_addr)
-                                msgq_cur_msg_tx_ptr = &brigade_chief_msgq_tx_msg_prio; // For response message
+                                msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio; // For response message
                             else
                                 msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
                             break;
@@ -414,19 +369,22 @@ _Noreturn void brigade_chief_modem_task(void)
 
 void brigade_chief_button_disable_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
+    k_work_submit(&work_buzzer);
     LOG_DBG("Button alarm pressed");
-    k_msgq_put(&brigade_chief_msgq_tx_msg, &disable_alarm_msg, K_NO_WAIT);
+    k_msgq_put(&msgq_tx_msg, &disable_alarm_msg, K_NO_WAIT);
 }
 
 
 void brigade_chief_button_left_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
+    k_work_submit(&work_buzzer);
     LOG_DBG("Button left train pass pressed");
 }
 
 
 void brigade_chief_button_right_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
+    k_work_submit(&work_buzzer);
     LOG_DBG("Button right train pass pressed");
 }
 

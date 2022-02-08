@@ -1,1 +1,3 @@
-add_subdirectory_ifdef(CONFIG_MESHPOSITION	meshposition)
+add_subdirectory_ifdef(CONFIG_MESHPOSITION meshposition)
+add_subdirectory_ifdef(CONFIG_COBS cobs)
+add_subdirectory_ifdef(CONFIG_LED_UTILS led_utils)

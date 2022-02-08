@@ -1,0 +1,5 @@
+menuconfig COBS
+    bool "COBS library"
+    default n
+    help
+        Enable Consistent Overhead Byte Stuffing algorithm library.

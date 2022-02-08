@@ -8,13 +8,6 @@
     LOG_MODULE_REGISTER(peripheral);
 
 
-#define DEFAULT_RADIO_NODE DT_NODELABEL(lora0)
-BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
-             "No default LoRa radio specified in DT");
-
-uint8_t signalman_tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
-uint8_t signalman_rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
-
 /// My threads ids begin
 extern const k_tid_t proc_task_id;
 extern const k_tid_t modem_task_id;
@@ -30,33 +23,14 @@ static modem_state_t signalman_current_state;
 
 
 /// Structure area begin
-struct device* signalman_lora_dev_ptr;
-struct lora_modem_config signalman_lora_cfg;
-
-// priority queue for sending messages
-K_MSGQ_DEFINE(signalman_msgq_tx_msg_prio, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
-// none priority queue for sending messages
-K_MSGQ_DEFINE(signalman_msgq_tx_msg, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
-// queue for receiving messages
-K_MSGQ_DEFINE(signalman_msgq_rx_msg, MESSAGE_LEN_IN_BYTES, QUEUE_LEN_IN_ELEMENTS, 1);
-// queue for rssi values
-K_MSGQ_DEFINE(signalman_msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
-
-
-// periodic timer (for syncro)
-struct k_timer signalman_periodic_timer = {0};
-
 struct gpio_callback signalman_button_anti_dream_cb;
 struct gpio_callback signalman_button_alarm_cb;
 struct gpio_callback signalman_button_train_passed_cb;
 
-//struct k_sem sem_modem_busy;
 
 struct device *signalman_button_alarm_gpio_dev_ptr;
 struct device *signalman_button_anti_dream_gpio_dev_ptr;
 struct device *signalman_button_train_passed_gpio_dev_ptr;
-
-struct message_s signalman_tx_msg = {0};
 /// Structure area end
 
 
@@ -82,24 +56,7 @@ static void recv_msg(void);
 //// Function definition area begin
 void signalman_system_init(void)
 {
-    /// LoRa init begin
-    signalman_lora_cfg.frequency = 433000000;
-    signalman_lora_cfg.bandwidth = BW_125_KHZ;
-    signalman_lora_cfg.datarate = SF_12;
-    signalman_lora_cfg.preamble_len = 8;
-    signalman_lora_cfg.coding_rate = CR_4_5;
-    signalman_lora_cfg.tx_power = 5;
-    signalman_lora_cfg.tx = false;
-
-    signalman_lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
-    if (!device_is_ready(signalman_lora_dev_ptr)) {
-        k_sleep(K_FOREVER);
-    }
-    if ( lora_config(signalman_lora_dev_ptr, &signalman_lora_cfg) < 0 ) {
-        k_sleep(K_FOREVER);
-    }
-    /// LoRa init end
-
+    system_init();
     //// Init IRQ (change gpio init after tests) begin
     signalman_button_alarm_gpio_dev_ptr = device_get_binding(BUTTON_ALARM_GPIO_PORT);
 //    button_anti_dream_gpio_dev_ptr = device_get_binding(BUTTON_ANTI_DREAM_GPIO_PORT);
@@ -131,9 +88,13 @@ void signalman_system_init(void)
 //    gpio_add_callback(signalman_button_train_passed_gpio_dev_ptr, &signalman_button_train_passed_cb);
     /// Init IRQ end
 
-    //// Kernel services init begin
-    k_timer_init(&signalman_periodic_timer, signalman_periodic_timer_handler, NULL);
+    /// Kernel services init begin
+    k_timer_init(&periodic_timer, signalman_periodic_timer_handler, NULL);
     /// Kernel services init end
+
+    /// Light down LEDs begin
+    update_indication(0, true, 0, true);
+    /// Light down LEDs end
 }
 
 
@@ -164,9 +125,9 @@ void signalman_start_system(void)
     alarm_msg.workers_in_safe_zone = 0;
 
     /// Receive sync message
-    rc = lora_recv(signalman_lora_dev_ptr, signalman_rx_buf, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
+    rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
     k_sleep(K_MSEC(DELAY_TIME_MSEC));
-    k_timer_start(&signalman_periodic_timer, K_MSEC(DURATION_TIME_MSEC),K_MSEC(PERIOD_TIME_MSEC));
+    k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC),K_MSEC(PERIOD_TIME_MSEC));
 }
 
 static void send_msg(void)
@@ -176,38 +137,36 @@ static void send_msg(void)
     struct k_msgq* cur_queue = NULL;
 //    LOG_DBG("Check queues");
 
-    if ( signalman_msgq_tx_msg_prio.used_msgs ) {
+    if (msgq_tx_msg_prio.used_msgs) {
 //        LOG_DBG("Get message from priority queue");
-        k_msgq_get(&signalman_msgq_tx_msg_prio, &signalman_tx_msg, K_NO_WAIT);
-        cur_queue = &signalman_msgq_tx_msg_prio;
-    }
-    else if ( signalman_msgq_tx_msg.used_msgs ) {
+        k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg_prio;
+    } else if (msgq_tx_msg.used_msgs) {
 //        LOG_DBG("Get message from standart queue");
-        k_msgq_get(&signalman_msgq_tx_msg, &signalman_tx_msg, K_NO_WAIT);
-        cur_queue = &signalman_msgq_tx_msg;
-    }
-    else {
+        k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg;
+    } else {
         return;
     }
 
-    read_write_message(&new_msg, &signalman_tx_msg, true);
+    read_write_message(&new_msg, &tx_msg, true);
     for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
-        signalman_tx_buf[i] = (new_msg & (0x000000FF << i * 8) ) >> i * 8;
-        signalman_tx_buf[i] = reverse(signalman_tx_buf[i]);
+        tx_buf[i] = (new_msg & (0x000000FF << i * 8) ) >> i * 8;
+        tx_buf[i] = reverse(tx_buf[i]);
     }
 
-    if (!signalman_lora_cfg.tx) {
-        signalman_lora_cfg.tx = true;
-        rc = lora_config(signalman_lora_dev_ptr, &signalman_lora_cfg);
+    if (!lora_cfg.tx) {
+        lora_cfg.tx = true;
+        rc = lora_config(lora_dev_ptr, &lora_cfg);
         if (rc < 0) {
             LOG_DBG("Modem not configure!!!");
-            k_msgq_put(cur_queue, &signalman_tx_msg, K_NO_WAIT);
+            k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
             return;
         }
     }
 //    LOG_DBG("Send message");
     if ( signalman_current_state.state == TRANSMIT ) {
-        rc = lora_send(signalman_lora_dev_ptr, signalman_tx_buf, MESSAGE_LEN_IN_BYTES);
+        rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
     }
     else {
         return;
@@ -223,17 +182,17 @@ static void recv_msg(void)
     int16_t rssi = 0;
     int8_t snr = 0;
 
-    if (signalman_lora_cfg.tx) {
-        signalman_lora_cfg.tx = false;
-        rc = lora_config(signalman_lora_dev_ptr, &signalman_lora_cfg);
+    if (lora_cfg.tx) {
+        lora_cfg.tx = false;
+        rc = lora_config(lora_dev_ptr, &lora_cfg);
         if (rc < 0) {
             return;
         }
     }
 
-    ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&signalman_periodic_timer));
+    ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
     if ( signalman_current_state.state == RECEIVE ) {
-        rc = lora_recv(signalman_lora_dev_ptr, signalman_rx_buf, MESSAGE_LEN_IN_BYTES, K_MSEC(ticks), &rssi, &snr);
+        rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES, K_MSEC(ticks), &rssi, &snr);
     }
     else {
         return;
@@ -242,18 +201,16 @@ static void recv_msg(void)
         if (IS_SYNC_MSG) {
             LOG_DBG(" REQUEST");
             LOG_DBG(" MESSAGE_TYPE_SYNC");
-            k_timer_stop(&signalman_periodic_timer);
+            k_timer_stop(&periodic_timer);
             signalman_current_state = signalman_recv_state;
             // little delay to account execution time
             k_sleep(K_MSEC(DELAY_TIME_MSEC));
-            k_timer_start(&signalman_periodic_timer, K_MSEC(DURATION_TIME_MSEC),
+            k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC),
                           K_MSEC(PERIOD_TIME_MSEC));
         }
-        else {
-            k_msgq_put(&signalman_msgq_rx_msg, &signalman_rx_buf, K_NO_WAIT);
-            k_msgq_put(&signalman_msgq_rssi, &rssi, K_NO_WAIT);
-            k_wakeup(proc_task_id);
-        }
+        k_msgq_put(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
+        k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
+        k_wakeup(proc_task_id);
     }
 }
 
@@ -265,13 +222,13 @@ _Noreturn void signalman_proc_task()
     uint32_t cur_msg = 0;
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
-    struct k_msgq* msgq_cur_msg_tx_ptr = &signalman_msgq_tx_msg; // Default queue
+    struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
     uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
     k_sleep(K_FOREVER);
     while(1) {
-        if ( signalman_msgq_rx_msg.used_msgs ) {
-            k_msgq_get(&signalman_msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
-            k_msgq_get(&signalman_msgq_rssi, &rssi, K_NO_WAIT);
+        if (msgq_rx_msg.used_msgs) {
+            k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
+            k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
             if (rx_buf_proc[0] == rx_buf_proc[1] == rx_buf_proc[2] == 0) {
                 LOG_DBG("Empty message");
                 continue;
@@ -308,7 +265,7 @@ _Noreturn void signalman_proc_task()
                     switch (rx_msg_proc.message_type) {
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
-                            msgq_cur_msg_tx_ptr = &signalman_msgq_rx_msg;
+                            msgq_cur_msg_tx_ptr = &msgq_rx_msg;
                             // TODO Indication for signalman and brigade chief
                             switch (rx_msg_proc.sender_addr) {
                                 case SEND_BASE_STATION:
@@ -327,14 +284,14 @@ _Noreturn void signalman_proc_task()
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
-                            msgq_cur_msg_tx_ptr = &signalman_msgq_rx_msg;
+                            msgq_cur_msg_tx_ptr = &msgq_rx_msg;
                             /// TODO Indication for signalman and brigade chief
                             break;
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             if (rx_msg_proc.sender_addr == signalman_cur_dev_addr)
-                                msgq_cur_msg_tx_ptr = &signalman_msgq_tx_msg_prio; // For response message
+                                msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio; // For response message
                             else
                                 msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
                             break;
@@ -387,8 +344,9 @@ _Noreturn void signalman_proc_task()
             if (msgq_cur_msg_tx_ptr) {
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
             }
-            leds_num = check_rssi(&rssi);
-            // ligth up leds
+            leds_num = check_rssi(rssi);
+            update_indication(rx_msg_proc.workers_in_safe_zone, true,
+                              leds_num, true);
         }
         k_sleep(K_USEC(100));
     }
@@ -414,20 +372,22 @@ _Noreturn void signalman_modem_task()
 
 void signalman_button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
+    k_work_submit(&work_buzzer);
     LOG_DBG("Button alarm pressed");
-    k_msgq_put(&signalman_msgq_tx_msg, &alarm_msg, K_NO_WAIT);
+    k_msgq_put(&msgq_tx_msg, &alarm_msg, K_NO_WAIT);
 }
 
 
 void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins)
 {
+    k_work_submit(&work_buzzer);
     LOG_DBG("Button anti-dream pressed");
 }
 
 
 void signalman_periodic_timer_handler(struct k_timer *tim)
 {
-    k_msgq_put(&signalman_msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
+//    k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
     signalman_current_state = *signalman_current_state.next;
     k_wakeup(modem_task_id);
 }

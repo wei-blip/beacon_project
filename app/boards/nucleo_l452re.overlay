@@ -3,6 +3,25 @@
  *
  * Copyright (c) 2021 Planet Innovation
  */
+#include <dt-bindings/led/led.h>
+
+/ {
+    led_strip: ws2812 {
+        compatible = "worldsemi,ws2812-pwm";
+        label = "WS2812";
+        chain-length = <16>; /* arbitrary */
+        color-mapping = <LED_COLOR_ID_GREEN
+                         LED_COLOR_ID_RED
+                         LED_COLOR_ID_BLUE>;
+        pwms = <&pwm2 1 0 PWM_POLARITY_NORMAL>;
+        period-ns = <1000>;
+    };
+
+	aliases {
+        led-strip = &led_strip;
+	};
+};
+
 
 &spi1 {
     status = "okay";

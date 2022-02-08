@@ -1,0 +1,24 @@
+# RS_0015_100 board configuration
+
+if BOARD_RS_0015_100
+
+config BOARD
+    default "RS.0015-100 Board"
+
+config SPI_STM32_INTERRUPT
+    default y
+    depends on SPI
+
+# config SPI_STM32_DMA
+#     default y
+#     depends on SPI
+
+choice STM32_LPTIM_CLOCK
+    default STM32_LPTIM_CLOCK_LSI
+endchoice
+
+choice COUNTER_RTC_STM32_CLOCK_SRC
+    default COUNTER_RTC_STM32_CLOCK_LSI
+endchoice
+
+endif # BOARD_RS_0015_100

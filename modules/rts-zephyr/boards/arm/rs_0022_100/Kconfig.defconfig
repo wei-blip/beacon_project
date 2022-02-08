@@ -1,0 +1,12 @@
+# RS_0022_100 board configuration
+
+if BOARD_RS_0022_100
+
+config BOARD
+	default "RS.0022-100 Board"
+
+config SPI_STM32_INTERRUPT
+ 	default y
+ 	depends on SPI
+
+endif # BOARD_RS_0022_100

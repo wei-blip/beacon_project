@@ -381,11 +381,48 @@ static int dw1000_init(const struct device *dev)
     return 0;
 }
 
+#ifdef CONFIG_PM_DEVICE
+int dw1000_pm_ctrl(const struct device *dev, enum pm_device_action action)
+{
+	int ret = 0;
+    struct dw1000_dev_data *ctx = dev->data;
+    const struct dw1000_dev_config *cfg = dev->config;
+    uint16_t mode = DWT_PRESRV_SLEEP | DWT_CONFIG;
+
+	switch (action) {
+	case PM_DEVICE_ACTION_SUSPEND:
+		/* Put the chip into sleep mode */
+#if defined(CONFIG_DW1000_STARTUP_LOADUCODE)
+        mode |= DWT_LOADUCODE;
+#endif
+        dwt_configuresleep(mode, DWT_WAKE_CS | DWT_SLP_EN);
+        dwt_entersleep();
+		break;
+	case PM_DEVICE_ACTION_RESUME:
+		/* Wake up chip */
+        if(dwt_readdevid() != DWT_DEVICE_ID) {
+            gpio_pin_set(ctx->spi_cs.gpio_dev, ctx->spi_cs.gpio_pin, 0);
+            k_sleep(K_MSEC(1));
+            gpio_pin_set(ctx->spi_cs.gpio_dev, ctx->spi_cs.gpio_pin, 1);
+            k_sleep(K_MSEC(5));
+        }
+        dwt_setrxantennadelay(cfg->rx_ant_delay);
+        dwt_settxantennadelay(cfg->tx_ant_delay);
+		break;
+	default:
+		return -ENOTSUP;
+	}
+
+	return ret;
+}
+#endif /* CONFIG_PM_DEVICE */
+
+
 static struct dw1000_dev_api dwt_radio_api = {
 
 };
 
-DEVICE_DT_INST_DEFINE(0, dw1000_init, NULL,
+DEVICE_DT_INST_DEFINE(0, dw1000_init, dw1000_pm_ctrl,
                       &dwt_0_data, &dw1000_0_config,
                       POST_KERNEL, CONFIG_DW1000_INIT_PRIO,
                       &dwt_radio_api);

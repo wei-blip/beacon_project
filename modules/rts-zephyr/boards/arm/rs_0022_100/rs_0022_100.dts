@@ -1,0 +1,160 @@
+/dts-v1/;
+#include <st/l4/stm32l452Xc.dtsi>
+#include <st/l4/stm32l452c(c-e)ux-pinctrl.dtsi>
+
+/ {
+	model = "RTS RS.0022-100 board";
+	compatible = "rts,rs_0022_100";
+
+	chosen {
+		zephyr,console = &usart2;
+		zephyr,shell-uart = &usart2;
+		zephyr,sram = &sram0;
+		zephyr,flash = &flash0;
+	};
+
+    power-states {
+        stop0: state0 {
+            compatible = "zephyr,power-state";
+            power-state-name = "suspend-to-idle";
+            substate-id = <1>;
+            min-residency-us = <100>;
+        };
+        stop1: state1 {
+            compatible = "zephyr,power-state";
+            power-state-name = "suspend-to-idle";
+            substate-id = <2>;
+            min-residency-us = <500>;
+        };
+        stop2: state2 {
+            compatible = "zephyr,power-state";
+            power-state-name = "suspend-to-idle";
+            substate-id = <3>;
+            min-residency-us = <900>;
+        };
+    };
+
+	leds {
+		compatible = "gpio-leds";
+        yellow_led: led_0 {
+			gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
+			label = "User LED0";
+		};
+        green_led: led_1 {
+			gpios = <&gpioa 12 GPIO_ACTIVE_HIGH>;
+			label = "User LED1";
+		};
+        red_led: led_2 {
+            gpios = <&gpioa 15 GPIO_ACTIVE_HIGH>;
+            label = "User LED2";
+        };
+	};
+
+    aliases {
+        led0 = &yellow_led;
+        led1 = &green_led;
+        led2 = &red_led;
+    };
+};
+
+&cpu0 {
+    cpu-power-states = <&stop0 &stop1 &stop2>;
+};
+
+&clk_hsi {
+	status = "okay";
+};
+
+&clk_lsi {
+    status = "okay";
+};
+
+&lptim1 {
+    status = "okay";
+};
+
+&pll {
+    status = "okay";
+    div-m = <1>;            /*  16 / 1  = 16MHz  */
+    mul-n = <20>;           /*  16 * 20 = 320MHz */
+    div-r = <4>;            /* 320 / 4  = 80MHz  */
+    clocks = <&clk_hsi>;
+};
+
+&rcc {
+	status = "okay";
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(80)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <1>;
+	apb2-prescaler = <1>;
+};
+
+&usart2 {
+	status = "okay";
+	pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+	current-speed = <115200>;
+};
+
+&dma1 {
+    status = "okay";
+};
+
+&spi1 {
+    status = "disabled";
+    pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+};
+
+&spi2 {
+    status = "okay";
+	pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
+    cs-gpios = <&gpiob 12 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    lora0: sx1276@0 {
+        status = "okay";
+        compatible = "semtech,sx1276";
+        reg = <0>;
+        label = "SX1276";
+        spi-max-frequency = <8000000>;
+        reset-gpios = <&gpiob 9 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>;
+        dio-gpios = <&gpiob 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpiob 4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpiob 5 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpiob 7 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpiob 6 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpiob 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+        power-amplifier-output = "rfo";
+    };
+};
+
+&i2c2 {
+	status = "okay";
+	pinctrl-0 = <&i2c2_scl_pb10 &i2c2_sda_pb11>;
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+&rtc {
+	status = "okay";
+};
+
+&rng {
+    status = "okay";
+};
+
+&flash0 {
+	/*
+	 * For more information, see:
+	 * http://docs.zephyrproject.org/latest/guides/dts/index.html#flash-partitions
+	 */
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		/*
+		 * Reserve the final 16 KiB for file system partition
+		 */
+		storage_partition: partition@7c000 {
+			label = "storage";
+			reg = <0x0007c000 0x00008000>;
+		};
+	};
+};

@@ -21,6 +21,12 @@
     };
 };
 
+
+&clk_hsi {
+    status = "okay";
+};
+
+
 &pll {
     status = "okay";
     div-m = <1>;            /*  16 / 1  = 16MHz  */
@@ -29,6 +35,15 @@
     clocks = <&clk_hsi>;
 };
 
+
+&rcc {
+	status = "okay";
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(80)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <1>;
+	apb2-prescaler = <1>;
+};
 /*
 &spi1{
     status = "okay";

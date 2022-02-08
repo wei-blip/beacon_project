@@ -22,9 +22,16 @@
     };
 };
 
+/*
+&clk_hsi {
+    status = "okay";
+};
+
+
 &pll {
     status = "okay";
     div = <2>;
     mul = <4>;
     clocks = <&clk_hsi>;
 };
+*/

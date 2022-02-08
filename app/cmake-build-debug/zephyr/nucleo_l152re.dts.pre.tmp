@@ -990,9 +990,3 @@ arduino_serial: &usart2 {};
         spi-max-frequency = <500000>;
     };
 };
-&pll {
-    status = "okay";
-    div = <2>;
-    mul = <4>;
-    clocks = <&clk_hsi>;
-};

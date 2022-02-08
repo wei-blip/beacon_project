@@ -70,8 +70,8 @@
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/soc/arm/common/cortex_m/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/soc/arm/st_stm32/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/soc/arm/st_stm32/CMakeFiles/rebuild_cache.dir
-/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/soc/arm/st_stm32/stm32l4/CMakeFiles/edit_cache.dir
-/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/soc/arm/st_stm32/stm32l4/CMakeFiles/rebuild_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/soc/arm/st_stm32/stm32l1/CMakeFiles/edit_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/soc/arm/st_stm32/stm32l1/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/soc/arm/st_stm32/common/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/soc/arm/st_stm32/common/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/zephyr/boards/CMakeFiles/edit_cache.dir
@@ -203,8 +203,8 @@
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/stm32/stm32cube/CMakeFiles/..__modules__hal__stm32__stm32cube.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/stm32/stm32cube/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/stm32/stm32cube/CMakeFiles/rebuild_cache.dir
-/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/stm32/stm32cube/stm32l4xx/CMakeFiles/edit_cache.dir
-/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/stm32/stm32cube/stm32l4xx/CMakeFiles/rebuild_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/stm32/stm32cube/stm32l1xx/CMakeFiles/edit_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/stm32/stm32cube/stm32l1xx/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/telink/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/telink/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/radio_signalman/app/cmake-build-debug/modules/ti/CMakeFiles/edit_cache.dir

@@ -1,10 +1,15 @@
 //#define BASE_STATION
-#define PERIPHERAL
+#define SIGNALMAN
+//#define BRIGADE_CHIEF
 
 #ifdef BASE_STATION
 #include "lora_russia_railways_base_station.h"
-#else
-#include "lora_russia_railways_peripheral.h"
+#endif
+#ifdef SIGNALMAN
+#include "lora_russia_railways_signalman.h"
+#endif
+#ifdef BRIGADE_CHIEF
+#include "lora_russia_railways_brigade_chief.h"
 #endif
 
 void SecureElementRandomNumber(uint32_t* rand_num) {
@@ -24,10 +29,10 @@ K_THREAD_DEFINE(start_system_id, STACK_SIZE, base_station_start_system, NULL, NU
 K_THREAD_DEFINE(modem_task_id, STACK_SIZE, base_station_modem_task, NULL, NULL, NULL,
                 PRIORITY_MODEM_TASK, 0, 0);
 #else
-K_THREAD_DEFINE(proc_task_id, STACK_SIZE, peripheral_proc_task, NULL, NULL, NULL,
+K_THREAD_DEFINE(proc_task_id, STACK_SIZE, signalman_proc_task, NULL, NULL, NULL,
                 PRIORITY_PROC, 0, 0);
-K_THREAD_DEFINE(start_system_id, STACK_SIZE, peripheral_start_system, NULL, NULL, NULL,
+K_THREAD_DEFINE(start_system_id, STACK_SIZE, signalman_start_system, NULL, NULL, NULL,
                 PRIORITY_START_SYSTEM, 0, 0);
-K_THREAD_DEFINE(modem_task_id, STACK_SIZE, peripheral_modem_task, NULL, NULL, NULL,
+K_THREAD_DEFINE(modem_task_id, STACK_SIZE, signalman_modem_task, NULL, NULL, NULL,
                 PRIORITY_MODEM_TASK, 0, 0);
 #endif

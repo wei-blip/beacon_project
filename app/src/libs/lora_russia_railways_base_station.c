@@ -119,7 +119,7 @@ void base_station_start_system(void)
     sync_msg.workers_in_safe_zone = 0;
     sync_msg.battery_level = BATTERY_LEVEL_GOOD;
 
-    k_timer_start(&base_station_periodic_timer, K_NO_WAIT,K_MSEC(4*SLOT_TIME_MSEC));
+    k_timer_start(&base_station_periodic_timer, K_NO_WAIT,K_MSEC(PERIOD_TIME_MSEC));
 }
 
 
@@ -337,8 +337,8 @@ _Noreturn void base_station_modem_task()
 void base_station_periodic_timer_handler(struct k_timer* tim)
 {
     current_state = *(current_state.next);
-    static uint8_t count = 10;
-    if (count == 10) {
+    static uint8_t count = 1;
+    if (count == 1) {
         k_msgq_put(&base_station_msgq_tx_msg, &sync_msg, K_NO_WAIT);
         count = 0;
     }

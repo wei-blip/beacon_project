@@ -11,7 +11,7 @@
 		],
 		"files" : 
 		[
-			"/home/rts/zephyr-2.7.0/zephyr/cmake/target_toolchain.cmake",
+			"/home/rts/zephyr-2.7.0/zephyr/cmake/kconfig.cmake",
 			"/home/rts/zephyr-2.7.0/zephyr/cmake/app/boilerplate.cmake",
 			"/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
 			"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/clion-zephyr.cmake",
@@ -45,7 +45,7 @@
 			{
 				"command" : 2,
 				"file" : 2,
-				"line" : 102,
+				"line" : 40,
 				"parent" : 4
 			},
 			{
@@ -61,7 +61,7 @@
 			{
 				"command" : 1,
 				"file" : 1,
-				"line" : 579,
+				"line" : 542,
 				"parent" : 7
 			},
 			{
@@ -71,18 +71,49 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 38,
+				"line" : 292,
 				"parent" : 9
 			}
 		]
 	},
-	"id" : "compiler-cpp::@6890427a1f51a3e7e1df",
-	"name" : "compiler-cpp",
+	"id" : "config-twister::@6890427a1f51a3e7e1df",
+	"name" : "config-twister",
 	"paths" : 
 	{
 		"build" : ".",
 		"source" : "."
 	},
-	"sources" : [],
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 10,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/CMakeFiles/config-twister",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/CMakeFiles/config-twister.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
 	"type" : "UTILITY"
 }

@@ -167,6 +167,7 @@ static uint32_t get_polarity(pwm_flags_t flags)
 }
 
 static int ws2812_pwm_write(const struct device *dev) {
+    unsigned int key;
     const struct ws2812_pwm_cfg *cfg = dev->config;
     struct ws2812_pwm_data *ctx = dev->data;
     const struct pwm_stm32_config *pwm_cfg = cfg->pwm.dev->config;
@@ -187,6 +188,7 @@ static int ws2812_pwm_write(const struct device *dev) {
         return -EIO;
     }
 
+    key = irq_lock();
     LL_TIM_EnableARRPreload(tim);
     LL_TIM_OC_EnablePreload(tim, channel);
     LL_TIM_SetAutoReload(tim, ctx->pwm_period_cycles - 1u);
@@ -209,7 +211,7 @@ static int ws2812_pwm_write(const struct device *dev) {
     set_timer_compare[cfg->pwm.channel - 1u](tim, 0);
     while (!is_active_timer_flag[cfg->pwm.channel](tim));
     LL_TIM_CC_DisableChannel(tim, channel);
-
+    irq_unlock(key);
     return 0;
 }
 

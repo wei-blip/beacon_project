@@ -40,13 +40,19 @@ struct led_hsv empty_hsv = {
 
 //// Function definition begin ////
 void connection_quality_pixels(uint8_t con_status) {
-    for (int i = 0; i < con_status; ++i) {
+    int i = 0;
+    while (i < con_status) {
         if (i < NUM_OF_RED_LEDS) {
-            led_hsv2rgb(&red_hsv, &pixels_rgb[i]);
+            led_hsv2rgb(&red_hsv, &pixels_rgb[i++]);
             continue;
         }
-        led_hsv2rgb(&green_hsv, &pixels_rgb[i]);
+        led_hsv2rgb(&green_hsv, &pixels_rgb[i++]);
     }
+
+    while (i < STRIP_NUM_PIXELS/2) {
+        led_hsv2rgb(&empty_hsv, &pixels_rgb[i++]);
+    }
+
 }
 
 void number_of_people_in_zone_pixels(uint8_t people_num) {
@@ -69,8 +75,7 @@ void update_indication(uint8_t people_num, bool set_people_num, uint8_t con_stat
 
     if (set_people_num)
         number_of_people_in_zone_pixels(people_num);
-    key = irq_lock();
+
     led_strip_update_rgb(strip_dev, pixels_rgb, STRIP_NUM_PIXELS);
-    irq_unlock(key);
 }
 //// Function definition end ////

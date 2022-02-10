@@ -36,13 +36,6 @@ enum MESSAGE_FIELD_POSITIONS_e {
 #define BATTERY_FIELD_LEN 1
 #define PEOPLE_IN_SAFE_ZONE_FIELD_LEN 8
 
-//#define SENDER_ADDR_START_POS 0
-//#define RECEIVER_ADDR_START_POS 2
-//#define MESSAGE_TYPE_START_POS 5
-//#define DIRECTION_START_POS 9
-//#define BATTERY_START_POS 10
-//#define PEOPLE_IN_SAFE_ZONE_START_POS 11
-
 enum DEVICE_ADDR_e {
     BASE_STATION_ADDR = 0x00,
     SIGNALMAN_1_ADDR = 0x01,
@@ -51,23 +44,7 @@ enum DEVICE_ADDR_e {
     BROADCAST_ADDR = 0x04
 };
 
-enum sender_addr {
-    SEND_SIGNALMAN_1 = 0x01,
-    SEND_SIGNALMAN_2 = 0x02,
-    SEND_BASE_STATION = 0x03,
-    SEND_BRIGADE_CHIEF = 0x04
-};
-
-enum receiver_addr {
-    RECV_BROADCAST = 0x00,
-    RECV_SIGNALMAN_1 = 0x01,
-    RECV_SIGNALMAN_2 = 0x02,
-    RECV_BASE_STATION = 0x03,
-    RECV_BRIGADE_CHIEF = 0x04,
-    RECV_ONLY_SIGNALMANS = 0x05
-};
-
-enum message_type {
+enum MESSAGE_TYPE_e {
     MESSAGE_TYPE_ALARM = 0x00,
     MESSAGE_TYPE_DISABLE_ALARM = 0x01,
 //    MESSAGE_TYPE_ANTI_DREAM = 0x02,
@@ -79,17 +56,17 @@ enum message_type {
     MESSAGE_TYPE_SYNC = 0x04
 };
 
-enum message_direction {
+enum MESSAGE_DIRECTION_e {
     RESPONSE = 0x00,
     REQUEST = 0x01
 };
 
-enum battery_level {
+enum BATTERY_LEVEL_e {
     BATTERY_LEVEL_GOOD = 0x00,
     BATTERY_LEVEL_CRITICAL = 0x01
 };
 
-enum workers_ids {
+enum WORKERS_IDS_e {
     FIRST_PEOPLE_ID = 0x01,
     SECOND_PEOPLE_ID = 0x02,
     THIRD_PEOPLE_ID = 0x04,

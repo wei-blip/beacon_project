@@ -10,6 +10,8 @@
 
 #define QUEUE_LEN_IN_ELEMENTS 10
 
+#define CURRENT_DEVICE_NUM 1
+#define DURATION_TIME_MSEC (SLOT_TIME_MSEC*(CURRENT_DEVICE_NUM-1))
 
 #define BUTTON_ALARM_GPIO_PORT "GPIOC"
 #define BUTTON_ALARM_GPIO_PIN 13
@@ -19,7 +21,6 @@
 #define BUTTON_TRAIN_PASSED_GPIO_PIN 13
 
 
-void signalman_start_system(void);
 void signalman_proc_task(void);
 void signalman_modem_task(void);
 

@@ -7,7 +7,6 @@
 
 #include "lora_russia_railways_common.h"
 
-void base_station_start_system(void);
 void base_station_proc_task(void);
 void base_station_modem_task(void);
 

@@ -2765,7 +2765,7 @@ set_target_properties(devicetree_target PROPERTIES "DT_REG|/clocks/clk-lsi|SIZE"
 set_target_properties(devicetree_target PROPERTIES "DT_NODE|/clocks/pll" TRUE)
 set_target_properties(devicetree_target PROPERTIES "DT_NODELABEL|pll" "/clocks/pll")
 set_target_properties(devicetree_target PROPERTIES "DT_PROP|/clocks/pll|div-m" "1")
-set_target_properties(devicetree_target PROPERTIES "DT_PROP|/clocks/pll|mul-n" "8")
+set_target_properties(devicetree_target PROPERTIES "DT_PROP|/clocks/pll|mul-n" "20")
 set_target_properties(devicetree_target PROPERTIES "DT_PROP|/clocks/pll|div-p" "7")
 set_target_properties(devicetree_target PROPERTIES "DT_PROP|/clocks/pll|div-q" "2")
 set_target_properties(devicetree_target PROPERTIES "DT_PROP|/clocks/pll|div-r" "4")

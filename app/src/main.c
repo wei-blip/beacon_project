@@ -1,5 +1,5 @@
-//#define BASE_STATION
-#define SIGNALMAN
+#define BASE_STATION
+//#define SIGNALMAN
 //#define BRIGADE_CHIEF
 
 #ifdef BASE_STATION
@@ -18,21 +18,23 @@ void SecureElementRandomNumber(uint32_t* rand_num) {
 
 #define STACK_SIZE 1024
 #define PRIORITY_PROC 2
-#define PRIORITY_START_SYSTEM 0
 #define PRIORITY_MODEM_TASK (-1)
 
 #ifdef BASE_STATION
 K_THREAD_DEFINE(proc_task_id, STACK_SIZE, base_station_proc_task, NULL, NULL, NULL,
                 PRIORITY_PROC, 0, 0);
-K_THREAD_DEFINE(start_system_id, STACK_SIZE, base_station_start_system, NULL, NULL, NULL,
-                PRIORITY_START_SYSTEM, 0, 0);
 K_THREAD_DEFINE(modem_task_id, STACK_SIZE, base_station_modem_task, NULL, NULL, NULL,
                 PRIORITY_MODEM_TASK, 0, 0);
-#else
+#endif
+#ifdef SIGNALMAN
 K_THREAD_DEFINE(proc_task_id, STACK_SIZE, signalman_proc_task, NULL, NULL, NULL,
                 PRIORITY_PROC, 0, 0);
-K_THREAD_DEFINE(start_system_id, STACK_SIZE, signalman_start_system, NULL, NULL, NULL,
-                PRIORITY_START_SYSTEM, 0, 0);
 K_THREAD_DEFINE(modem_task_id, STACK_SIZE, signalman_modem_task, NULL, NULL, NULL,
+                PRIORITY_MODEM_TASK, 0, 0);
+#endif
+#ifdef BRIGADE_CHIEF
+K_THREAD_DEFINE(proc_task_id, STACK_SIZE, brigade_chief_proc_task, NULL, NULL, NULL,
+                PRIORITY_PROC, 0, 0);
+K_THREAD_DEFINE(modem_task_id, STACK_SIZE, brigade_chief_modem_task, NULL, NULL, NULL,
                 PRIORITY_MODEM_TASK, 0, 0);
 #endif

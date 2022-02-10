@@ -5,129 +5,133 @@
 #include <drivers/gpio.h>
 
 #include <logging/log.h>
-    LOG_MODULE_REGISTER(peripheral);
+    LOG_MODULE_REGISTER(signalman);
 
 
 /// My threads ids begin
 extern const k_tid_t proc_task_id;
 extern const k_tid_t modem_task_id;
-extern const k_tid_t start_system_id;
 /// My threads ids end
 
-
 static struct message_s alarm_msg;
+static struct message_s train_passed_msg;
 
-static modem_state_t signalman_recv_state;
-static modem_state_t signalman_transmit_state;
-static modem_state_t signalman_current_state;
+static struct msg_info_s alarm_msg_info;
+static struct msg_info_s train_passed_msg_info;
 
+static modem_state_t current_state;
 
 /// Structure area begin
-struct gpio_callback signalman_button_anti_dream_cb;
-struct gpio_callback signalman_button_alarm_cb;
-struct gpio_callback signalman_button_train_passed_cb;
+struct gpio_callback button_anti_dream_cb;
+struct gpio_callback button_alarm_cb;
+struct gpio_callback button_train_passed_cb;
 
 
-struct device *signalman_button_alarm_gpio_dev_ptr;
-struct device *signalman_button_anti_dream_gpio_dev_ptr;
-struct device *signalman_button_train_passed_gpio_dev_ptr;
+struct device *button_alarm_gpio_dev_ptr;
+struct device *button_anti_dream_gpio_dev_ptr;
+struct device *button_train_passed_gpio_dev_ptr;
 /// Structure area end
 
 
 /// Enum area begin
-enum receiver_addr signalman_cur_dev_addr = RECV_SIGNALMAN_1;
-
-enum workers_ids signalman_cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
-enum battery_level signalman_cur_battery_level = BATTERY_LEVEL_GOOD;
+static enum DEVICE_ADDR_e cur_dev_addr = SIGNALMAN_1_ADDR;
+static enum WORKERS_IDS_e cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
+static enum BATTERY_LEVEL_e cur_battery_level = BATTERY_LEVEL_GOOD;
 /// Enum area end
 
 
 /// Function declaration area begin
-void signalman_periodic_timer_handler(struct k_timer *tim); // callback for periodic_timer
-void signalman_button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
-void signalman_button_anti_dream_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
-void signalman_button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
+void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
+void button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
+void button_anti_dream_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 
 static void send_msg(void);
 static void recv_msg(void);
+static void system_init(void);
+static void work_buzzer_handler(struct k_work *item);
+static void work_msg_mngr_handler(struct k_work *item);
+static void periodic_timer_handler(struct k_timer *tim); // callback for periodic_timer
 /// Function declaration area end
 
 
 //// Function definition area begin
-void signalman_system_init(void)
-{
-    system_init();
-    //// Init IRQ (change gpio init after tests) begin
-    signalman_button_alarm_gpio_dev_ptr = device_get_binding(BUTTON_ALARM_GPIO_PORT);
-//    button_anti_dream_gpio_dev_ptr = device_get_binding(BUTTON_ANTI_DREAM_GPIO_PORT);
-//    signalman_button_train_passed_gpio_dev_ptr = device_get_binding(BUTTON_TRAIN_PASSED_GPIO_PORT);
-
-    gpio_pin_configure(signalman_button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
-                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
-//    gpio_pin_configure(button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PIN,
-//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
-//    gpio_pin_configure(signalman_button_train_passed_gpio_dev_ptr, BUTTON_TRAIN_PASSED_GPIO_PIN,
-//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
-
-    gpio_pin_interrupt_configure(signalman_button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
-                                 GPIO_INT_EDGE_TO_ACTIVE);
-//    gpio_pin_interrupt_configure(&button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PORT,
-//                                 GPIO_INT_EDGE_RISING);
-//    gpio_pin_interrupt_configure(signalman_button_train_passed_gpio_dev_ptr, BUTTON_TRAIN_PASSED_GPIO_PIN,
-//                                 GPIO_INT_EDGE_TO_ACTIVE);
-
-    gpio_init_callback(&signalman_button_alarm_cb, signalman_button_alarm_pressed_cb,
-                       BIT(BUTTON_ALARM_GPIO_PIN));
-//    gpio_init_callback(button_anti_dream_cb_ptr, button_anti_dream_pressed_cb,
-//                       BIT(BUTTON_ANTI_DREAM_GPIO_PIN));
-//    gpio_init_callback(&signalman_button_train_passed_cb, signalman_button_train_pass_pressed_cb,
-//                       BIT(BUTTON_TRAIN_PASSED_GPIO_PIN));
-
-    gpio_add_callback(signalman_button_alarm_gpio_dev_ptr, &signalman_button_alarm_cb);
-//    gpio_add_callback(button_anti_dream_gpio_dev_ptr, button_anti_dream_cb_ptr);
-//    gpio_add_callback(signalman_button_train_passed_gpio_dev_ptr, &signalman_button_train_passed_cb);
-    /// Init IRQ end
-
-    /// Kernel services init begin
-    k_timer_init(&periodic_timer, signalman_periodic_timer_handler, NULL);
-    /// Kernel services init end
-
-    /// Light down LEDs begin
-    update_indication(0, true, 0, true);
-    /// Light down LEDs end
-}
-
-
-void signalman_start_system(void)
+static void system_init(void)
 {
     volatile int rc = -1;
     uint32_t new_msg = 0;
     int16_t rssi = 0;
     int8_t snr = 0;
 
-    signalman_system_init();
+    /// Buzzer init begin
+    buzzer_dev_ptr = device_get_binding(BUZZER_GPIO_PORT);
+    gpio_pin_configure(buzzer_dev_ptr, BUZZER_GPIO_PIN,(GPIO_OUTPUT | GPIO_ACTIVE_HIGH));
+    /// Buzzer init end
 
-    /// Filling list elements begin
-    signalman_recv_state.next = &signalman_transmit_state;
-    signalman_recv_state.state = RECEIVE;
+    //// Init IRQ (change gpio init after tests) begin
+    button_alarm_gpio_dev_ptr = device_get_binding(BUTTON_ALARM_GPIO_PORT);
+//    button_anti_dream_gpio_dev_ptr = device_get_binding(BUTTON_ANTI_DREAM_GPIO_PORT);
+//    button_train_passed_gpio_dev_ptr = device_get_binding(BUTTON_TRAIN_PASSED_GPIO_PORT);
 
-    signalman_transmit_state.next = &signalman_recv_state;
-    signalman_transmit_state.state = TRANSMIT;
+    gpio_pin_configure(button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
+                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
+//    gpio_pin_configure(button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PIN,
+//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
+//    gpio_pin_configure(button_train_passed_gpio_dev_ptr, BUTTON_TRAIN_PASSED_GPIO_PIN,
+//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
 
-    signalman_current_state = signalman_recv_state;
-    /// Filling list elements end
+    gpio_pin_interrupt_configure(button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
+                                 GPIO_INT_EDGE_TO_ACTIVE);
+//    gpio_pin_interrupt_configure(&button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PORT,
+//                                 GPIO_INT_EDGE_RISING);
+//    gpio_pin_interrupt_configure(button_train_passed_gpio_dev_ptr, BUTTON_TRAIN_PASSED_GPIO_PIN,
+//                                 GPIO_INT_EDGE_TO_ACTIVE);
 
-    alarm_msg.receiver_addr = RECV_BASE_STATION;
-    alarm_msg.sender_addr = signalman_cur_dev_addr;
+    gpio_init_callback(&button_alarm_cb, button_alarm_pressed_cb, BIT(BUTTON_ALARM_GPIO_PIN));
+//    gpio_init_callback(button_anti_dream_cb_ptr, button_anti_dream_pressed_cb, BIT(BUTTON_ANTI_DREAM_GPIO_PIN));
+//    gpio_init_callback(&button_train_passed_cb, button_train_pass_pressed_cb, BIT(BUTTON_TRAIN_PASSED_GPIO_PIN));
+
+    gpio_add_callback(button_alarm_gpio_dev_ptr, &button_alarm_cb);
+//    gpio_add_callback(button_anti_dream_gpio_dev_ptr, button_anti_dream_cb_ptr);
+//    gpio_add_callback(button_train_passed_gpio_dev_ptr, &button_train_passed_cb);
+    /// Init IRQ end
+
+    /// Kernel services init begin
+    k_work_init(&work_buzzer, work_buzzer_handler);
+    k_work_init(&work_msg_mngr, work_msg_mngr_handler);
+    k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
+    /// Kernel services init end
+
+    /// Light down LEDs begin
+    update_indication(0, true, 0, true);
+    /// Light down LEDs end
+
+    current_state = recv_state;
+
+    alarm_msg.receiver_addr = BASE_STATION_ADDR;
+    alarm_msg.sender_addr = cur_dev_addr;
     alarm_msg.message_type = MESSAGE_TYPE_ALARM;
     alarm_msg.direction = REQUEST;
-//    tx_msg.battery_level
+    alarm_msg.battery_level = BATTERY_LEVEL_GOOD;
     alarm_msg.workers_in_safe_zone = 0;
 
-    /// Receive sync message
-    rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
-    k_sleep(K_MSEC(DELAY_TIME_MSEC));
-    k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC),K_MSEC(PERIOD_TIME_MSEC));
+    alarm_msg_info.msg = &alarm_msg;
+    alarm_msg_info.msg_buf = &msgq_tx_msg_prio;
+    alarm_msg_info.req_is_send = false;
+    alarm_msg_info.resp_is_recv = false;
+    alarm_msg_info.cnt = 0;
+
+    train_passed_msg.receiver_addr = BASE_STATION_ADDR;
+    train_passed_msg.sender_addr = cur_dev_addr;
+    train_passed_msg.message_type = MESSAGE_TYPE_TRAIN_PASSED;
+    train_passed_msg.direction = REQUEST;
+    train_passed_msg.battery_level = BATTERY_LEVEL_GOOD;
+    train_passed_msg.workers_in_safe_zone = 0;
+
+    train_passed_msg_info.msg = &train_passed_msg;
+    train_passed_msg_info. msg_buf = &msgq_tx_msg;
+    train_passed_msg_info.req_is_send = false;
+    train_passed_msg_info.resp_is_recv = false;
+    train_passed_msg_info.cnt = 0;
 }
 
 static void send_msg(void)
@@ -165,7 +169,7 @@ static void send_msg(void)
         }
     }
 //    LOG_DBG("Send message");
-    if ( signalman_current_state.state == TRANSMIT ) {
+    if ( current_state.state == TRANSMIT ) {
         rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
     }
     else {
@@ -191,18 +195,19 @@ static void recv_msg(void)
     }
 
     ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
-    if ( signalman_current_state.state == RECEIVE ) {
+    if ( current_state.state == RECEIVE ) {
         rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES, K_MSEC(ticks), &rssi, &snr);
     }
     else {
         return;
     }
     if (rc > 0) {
+//        LOG_DBG("MESSAGE RECEIVE");
         if (IS_SYNC_MSG) {
             LOG_DBG(" REQUEST");
             LOG_DBG(" MESSAGE_TYPE_SYNC");
             k_timer_stop(&periodic_timer);
-            signalman_current_state = signalman_recv_state;
+            current_state = recv_state;
             // little delay to account execution time
             k_sleep(K_MSEC(DELAY_TIME_MSEC));
             k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC),
@@ -224,7 +229,6 @@ _Noreturn void signalman_proc_task()
     struct message_s rx_msg_proc = {0};
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
     uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
-    k_sleep(K_FOREVER);
     while(1) {
         if (msgq_rx_msg.used_msgs) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
@@ -242,9 +246,9 @@ _Noreturn void signalman_proc_task()
             }
 //            LOG_DBG("Incoming packet...");
             read_write_message(&cur_msg, &rx_msg_proc, false); // rx_msg struct is fill
-            if ( (rx_msg_proc.receiver_addr != RECV_BROADCAST) &&
-            (rx_msg_proc.receiver_addr != signalman_cur_dev_addr) ) {
-                LOG_DBG("addr = 0x%02x, own addr = 0x%02x", rx_msg_proc.receiver_addr, signalman_cur_dev_addr);
+            if ( (rx_msg_proc.receiver_addr != BROADCAST_ADDR) &&
+            (rx_msg_proc.receiver_addr != cur_dev_addr) ) {
+                LOG_DBG("addr = 0x%02x, own addr = 0x%02x", rx_msg_proc.receiver_addr, cur_dev_addr);
                 LOG_DBG("Packet is filtered");
                 continue;
             }
@@ -255,26 +259,25 @@ _Noreturn void signalman_proc_task()
                     LOG_DBG(" REQUEST");
 //                    LOG_DBG("Message type:");
 
-                    tx_msg_proc.sender_addr = signalman_cur_dev_addr;
+                    tx_msg_proc.sender_addr = cur_dev_addr;
                     tx_msg_proc.message_type = rx_msg_proc.message_type;
                     tx_msg_proc.workers_in_safe_zone = 0;
                     tx_msg_proc.direction = RESPONSE;
                     tx_msg_proc.battery_level = BATTERY_LEVEL_GOOD; // change it after
-                    tx_msg_proc.receiver_addr = RECV_BASE_STATION;
+                    tx_msg_proc.receiver_addr = BASE_STATION_ADDR;
 
                     switch (rx_msg_proc.message_type) {
+                        case MESSAGE_TYPE_SYNC:
+                            break;
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
-                            msgq_cur_msg_tx_ptr = &msgq_rx_msg;
+                            msgq_cur_msg_tx_ptr = NULL;
+//                            msgq_cur_msg_tx_ptr = &msgq_rx_msg;
                             // TODO Indication for signalman and brigade chief
                             switch (rx_msg_proc.sender_addr) {
-                                case SEND_BASE_STATION:
+                                case BASE_STATION_ADDR:
                                     // TODO Indicate LED "Base station disabled alarm"
                                     LOG_DBG("Base station disabled alarm");
-                                    break;
-                                case SEND_BRIGADE_CHIEF:
-                                    // TODO Indicate LED "Brigade chief disabled alarm"
-                                    LOG_DBG("Brigade chief disabled alarm");
                                     break;
                                 default:
                                     LOG_DBG("Undefined sender address for this message type");
@@ -284,13 +287,13 @@ _Noreturn void signalman_proc_task()
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
-                            msgq_cur_msg_tx_ptr = &msgq_rx_msg;
+                            msgq_cur_msg_tx_ptr = &msgq_tx_msg;
                             /// TODO Indication for signalman and brigade chief
                             break;
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
-                            if (rx_msg_proc.sender_addr == signalman_cur_dev_addr)
+                            if (rx_msg_proc.sender_addr == cur_dev_addr)
                                 msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio; // For response message
                             else
                                 msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
@@ -314,6 +317,16 @@ _Noreturn void signalman_proc_task()
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
                             msgq_cur_msg_tx_ptr = NULL;
+                            switch (rx_msg_proc.sender_addr) {
+                                // Because it messages retransmit from base station
+                                case BRIGADE_CHIEF_ADDR:
+                                    // TODO Indicate LED "Brigade chief disabled alarm"
+                                    LOG_DBG("Brigade chief disabled alarm");
+                                    break;
+                                default:
+                                    LOG_DBG("Undefined sender address for this message type");
+                                    break;
+                            }
                             break;
 
                         case MESSAGE_TYPE_HOMEWARD:
@@ -323,11 +336,13 @@ _Noreturn void signalman_proc_task()
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
+                            alarm_msg_info.resp_is_recv = true;
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
 
                         case MESSAGE_TYPE_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
+                            train_passed_msg_info.resp_is_recv = true;
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
 
@@ -341,9 +356,8 @@ _Noreturn void signalman_proc_task()
                     LOG_DBG("Not correct message direction");
                     msgq_cur_msg_tx_ptr = NULL;
             }
-            if (msgq_cur_msg_tx_ptr) {
+            if (msgq_cur_msg_tx_ptr)
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
-            }
             leds_num = check_rssi(rssi);
             update_indication(rx_msg_proc.workers_in_safe_zone, true,
                               leds_num, true);
@@ -355,12 +369,45 @@ _Noreturn void signalman_proc_task()
 
 _Noreturn void signalman_modem_task()
 {
+    int8_t snr;
+    int16_t rssi;
     volatile uint32_t ticks = 0;
-    k_sleep(K_FOREVER);
+
+    /// Lora config begin
+    lora_cfg.frequency = 433000000;
+    lora_cfg.bandwidth = BW_125_KHZ;
+    lora_cfg.datarate = SF_12;
+    lora_cfg.preamble_len = 8;
+    lora_cfg.coding_rate = CR_4_5;
+    lora_cfg.tx_power = 0;
+    lora_cfg.tx = false;
+
+    lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
+    if (!device_is_ready(lora_dev_ptr)) {
+        k_sleep(K_FOREVER);
+    }
+    if ( lora_config(lora_dev_ptr, &lora_cfg) < 0 ) {
+        k_sleep(K_FOREVER);
+    }
+    /// Lora config end
+
+    system_init();
+
+    /// Receive sync message begin
+    lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
+    k_sleep(K_MSEC(DELAY_TIME_MSEC));
+    k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC),K_MSEC(PERIOD_TIME_MSEC));
+
+    k_msgq_put(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
+    k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
+    k_wakeup(proc_task_id);
+    /// Receive sync message end
+
     while(1) {
-        if (signalman_current_state.state == TRANSMIT) {
+        if (current_state.state == TRANSMIT) {
             send_msg();
-            signalman_current_state = *(signalman_current_state.next);
+            current_state = *current_state.next;
+            recv_msg();
         }
         else {
             recv_msg();
@@ -370,11 +417,21 @@ _Noreturn void signalman_modem_task()
 }
 
 
-void signalman_button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     k_work_submit(&work_buzzer);
     LOG_DBG("Button alarm pressed");
-    k_msgq_put(&msgq_tx_msg, &alarm_msg, K_NO_WAIT);
+    k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
+    alarm_msg_info.req_is_send = true;
+}
+
+
+void button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+{
+    k_work_submit(&work_buzzer);
+    LOG_DBG("Button train pass pressed");
+    k_msgq_put(&msgq_tx_msg, &train_passed_msg, K_NO_WAIT);
+    train_passed_msg_info.req_is_send = true;
 }
 
 
@@ -385,10 +442,48 @@ void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback
 }
 
 
-void signalman_periodic_timer_handler(struct k_timer *tim)
+static void periodic_timer_handler(struct k_timer *tim)
 {
+    LOG_DBG("Periodic timer handler");
 //    k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
-    signalman_current_state = *signalman_current_state.next;
+    current_state = *current_state.next;
+    k_work_submit(&work_msg_mngr);
     k_wakeup(modem_task_id);
+}
+
+
+static void work_buzzer_handler(struct k_work *item)
+{
+    gpio_pin_set(buzzer_dev_ptr, BUZZER_GPIO_PIN, 1);
+    k_msleep(20);
+    gpio_pin_set(buzzer_dev_ptr, BUZZER_GPIO_PIN, 0);
+    k_msleep(20);
+}
+
+
+static void work_msg_mngr_handler(struct k_work *item)
+{
+    if (alarm_msg_info.req_is_send) {
+        if ((alarm_msg_info.cnt++ == WAITING_PERIOD_NUM)) {
+            if (!alarm_msg_info.resp_is_recv) {
+                k_msgq_put(alarm_msg_info.msg_buf, alarm_msg_info.msg, K_NO_WAIT);
+            } else {
+                alarm_msg_info.req_is_send = false;
+                alarm_msg_info.resp_is_recv = false;
+            }
+            alarm_msg_info.cnt = 0;
+        }
+    } else if (train_passed_msg_info.req_is_send) {
+        if (train_passed_msg_info.cnt++ == WAITING_PERIOD_NUM) {
+            if (!train_passed_msg_info.resp_is_recv) {
+                k_msgq_put(train_passed_msg_info.msg_buf, train_passed_msg_info.msg, K_NO_WAIT);
+            } else {
+                train_passed_msg_info.req_is_send = false;
+                train_passed_msg_info.resp_is_recv = false;
+            }
+
+            train_passed_msg_info.cnt = 0;
+        }
+    }
 }
 /// Function definition area end

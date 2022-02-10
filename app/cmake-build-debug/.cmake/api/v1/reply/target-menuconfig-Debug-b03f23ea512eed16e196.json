@@ -45,7 +45,7 @@
 			{
 				"command" : 2,
 				"file" : 2,
-				"line" : 102,
+				"line" : 40,
 				"parent" : 4
 			},
 			{
@@ -71,13 +71,13 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 292,
+				"line" : 139,
 				"parent" : 9
 			}
 		]
 	},
-	"id" : "config-twister::@6890427a1f51a3e7e1df",
-	"name" : "config-twister",
+	"id" : "menuconfig::@6890427a1f51a3e7e1df",
+	"name" : "menuconfig",
 	"paths" : 
 	{
 		"build" : ".",
@@ -105,13 +105,13 @@
 		{
 			"backtrace" : 10,
 			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/config-twister",
+			"path" : "cmake-build-debug/CMakeFiles/menuconfig",
 			"sourceGroupIndex" : 0
 		},
 		{
 			"backtrace" : 0,
 			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/config-twister.rule",
+			"path" : "cmake-build-debug/CMakeFiles/menuconfig.rule",
 			"sourceGroupIndex" : 1
 		}
 	],

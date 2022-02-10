@@ -16,4 +16,5 @@ empty_file.o: /home/rts/zephyr-2.7.0/zephyr/misc/empty_file.c \
  /home/rts/zephyr-2.7.0/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl.h \
  /home/rts/zephyr-2.7.0/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl-common.h \
  /home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l152re/arduino_r3_connector.dtsi \
- /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l152re.overlay
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l152re.overlay \
+ /home/rts/zephyr-2.7.0/zephyr/include/dt-bindings/led/led.h

@@ -22,6 +22,9 @@ struct lora_modem_config lora_cfg = {0};
 struct k_timer periodic_timer = {0};
 struct k_work work_buzzer = {0};
 struct k_work work_msg_mngr = {0};
+struct k_mutex mut_msg_info = {0};
+
+struct buzzer_mode_s buzzer_mode = {0};
 
 const modem_state_t recv_state = {
         .next = &transmit_state,
@@ -145,3 +148,24 @@ uint8_t check_rssi(const int16_t rssi)
     }
 }
 
+
+void check_msg_status(struct msg_info_s *msg_info)
+{
+    // Check response status
+    // If response will receive - set flags on false (good transfer)
+    // Else if check count status, if cnt == WAITING_PERIOD_NUM - message retransmit (bad transfer)
+//    if (atomic_get(&(msg_info->req_is_send))) {
+//        if (atomic_get(&(msg_info->resp_is_recv))) {
+//            atomic_clear(&(msg_info->req_is_send));
+//            atomic_clear(&(msg_info->resp_is_recv));
+//            printk("        Message transmit!!!\n");
+//        } else {
+//            printk("        Message retransmit!!!\n");
+//            k_msgq_put(msg_info->msg_buf, msg_info->msg, K_NO_WAIT);
+//        }
+//    }
+    if (atomic_get((&msg_info->req_is_send))) {
+      k_msgq_put(msg_info->msg_buf, msg_info->msg, K_NO_WAIT);
+      atomic_clear(&(msg_info->req_is_send));
+    }
+}

@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <drivers/lora.h>
 #include <drivers/gpio.h>
+#include <drivers/pwm.h>
 
 #include "message_format.h"
 #include "indication.h"
@@ -17,8 +18,21 @@
 BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
              "No default LoRa radio specified in DT");
 
+#define PWM_SOUND	DT_ALIAS(pwm_sound)
+
+#if DT_NODE_HAS_STATUS(PWM_SOUND, okay)
+#define PWM_CTLR	DT_PWMS_CTLR(PWM_SOUND)
+#define PWM_CHANNEL	DT_PWMS_CHANNEL(PWM_SOUND)
+#define PWM_FLAGS	DT_PWMS_FLAGS(PWM_SOUND)
+#else
+#error "Unsupported board: pwm-led0 devicetree alias is not defined"
+#define PWM_CTLR	DT_INVALID_NODE
+#define PWM_CHANNEL	0
+#define PWM_FLAGS	0
+#endif
+
 #define QUEUE_LEN_IN_ELEMENTS 10
-#define WAITING_PERIOD_NUM 4
+#define WAITING_PERIOD_NUM 2
 
 #define SLOT_TIME_MSEC 980UL
 #define PERIOD_TIME_MSEC (4*SLOT_TIME_MSEC)
@@ -27,16 +41,13 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 #define CORRECT_VALUE_MSEC 10
 #define RECV_TIME_MSEC 900
 
-#define BUZZER_GPIO_PORT "GPIOA"
-#define BUZZER_GPIO_PIN 1
+//#define BUZZER_GPIO_PORT "GPIOA"
+//#define BUZZER_GPIO_PIN 1
 
-#define IS_SYNC_MSG ( (rx_buf[0] == 9) && (rx_buf[1] == 64) && (rx_buf[2] == 0) )
+#define BUTTON_PRESSED_PERIOD_TIME_USEC 40000UL
 
-uint8_t reverse(uint8_t input);
-uint8_t check_rssi(int16_t rssi);
-void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write);
-void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len, uint8_t* pos);
-void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t* pos);
+
+#define IS_SYNC_MSG ( (rx_buf[0] == 13) && (rx_buf[1] == 64) && (rx_buf[2] == 0) )
 
 
 enum CONNECTION_QUALITY_RSSI {
@@ -76,11 +87,15 @@ typedef struct modem_state_s {
 } modem_state_t;
 
 
+struct buzzer_mode_s {
+    bool continuous;
+    bool single;
+};
+
 struct msg_info_s {
-    bool req_is_send;
-    bool resp_is_recv;
+    atomic_t req_is_send;
+    atomic_t resp_is_recv;
     struct k_msgq *msg_buf;
-    uint8_t cnt;
     struct message_s *msg;
 
 };
@@ -95,6 +110,9 @@ extern const struct device *buzzer_dev_ptr;
 extern struct k_timer periodic_timer;
 extern struct k_work work_buzzer;
 extern struct k_work work_msg_mngr;
+extern struct k_mutex mut_msg_info;
+
+extern struct buzzer_mode_s buzzer_mode;
 
 extern struct message_s tx_msg;
 
@@ -109,5 +127,14 @@ extern const modem_state_t transmit_state;
 extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
 extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
 /// Extern variable declaration end
+
+
+uint8_t reverse(uint8_t input);
+uint8_t check_rssi(int16_t rssi);
+void check_msg_status(struct msg_info_s *msg_info);
+void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write);
+void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len, uint8_t* pos);
+void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t* pos);
+
 
 #endif //RADIO_SIGNALMAN_LORA_RUSSIA_RAILWAYS_COMMON_H

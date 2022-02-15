@@ -74,9 +74,10 @@ __devicehdl_sys_init_sys_clock_driver_init0[] = { DEVICE_HANDLE_ENDS, DEVICE_HAN
 /* 11 : /soc/timers@40000000/pwm:
  * - (/soc/timers@40000000)
  * - (/soc/pin-controller@48000000/tim2_ch1_pa0)
+ * - (/soc/pin-controller@48000000/tim2_ch2_pa1)
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
-__devicehdl_DT_N_S_soc_S_timers_40000000_S_pwm[] = { 1, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS };
+__devicehdl_DT_N_S_soc_S_timers_40000000_S_pwm[] = { 1, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS };
 
 /* 12 : /soc/spi@40013000:
  * - (/soc)
@@ -88,7 +89,7 @@ __devicehdl_DT_N_S_soc_S_timers_40000000_S_pwm[] = { 1, DEVICE_HANDLE_ENDS, DEVI
  * - (/soc/pin-controller@48000000/spi1_sck_pa5)
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
-__devicehdl_DT_N_S_soc_S_spi_40013000[] = { 1, 6, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS };
+__devicehdl_DT_N_S_soc_S_spi_40013000[] = { 6, 1, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS };
 
 /* 13 : /soc/spi@40013000/sx1278@0:
  * - /soc/spi@40013000
@@ -96,7 +97,7 @@ __devicehdl_DT_N_S_soc_S_spi_40013000[] = { 1, 6, DEVICE_HANDLE_ENDS, DEVICE_HAN
  * - /soc/pin-controller@48000000/gpio@48000800
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
-__devicehdl_DT_N_S_soc_S_spi_40013000_S_sx1278_0[] = { 12, 6, 5, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS };
+__devicehdl_DT_N_S_soc_S_spi_40013000_S_sx1278_0[] = { 6, 12, 5, DEVICE_HANDLE_ENDS, DEVICE_HANDLE_ENDS };
 
 /* 14 : /ws2812:
  * - (/)

@@ -17,11 +17,27 @@
         period-ns = <1000>;
     };
 
+    pwmleds {
+        compatible = "pwm-leds";
+        external_pwm_led: external_pwm_led {
+            pwms = <&pwm2 2 0 PWM_POLARITY_NORMAL>;
+        };
+    };
+
 	aliases {
         led-strip = &led_strip;
-	};
+        pwm-sound = &external_pwm_led;
+    };
 };
 
+
+&timers2 {
+    status = "okay";
+    pwm2: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim2_ch1_pa0 &tim2_ch2_pa1>;
+    };
+};
 
 &spi1 {
     status = "okay";

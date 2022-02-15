@@ -62,10 +62,13 @@ void system_init(void)
     int16_t rssi = 0;
     int8_t snr = 0;
 
-    /// Buzzer GPIO init begin
-    buzzer_dev_ptr = device_get_binding(BUZZER_GPIO_PORT);
-    gpio_pin_configure(buzzer_dev_ptr, BUZZER_GPIO_PIN,(GPIO_OUTPUT | GPIO_ACTIVE_HIGH));
-    /// Buzzer GPIO init end
+    /// Buzzer init begin
+    buzzer_dev_ptr = DEVICE_DT_GET(PWM_CTLR);
+    if (!device_is_ready(buzzer_dev_ptr)) {
+        LOG_DBG("Error: PWM device %s is not ready\n", buzzer_dev_ptr->name);
+        k_sleep(K_FOREVER);
+    }
+    /// Buzzer init end
 
     //// Init IRQ (change gpio init after tests) begin
     button_disable_alarm_gpio_dev_ptr = device_get_binding(BUTTON_DISABLE_ALARM_GPIO_PORT);
@@ -103,7 +106,12 @@ void system_init(void)
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_msg_mngr, work_msg_mngr_handler);
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
+    k_mutex_init(&mut_msg_info);
     /// Kernel services init end
+
+    /// Light down LEDs begin
+    update_indication(&led_strip_state, true, true, true, true);
+    /// Light down LEDs end
 
     current_state = recv_state;
 
@@ -114,42 +122,37 @@ void system_init(void)
     disable_alarm_msg.battery_level = cur_battery_level;
     disable_alarm_msg.workers_in_safe_zone = 0;
 
-    disable_alarm_msg_info.msg = &disable_alarm_msg;
     disable_alarm_msg_info.msg_buf = &msgq_tx_msg_prio;
-    disable_alarm_msg_info.resp_is_recv = false;
-    disable_alarm_msg_info.req_is_send = false;
-    disable_alarm_msg_info.cnt = 0;
+    disable_alarm_msg_info.msg = &disable_alarm_msg;
+    disable_alarm_msg_info.req_is_send = ATOMIC_INIT(0);
+    disable_alarm_msg_info.resp_is_recv = ATOMIC_INIT(0);
 
     left_train_passed_msg.receiver_addr = BASE_STATION_ADDR;
     left_train_passed_msg.sender_addr = cur_dev_addr;
-    left_train_passed_msg.message_type = MESSAGE_TYPE_TRAIN_PASSED;
+    left_train_passed_msg.message_type = MESSAGE_TYPE_LEFT_TRAIN_PASSED;
     left_train_passed_msg.direction = REQUEST;
     left_train_passed_msg.battery_level = cur_battery_level;
     left_train_passed_msg.workers_in_safe_zone = 0;
 
-    left_train_passed_msg_info.msg = &left_train_passed_msg;
     left_train_passed_msg_info.msg_buf = &msgq_tx_msg;
-    left_train_passed_msg_info.resp_is_recv = false;
-    left_train_passed_msg_info.req_is_send = false;
-    left_train_passed_msg_info.cnt = 0;
+    left_train_passed_msg_info.msg = &left_train_passed_msg;
+    left_train_passed_msg_info.req_is_send = ATOMIC_INIT(0);
+    left_train_passed_msg_info.resp_is_recv = ATOMIC_INIT(0);
 
     right_train_passed_msg.receiver_addr = BASE_STATION_ADDR;
     right_train_passed_msg.sender_addr = cur_dev_addr;
-    right_train_passed_msg.message_type = MESSAGE_TYPE_TRAIN_PASSED;
+    right_train_passed_msg.message_type = MESSAGE_TYPE_RIGHT_TRAIN_PASSED;
     right_train_passed_msg.direction = REQUEST;
     right_train_passed_msg.battery_level = cur_battery_level;
     right_train_passed_msg.workers_in_safe_zone = 0;
 
-    left_train_passed_msg_info.msg = &right_train_passed_msg;
-    left_train_passed_msg_info.msg_buf = &msgq_tx_msg;
-    left_train_passed_msg_info.resp_is_recv = false;
-    left_train_passed_msg_info.req_is_send = false;
-    left_train_passed_msg_info.cnt = 0;
+    right_train_passed_msg_info.msg_buf = &msgq_tx_msg;
+    right_train_passed_msg_info.msg = &right_train_passed_msg;
+    right_train_passed_msg_info.req_is_send = ATOMIC_INIT(0);
+    right_train_passed_msg_info.resp_is_recv = ATOMIC_INIT(0);
 
-    /// Receive sync message
-    rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
-    k_sleep(K_MSEC(DELAY_TIME_MSEC));
-    k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC), K_MSEC(PERIOD_TIME_MSEC));
+    buzzer_mode.single = true;
+    k_work_submit(&work_buzzer);
 }
 
 
@@ -159,18 +162,28 @@ static void send_msg(void)
     uint32_t new_msg = 0;
     struct k_msgq* cur_queue = NULL;
 //    LOG_DBG("Check queues");
-
-    if (msgq_tx_msg_prio.used_msgs) {
+    // If mutex taken then check message into queue
+    // If message present into queue then peeking him from current queue
+    if (!k_mutex_lock(&mut_msg_info, K_MSEC(1))) {
+        if (msgq_tx_msg_prio.used_msgs) {
 //        LOG_DBG("Get message from priority queue");
-        k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
-        cur_queue = &msgq_tx_msg_prio;
-    } else if (msgq_tx_msg.used_msgs) {
+            k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+            cur_queue = &msgq_tx_msg_prio;
+        } else if (msgq_tx_msg.used_msgs) {
 //        LOG_DBG("Get message from standart queue");
-        k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
-        cur_queue = &msgq_tx_msg;
+            k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
+            cur_queue = &msgq_tx_msg;
+        } else {
+            k_mutex_unlock(&mut_msg_info);
+            return;
+        }
+
+//        if (tx_msg.direction == RESPONSE)
+//            k_msgq_get(cur_queue, &tx_msg, K_NO_WAIT);
     } else {
         return;
     }
+    k_mutex_unlock(&mut_msg_info);
 
     read_write_message(&new_msg, &tx_msg, true);
     for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
@@ -188,12 +201,7 @@ static void send_msg(void)
         }
     }
 //    LOG_DBG("Send message");
-    if (current_state.state == TRANSMIT) {
-        rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
-    }
-    else {
-        return;
-    }
+    rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
 //    LOG_DBG("Message sending");
 }
 
@@ -240,13 +248,14 @@ static void recv_msg(void)
 
 _Noreturn void brigade_chief_proc_task(void)
 {
-    uint8_t leds_num = 0;
+    uint8_t rssi_num = 0;
     int16_t rssi = 0;
+    uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
+    uint8_t garbage_buf[MESSAGE_LEN_IN_BYTES];
     uint32_t cur_msg = 0;
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
-    uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
     k_sleep(K_FOREVER);
     while(1) {
         if (msgq_rx_msg.used_msgs) {
@@ -287,6 +296,7 @@ _Noreturn void brigade_chief_proc_task(void)
 
                     switch (rx_msg_proc.message_type) {
                         case MESSAGE_TYPE_SYNC:
+                            msgq_cur_msg_tx_ptr = NULL;
                             break;
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
@@ -316,7 +326,8 @@ _Noreturn void brigade_chief_proc_task(void)
                                 msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
                             break;
 
-                        case MESSAGE_TYPE_TRAIN_PASSED:
+                        case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
+                        case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
                             msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
                             break;
@@ -337,6 +348,9 @@ _Noreturn void brigade_chief_proc_task(void)
                                 case BRIGADE_CHIEF_ADDR:
                                     // TODO Indicate LED "Brigade chief disabled alarm"
                                     LOG_DBG("Brigade chief disabled alarm");
+                                    // TODO: atomic operation
+                                    atomic_set_bit(&disable_alarm_msg_info.resp_is_recv, 0);
+//                                    k_work_submit(&work_msg_mngr);
                                     break;
                                 default:
                                     LOG_DBG("Undefined sender address for this message type");
@@ -355,8 +369,23 @@ _Noreturn void brigade_chief_proc_task(void)
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
 
-                        case MESSAGE_TYPE_TRAIN_PASSED:
-                            LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
+                        case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
+                            LOG_DBG(" MESSAGE_TYPE_RIGHT_TRAIN_PASSED");
+                            if (rx_msg_proc.sender_addr == cur_dev_addr) {
+                                // TODO: atomic operation
+                                atomic_set_bit(&right_train_passed_msg_info.resp_is_recv, 0);
+//                                k_work_submit(&work_msg_mngr);
+                            }
+                            msgq_cur_msg_tx_ptr = NULL;
+                            break;
+
+                        case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
+                            LOG_DBG(" MESSAGE_TYPE_LEFT_TRAIN_PASSED");
+                            if (rx_msg_proc.sender_addr == cur_dev_addr) {
+                                // TODO: atomic operation
+                                atomic_set_bit(&left_train_passed_msg_info.resp_is_recv, 0);
+//                                k_work_submit(&work_msg_mngr);
+                            }
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
 
@@ -373,8 +402,11 @@ _Noreturn void brigade_chief_proc_task(void)
             if (msgq_cur_msg_tx_ptr) {
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
             }
-            leds_num = check_rssi(rssi);
-            update_indication(rx_msg_proc.workers_in_safe_zone, true, leds_num, true);
+            rssi_num = check_rssi(rssi);
+            led_strip_state.con_status = rssi_num;
+            led_strip_state.people_num = rx_msg_proc.workers_in_safe_zone;
+            update_indication(&led_strip_state, true, true,
+                              false, false);
         }
         k_sleep(K_USEC(100));
     }
@@ -421,9 +453,8 @@ _Noreturn void brigade_chief_modem_task(void)
         if (current_state.state == TRANSMIT) {
             send_msg();
             current_state = *current_state.next;
-            recv_msg();
-        }
-        else {
+        } else {
+            k_work_submit(&work_msg_mngr);
             recv_msg();
         }
         k_sleep(K_USEC(100));
@@ -433,34 +464,34 @@ _Noreturn void brigade_chief_modem_task(void)
 
 void button_disable_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
+    LOG_DBG("Button disable alarm pressed");
+    buzzer_mode.single = true;
     k_work_submit(&work_buzzer);
-    disable_alarm_msg_info.req_is_send = true;
-    k_msgq_put(&msgq_tx_msg_prio, &disable_alarm_msg, K_NO_WAIT);
-    LOG_DBG("Button alarm pressed");
+    atomic_cas(&disable_alarm_msg_info.req_is_send, 0, 1);
 }
 
 
 void button_left_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
-    k_work_submit(&work_buzzer);
-    left_train_passed_msg_info.req_is_send = true;
-    k_msgq_put(&msgq_tx_msg, &left_train_passed_msg, K_NO_WAIT);
     LOG_DBG("Button left train pass pressed");
+    buzzer_mode.single = true;
+    k_work_submit(&work_buzzer);
+    atomic_cas(&left_train_passed_msg_info.req_is_send, 0, 1);
 }
 
 
 void button_right_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
-    k_work_submit(&work_buzzer);
-    right_train_passed_msg_info.req_is_send = true;
-    k_msgq_put(&msgq_tx_msg, &right_train_passed_msg, K_NO_WAIT);
     LOG_DBG("Button right train pass pressed");
+    buzzer_mode.single = true;
+    k_work_submit(&work_buzzer);
+    atomic_cas(&right_train_passed_msg_info.req_is_send, 0, 1);
 }
 
 static void periodic_timer_handler(struct k_timer *tim)
 {
 //    k_msgq_put(&peripheral_msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
-    current_state = *current_state.next;
+    current_state = transmit_state;
     k_wakeup(modem_task_id);
 }
 
@@ -472,51 +503,35 @@ static void periodic_timer_handler(struct k_timer *tim)
 //    anti_dream_msg.sender_addr = cur_dev_addr;
 //    anti_dream_msg.message_type = MESSAGE_TYPE_ANTI_DREAM;
 //    anti_dream_msg.direction = RESPONSE;
-////    tx_msg.battery_level =
 //    anti_dream_msg.workers_in_safe_zone = 0;
 //    k_msgq_put(&msgq_tx_msg, &anti_dream_msg, K_NO_WAIT);
 //}
 
+
 static void work_buzzer_handler(struct k_work *item)
 {
-    gpio_pin_set(buzzer_dev_ptr, BUZZER_GPIO_PIN, 1);
-    k_msleep(20);
-    gpio_pin_set(buzzer_dev_ptr, BUZZER_GPIO_PIN, 0);
-    k_msleep(20);
+    if (buzzer_mode.single) {
+        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                         BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
+        k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
+        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                         0, PWM_FLAGS);
+        buzzer_mode.single = false;
+    } else if (buzzer_mode.continuous) {
+        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                         BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
+    } else {
+        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                         0, PWM_FLAGS);
+    }
 }
 
 
 static void work_msg_mngr_handler(struct k_work *item)
 {
-    if (disable_alarm_msg_info.req_is_send) {
-        if ((disable_alarm_msg_info.cnt++ == WAITING_PERIOD_NUM)) {
-            if (!disable_alarm_msg_info.resp_is_recv) {
-                k_msgq_put(disable_alarm_msg_info.msg_buf, disable_alarm_msg_info.msg, K_NO_WAIT);
-            } else {
-                disable_alarm_msg_info.req_is_send = false;
-                disable_alarm_msg_info.resp_is_recv = false;
-            }
-            disable_alarm_msg_info.cnt = 0;
-        }
-    } else if (left_train_passed_msg_info.req_is_send) {
-        if (left_train_passed_msg_info.cnt++ == WAITING_PERIOD_NUM) {
-            if (!left_train_passed_msg_info.resp_is_recv) {
-                k_msgq_put(left_train_passed_msg_info.msg_buf, left_train_passed_msg_info.msg, K_NO_WAIT);
-            } else {
-                left_train_passed_msg_info.req_is_send = false;
-                left_train_passed_msg_info.resp_is_recv = false;
-            }
-            left_train_passed_msg_info.cnt = 0;
-        } else if (right_train_passed_msg_info.req_is_send) {
-            if (right_train_passed_msg_info.cnt++ == WAITING_PERIOD_NUM) {
-                if (!right_train_passed_msg_info.resp_is_recv) {
-                    k_msgq_put(right_train_passed_msg_info.msg_buf, right_train_passed_msg_info.msg, K_NO_WAIT);
-                } else {
-                    right_train_passed_msg_info.req_is_send = false;
-                    right_train_passed_msg_info.resp_is_recv = false;
-                }
-                right_train_passed_msg_info.cnt = 0;
-            }
-        }
-    }
+    k_mutex_lock(&mut_msg_info, K_FOREVER);
+    check_msg_status(&disable_alarm_msg_info);
+    check_msg_status(&right_train_passed_msg_info);
+    check_msg_status(&left_train_passed_msg_info);
+    k_mutex_unlock(&mut_msg_info);
 }

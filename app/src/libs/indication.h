@@ -12,25 +12,36 @@
 #include <led_utils/led_utils.h>
 #include <sys/util.h>
 
-#define NUM_OF_GREEN_LEDS 5
-#define NUM_OF_RED_LEDS 3
+#define STRIP_NODE		DT_ALIAS(led_strip)
+#define STRIP_NUM_PIXELS	DT_PROP(DT_ALIAS(led_strip), chain_length)
 
-//// Typedef area begin ////
-typedef struct connection_strip_hsv {
-    struct led_hsv* green_hsv;
-//    struct led_hsv* yellow_hsv;
-//    struct led_hsv* maroon_hsv;
-    struct led_hsv* red_hsv;
+#define HOMEWARD_LED_LEN 1
+#define RSSI_LED_LEN 7
+#define DISABLE_ALARM_LED_LEN 1
+#define WORKERS_LED_LEN (STRIP_NUM_PIXELS - RSSI_LED_LEN - DISABLE_ALARM_LED_LEN - HOMEWARD_LED_LEN)
 
-}connection_strip_hsv_t;
-//// Typedef area end ////
+#define NUM_OF_RED_LEDS 2
+#define NUM_OF_GREEN_LEDS (RSSI_LED_LEN-NUM_OF_RED_LEDS)
+
+
+//// Structs area begin ////
+struct led_strip_state_s {
+    bool homeward;
+    bool disable_alarm;
+    uint8_t con_status;
+    uint8_t people_num;
+};
+//// Structs area end ////
+
+extern struct led_strip_state_s led_strip_state;
 
 //// Function declaration begin ////
-void connection_quality_pixels(uint8_t con_status);
+void set_con_status_pixels(uint8_t con_status, uint8_t *pos);
 
-void number_of_people_in_zone_pixels(uint8_t people_num);
+void set_people_num_pixels(uint8_t people_num, uint8_t *pos);
 
-void update_indication(uint8_t people_num, bool set_people_num,uint8_t con_status, bool set_con_status);
+void update_indication(struct led_strip_state_s *strip_state, bool set_con_status, bool set_people_num,
+        bool homeward, bool disable_alarm);
 //// Function declaration end ////
 
 #endif //WS2812_PWM_INDICATION_H

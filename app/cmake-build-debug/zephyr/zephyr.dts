@@ -18,6 +18,7 @@
 		sw0 = &user_button;
 		led0 = &green_led;
 		led-strip = &led_strip;
+		pwm-sound = &external_pwm_led;
 	};
 	soc {
 		#address-cells = < 0x1 >;
@@ -94,7 +95,7 @@
 				reg = < 0x48000000 0x400 >;
 				clocks = < &rcc 0x1 0x1 >;
 				label = "GPIOA";
-				phandle = < 0x14 >;
+				phandle = < 0x15 >;
 			};
 			gpiob: gpio@48000400 {
 				compatible = "st,stm32-gpio";
@@ -189,7 +190,7 @@
 			can1_rx_pa11: can1_rx_pa11 {
 				pinmux = < 0xb09 >;
 				bias-pull-up;
-				phandle = < 0x11 >;
+				phandle = < 0x12 >;
 			};
 			can1_rx_pb5: can1_rx_pb5 {
 				pinmux = < 0x1503 >;
@@ -205,7 +206,7 @@
 			};
 			can1_tx_pa12: can1_tx_pa12 {
 				pinmux = < 0xc09 >;
-				phandle = < 0x12 >;
+				phandle = < 0x13 >;
 			};
 			can1_tx_pb6: can1_tx_pb6 {
 				pinmux = < 0x1608 >;
@@ -561,6 +562,7 @@
 			};
 			tim2_ch2_pa1: tim2_ch2_pa1 {
 				pinmux = < 0x101 >;
+				phandle = < 0x10 >;
 			};
 			tim2_ch3_pa2: tim2_ch3_pa2 {
 				pinmux = < 0x201 >;
@@ -955,8 +957,8 @@
 				st,prescaler = < 0x0 >;
 				label = "PWM_2";
 				#pwm-cells = < 0x3 >;
-				pinctrl-0 = < &tim2_ch1_pa0 >;
-				phandle = < 0x15 >;
+				pinctrl-0 = < &tim2_ch1_pa0 &tim2_ch2_pa1 >;
+				phandle = < 0x16 >;
 			};
 		};
 		timers6: timers@40001000 {
@@ -1212,7 +1214,7 @@
 			compatible = "fixed-clock";
 			clock-frequency = < 0xf42400 >;
 			status = "okay";
-			phandle = < 0x13 >;
+			phandle = < 0x14 >;
 		};
 		clk_msi: clk-msi {
 			#clock-cells = < 0x0 >;
@@ -1249,7 +1251,7 @@
 		compatible = "usb-nop-xceiv";
 		#phy-cells = < 0x0 >;
 		label = "USB_FS_PHY";
-		phandle = < 0x10 >;
+		phandle = < 0x11 >;
 	};
 	arduino_header: connector {
 		compatible = "arduino-header-r3";
@@ -1279,5 +1281,11 @@
 		color-mapping = < 0x2 0x1 0x3 >;
 		pwms = < &pwm2 0x1 0x0 0x0 >;
 		period-ns = < 0x3e8 >;
+	};
+	pwmleds {
+		compatible = "pwm-leds";
+		external_pwm_led: external_pwm_led {
+			pwms = < &pwm2 0x2 0x0 0x0 >;
+		};
 	};
 };

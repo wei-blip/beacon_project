@@ -49,6 +49,7 @@ static void recv_msg(void);
 static void system_init(void);
 static void work_buzzer_handler(struct k_work *item);
 static void work_msg_mngr_handler(struct k_work *item);
+static void work_led_strip_blink_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer *tim); // callback for periodic_timer
 /// Function declaration area end
 
@@ -100,8 +101,11 @@ static void system_init(void)
     /// Kernel services init begin
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_msg_mngr, work_msg_mngr_handler);
+    k_work_init(&work_led_strip_blink, work_led_strip_blink_handler);
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
     k_mutex_init(&mut_msg_info);
+    k_mutex_init(&mut_buzzer_mode);
+    k_mutex_init(&mut_led_strip_busy);
     /// Kernel services init end
 
     /// Light down LEDs begin
@@ -150,7 +154,7 @@ static void send_msg(void)
 //    LOG_DBG("Check queues");
     // If mutex taken then check message into queue
     // If message present into queue then getting him from current queue
-    if (!k_mutex_lock(&mut_msg_info, K_NO_WAIT)) {
+    if (!k_mutex_lock(&mut_msg_info, K_MSEC(1))) {
         if (msgq_tx_msg_prio.used_msgs) {
 //        LOG_DBG("Get message from priority queue");
             k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
@@ -504,3 +508,15 @@ static void work_msg_mngr_handler(struct k_work *item)
     LOG_DBG("MSG_MNGR HANDLER OUT");
 }
 /// Function definition area end
+
+/// TODO: !!!
+static void work_led_strip_blink_handler(struct k_work *item)
+{
+    switch (led_strip_state) {
+        case STANDART:
+        case HOMEWARD:
+        case SEND_MSG:
+        case MSG_IS_SEND:
+            break;
+    }
+}

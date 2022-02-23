@@ -76,8 +76,10 @@ static void system_init(void)
     /// Kernel services init begin
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_msg_mngr, work_msg_mngr_handler);
+    k_work_init(&work_led_strip)
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
     k_mutex_init(&mut_msg_info);
+    k_mutex_init(&mut_buzzer_mode);
     /// Kernel services init end
 
     /// Light down LED strip begin
@@ -248,8 +250,6 @@ _Noreturn void base_station_proc_task()
                             switch (rx_msg_proc.sender_addr) {
                                 case BRIGADE_CHIEF_ADDR:
                                     LOG_DBG("Brigade chief disabled alarm");
-                                    buzzer_mode.continuous = false;
-//                                    alarm_is_active = false;
                                     k_work_submit(&work_buzzer);
                                     break;
                                 default:
@@ -262,7 +262,10 @@ _Noreturn void base_station_proc_task()
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             // TODO: On signalization, calculate workers_safe_zone
+                            k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
                             buzzer_mode.continuous = true;
+                            k_mutex_unlock(&mut_buzzer_mode);
+                            while(k_work_busy_get(&work_buzzer)); // wait while work_buzzer is busy
 //                            alarm_is_active = true;
                             k_work_submit(&work_buzzer);
                             msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio;
@@ -406,26 +409,37 @@ static void periodic_timer_handler(struct k_timer* tim)
 
 static void work_buzzer_handler(struct k_work *item)
 {
+    k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
     if (buzzer_mode.single) {
         pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                               BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
         k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
-        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                              0, PWM_FLAGS);
         buzzer_mode.single = false;
     } else if (buzzer_mode.continuous) {
         pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                          BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
-    } else {
-        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                         0, PWM_FLAGS);
+        buzzer_mode.continuous = false;
+        k_mutex_unlock(&mut_buzzer_mode);
+        return;
     }
+
+    pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                         0, PWM_FLAGS);
+    k_mutex_unlock(&mut_buzzer_mode);
 }
+
 
 static void work_msg_mngr_handler(struct k_work *item)
 {
     k_mutex_lock(&mut_msg_info, K_FOREVER);
     check_msg_status(&home_msg_info);
     k_mutex_unlock(&mut_msg_info);
+
+    if(!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
+        buzzer_mode.single = true;
+        k_mutex_unlock(&mut_buzzer_mode);
+        while(k_work_busy_get(&work_buzzer)); // wait while work_buzzer is busy
+        k_work_submit(&work_buzzer);
+    }
 }
 /// Function definition area end

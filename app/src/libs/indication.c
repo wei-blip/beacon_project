@@ -8,11 +8,12 @@
 
 const struct device *strip_dev = DEVICE_DT_GET(STRIP_NODE);
 static struct led_rgb pixels_rgb[STRIP_NUM_PIXELS] = {0};
+static struct led_rgb empty_strip[STRIP_NUM_PIXELS] = {0};
 
-struct led_strip_state_s led_strip_state = {0};
+//struct led_strip_state_s led_strip_state = {0};
 
 //// Struct with using colors begin ////
-const static struct led_hsv blud_hsv = {
+const static struct led_hsv blue_hsv = {
         .h = 240,
         .s = 255,
         .v = 30
@@ -45,6 +46,42 @@ const static struct led_hsv empty_hsv = {
 
 
 //// Function definition begin ////
+void blink_strip(enum BLINKED_COLOR_e color, timeout_t msec_timeout, uint8_t cnt)
+{
+    uint8_t i = 0;
+    struct led_hsv color_hsv = {0};
+    static struct pixels_rgb blink_pixels_rgb[STRIP_NUM_PIXELS] = {0};
+
+    switch (color) {
+        case BLINK_COLOR_RED:
+            color_hsv = red_hsv;
+            break;
+        case BLINK_COLOR_GREEN:
+            color_hsv = green_hsv;
+            break;
+        case BLINK_COLOR_BLUE:
+            color_hsv = blue_hsv;
+            break;
+        case BLINK_COLOR_PURPLE:
+            color_hsv = purple_hsv;
+            break;
+    }
+    while (i < STRIP_NUM_PIXELS) {
+        led_hsv2rgb(&color_hsv, &blink_pixels_rgb[i++]);
+    }
+
+    i = 0;
+    while (i < cnt) {
+        led_strip_update_rgb(strip_dev, blink_pixels_rgb, STRIP_NUM_PIXELS);
+        k_sleep(msec_timeout);
+        led_strip_update_rgb(strip_dev, empty_rgb, STRIP_NUM_PIXELS);
+        k_sleep(msec_timeout);
+        i++;
+    }
+    led_strip_update_rgb(strip_dev, pixels_rgb, STRIP_NUM_PIXELS);
+}
+
+
 void set_con_status_pixels(uint8_t con_status, uint8_t *pos)
 {
     uint8_t start_pos = (*pos);
@@ -60,6 +97,7 @@ void set_con_status_pixels(uint8_t con_status, uint8_t *pos)
         (*pos)++;
     }
 }
+
 
 void set_people_num_pixels(uint8_t people_num, uint8_t *pos)
 {

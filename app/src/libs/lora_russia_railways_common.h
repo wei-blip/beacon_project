@@ -107,10 +107,13 @@ extern struct lora_modem_config lora_cfg;
 extern const struct device *lora_dev_ptr;
 extern const struct device *buzzer_dev_ptr;
 
-extern struct k_timer periodic_timer;
-extern struct k_work work_buzzer;
-extern struct k_work work_msg_mngr;
-extern struct k_mutex mut_msg_info;
+extern struct k_timer periodic_timer; // For switch in tx mode
+extern struct k_work work_buzzer; // For signalisation
+extern struct k_work work_msg_mngr; // For putting messages into queues
+extern struct k_work work_led_strip_blink; // For blinking led strip
+extern struct k_mutex mut_msg_info; // Block msgq_tx_msg and msgq_tx_msg_prio
+extern struct k_mutex mut_buzzer_mode; // Block buzzer_mode
+extern struct k_mutex mut_led_strip_busy; // Block led strip
 
 extern struct buzzer_mode_s buzzer_mode;
 

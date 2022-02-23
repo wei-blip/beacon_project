@@ -24,18 +24,29 @@
 #define NUM_OF_GREEN_LEDS (RSSI_LED_LEN-NUM_OF_RED_LEDS)
 
 
-//// Structs area begin ////
-struct led_strip_state_s {
-    bool homeward;
-    bool disable_alarm;
-    uint8_t con_status;
-    uint8_t people_num;
+////// Structs area begin ////
+//struct led_strip_state_s {
+//    bool homeward;
+//    bool disable_alarm;
+//    uint8_t con_status;
+//    uint8_t people_num;
+//};
+////// Structs area end ////
+
+/// Enum area begin
+enum BLINKED_COLOR_e {
+    BLINK_COLOR_RED,
+    BLINK_COLOR_GREEN,
+    BLINK_COLOR_BLUE,
+    BLINK_COLOR_PURPLE,
 };
-//// Structs area end ////
+/// Enum area end
 
 extern struct led_strip_state_s led_strip_state;
 
 //// Function declaration begin ////
+void blink_strip(enum BLINKED_COLOR_e color, timeout_t timeout, uint8_t cnt);
+
 void set_con_status_pixels(uint8_t con_status, uint8_t *pos);
 
 void set_people_num_pixels(uint8_t people_num, uint8_t *pos);

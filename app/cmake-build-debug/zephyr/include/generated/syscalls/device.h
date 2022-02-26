@@ -4,12 +4,15 @@
 #define Z_INCLUDE_SYSCALLS_DEVICE_H
 
 
+#include <tracing/tracing_syscall.h>
+
 #ifndef _ASMLANGUAGE
 
 #include <syscall_list.h>
 #include <syscall.h>
 
 #include <linker/sections.h>
+
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #pragma GCC diagnostic push
@@ -41,21 +44,35 @@ static inline const struct device * device_get_binding(const char * name)
 	return z_impl_device_get_binding(name);
 }
 
+#if (CONFIG_TRACING_SYSCALL == 1)
+#ifndef DISABLE_SYSCALL_TRACING
 
-extern int z_impl_device_usable_check(const struct device * dev);
+#define device_get_binding(name) ({ 	const struct device * retval; 	sys_port_trace_syscall_enter(K_SYSCALL_DEVICE_GET_BINDING, device_get_binding, name); 	retval = device_get_binding(name); 	sys_port_trace_syscall_exit(K_SYSCALL_DEVICE_GET_BINDING, device_get_binding, name, retval); 	retval; })
+#endif
+#endif
+
+
+extern bool z_impl_device_is_ready(const struct device * dev);
 
 __pinned_func
-static inline int device_usable_check(const struct device * dev)
+static inline bool device_is_ready(const struct device * dev)
 {
 #ifdef CONFIG_USERSPACE
 	if (z_syscall_trap()) {
 		/* coverity[OVERRUN] */
-		return (int) arch_syscall_invoke1(*(uintptr_t *)&dev, K_SYSCALL_DEVICE_USABLE_CHECK);
+		return (bool) arch_syscall_invoke1(*(uintptr_t *)&dev, K_SYSCALL_DEVICE_IS_READY);
 	}
 #endif
 	compiler_barrier();
-	return z_impl_device_usable_check(dev);
+	return z_impl_device_is_ready(dev);
 }
+
+#if (CONFIG_TRACING_SYSCALL == 1)
+#ifndef DISABLE_SYSCALL_TRACING
+
+#define device_is_ready(dev) ({ 	bool retval; 	sys_port_trace_syscall_enter(K_SYSCALL_DEVICE_IS_READY, device_is_ready, dev); 	retval = device_is_ready(dev); 	sys_port_trace_syscall_exit(K_SYSCALL_DEVICE_IS_READY, device_is_ready, dev, retval); 	retval; })
+#endif
+#endif
 
 
 #ifdef __cplusplus

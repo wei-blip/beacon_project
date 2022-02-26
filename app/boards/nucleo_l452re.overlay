@@ -14,7 +14,7 @@
                          LED_COLOR_ID_RED
                          LED_COLOR_ID_BLUE>;
         pwms = <&pwm2 1 0 PWM_POLARITY_NORMAL>;
-        period-ns = <1000>;
+        period-ns = <1250>;
     };
 
     pwmleds {

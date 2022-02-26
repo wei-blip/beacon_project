@@ -20,9 +20,13 @@ const struct device *buzzer_dev_ptr = {0};
 struct lora_modem_config lora_cfg = {0};
 
 struct k_timer periodic_timer = {0};
+
 struct k_work work_buzzer = {0};
 struct k_work work_msg_mngr = {0};
+struct k_work work_led_strip_blink = {0};
+
 struct k_mutex mut_msg_info = {0};
+struct k_mutex mut_buzzer_mode = {0};
 
 struct buzzer_mode_s buzzer_mode = {0};
 

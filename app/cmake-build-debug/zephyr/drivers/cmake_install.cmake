@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/zephyr-2.7.0/zephyr/drivers
+# Install script for directory: /home/rts/zephyr-rts-master/zephyr/drivers
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -84,11 +84,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pinmux/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
   include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pwm/cmake_install.cmake")
 endif()
 
@@ -110,5 +105,10 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
   include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/timer/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pinctrl/cmake_install.cmake")
 endif()
 

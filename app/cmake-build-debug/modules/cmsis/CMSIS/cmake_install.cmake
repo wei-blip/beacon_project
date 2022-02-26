@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/zephyr-2.7.0/modules/hal/cmsis/CMSIS
+# Install script for directory: /home/rts/zephyr-rts-master/modules/hal/cmsis/CMSIS
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

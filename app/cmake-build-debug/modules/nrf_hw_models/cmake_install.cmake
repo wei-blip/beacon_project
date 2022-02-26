@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/zephyr-2.7.0/modules/bsim_hw_models/nrf_hw_models
+# Install script for directory: /home/rts/zephyr-rts-master/modules/bsim_hw_models/nrf_hw_models
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

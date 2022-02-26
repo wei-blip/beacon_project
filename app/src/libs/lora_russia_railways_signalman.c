@@ -16,11 +16,16 @@ extern const k_tid_t modem_task_id;
 static modem_state_t current_state;
 
 /// Structure area begin
+static struct k_timer anti_dream_timer;
+static struct k_work work_anti_dream;
+
 static struct message_s alarm_msg;
 static struct message_s train_passed_msg;
+static struct message_s anti_dream_msg;
 
 static struct msg_info_s alarm_msg_info;
 static struct msg_info_s train_passed_msg_info;
+static struct msg_info_s anti_dream_msg_info;
 
 struct device *button_alarm_gpio_dev_ptr;
 struct device *button_anti_dream_gpio_dev_ptr;
@@ -49,8 +54,9 @@ static void recv_msg(void);
 static void system_init(void);
 static void work_buzzer_handler(struct k_work *item);
 static void work_msg_mngr_handler(struct k_work *item);
-static void work_led_strip_blink_handler(struct k_work *item);
+static void work_anti_dream_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer *tim); // callback for periodic_timer
+static void anti_dream_timer_handler(struct k_timer *tim); // callback for anti-dream timer
 /// Function declaration area end
 
 
@@ -101,15 +107,19 @@ static void system_init(void)
     /// Kernel services init begin
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_msg_mngr, work_msg_mngr_handler);
-    k_work_init(&work_led_strip_blink, work_led_strip_blink_handler);
+    k_work_init(&work_led_strip_blink, blink);
+    k_work_init(&work_anti_dream, work_anti_dream_handler);
+
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
+//    k_timer_init(&anti_dream_timer, anti_dream_timer_handler, anti_dream_timer_stop_fn);
+    k_timer_init(&anti_dream_timer, anti_dream_timer_handler, NULL);
+
     k_mutex_init(&mut_msg_info);
     k_mutex_init(&mut_buzzer_mode);
-    k_mutex_init(&mut_led_strip_busy);
     /// Kernel services init end
 
     /// Light down LEDs begin
-    update_indication(&led_strip_state, true, true, true, true);
+    update_indication(&led_strip_state, true, true);
     /// Light down LEDs end
 
     current_state = recv_state;
@@ -142,6 +152,18 @@ static void system_init(void)
     train_passed_msg_info.resp_is_recv = ATOMIC_INIT(0);
     train_passed_msg_info.msg = &train_passed_msg;
 
+    anti_dream_msg.receiver_addr = BASE_STATION_ADDR;
+    anti_dream_msg.sender_addr = cur_dev_addr;
+    anti_dream_msg.message_type = MESSAGE_TYPE_ANTI_DREAM;
+    anti_dream_msg.direction = REQUEST;
+    anti_dream_msg.battery_level = BATTERY_LEVEL_GOOD;
+    anti_dream_msg.workers_in_safe_zone = 0;
+
+    anti_dream_msg_info.msg_buf = &msgq_tx_msg_prio;
+    anti_dream_msg_info.req_is_send = ATOMIC_INIT(0);
+    anti_dream_msg_info.resp_is_recv = ATOMIC_INIT(0);
+    anti_dream_msg_info.msg = &anti_dream_msg;
+
     buzzer_mode.single = true;
     k_work_submit(&work_buzzer);
 }
@@ -150,6 +172,7 @@ static void send_msg(void)
 {
     volatile int rc = 0;
     uint32_t new_msg = 0;
+    enum COMMON_STRIP_COLOR_e color;
     struct k_msgq* cur_queue = NULL;
 //    LOG_DBG("Check queues");
     // If mutex taken then check message into queue
@@ -167,7 +190,6 @@ static void send_msg(void)
             k_mutex_unlock(&mut_msg_info);
             return;
         }
-
     } else {
         return;
     }
@@ -188,9 +210,16 @@ static void send_msg(void)
             return;
         }
     }
-//    LOG_DBG("Send message");
     rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
-//    LOG_DBG("Message sending");
+
+    if (!rc)
+        color = COMMON_STRIP_COLOR_GREEN;
+    else
+        color = COMMON_STRIP_COLOR_RED;
+
+    while(k_work_busy_get(&work_led_strip_blink));
+    set_blink_param(color, K_MSEC(100), 5);
+    k_work_submit(&work_led_strip_blink);
 }
 
 
@@ -240,7 +269,6 @@ _Noreturn void signalman_proc_task()
     uint8_t rssi_num = 0;
     int16_t rssi = 0;
     uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
-    uint8_t garbage_buf[MESSAGE_LEN_IN_BYTES];
     uint32_t cur_msg = 0;
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
@@ -335,7 +363,6 @@ _Noreturn void signalman_proc_task()
                             switch (rx_msg_proc.sender_addr) {
                                 // Because it messages retransmit from base station
                                 case BRIGADE_CHIEF_ADDR:
-                                    // TODO Indicate LED "Brigade chief disabled alarm"
                                     LOG_DBG("Brigade chief disabled alarm");
                                     break;
                                 default:
@@ -354,7 +381,12 @@ _Noreturn void signalman_proc_task()
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
                                 /// TODO: atomic operation
                                 atomic_set_bit(&alarm_msg_info.resp_is_recv, 0); // message received
-//                                k_work_submit(&work_msg_mngr);
+                                while(k_work_busy_get(&work_led_strip_blink));
+                                set_blink_param(COMMON_STRIP_COLOR_GREEN, K_MSEC(100), 5);
+                                k_work_submit(&work_led_strip_blink);
+                                buzzer_mode.ding_dong = true;
+                                while(k_work_busy_get(&work_buzzer));
+                                k_work_submit(&work_buzzer);
                             }
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
@@ -365,7 +397,12 @@ _Noreturn void signalman_proc_task()
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
                                 /// TODO: atomic operation
                                 atomic_set_bit(&train_passed_msg_info.resp_is_recv, 0); // message received
-//                                k_work_submit(&work_msg_mngr);
+                                while(k_work_busy_get(&work_led_strip_blink));
+                                set_blink_param(COMMON_STRIP_COLOR_GREEN, K_MSEC(100), 5);
+                                k_work_submit(&work_led_strip_blink);
+                                buzzer_mode.ding_dong = true;
+                                while(k_work_busy_get(&work_buzzer));
+                                k_work_submit(&work_buzzer);
                             }
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
@@ -380,6 +417,7 @@ _Noreturn void signalman_proc_task()
                     LOG_DBG("Not correct message direction");
                     msgq_cur_msg_tx_ptr = NULL;
             }
+
             if (msgq_cur_msg_tx_ptr) {
                 k_mutex_lock(&mut_msg_info, K_FOREVER);
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
@@ -388,7 +426,7 @@ _Noreturn void signalman_proc_task()
             rssi_num = check_rssi(rssi);
             led_strip_state.con_status = rssi_num;
             led_strip_state.people_num = rx_msg_proc.workers_in_safe_zone;
-            update_indication(&led_strip_state, true, true, false, false);
+            update_indication(&led_strip_state, true, true);
         }
         k_sleep(K_USEC(100));
     }
@@ -435,6 +473,7 @@ _Noreturn void signalman_modem_task()
         if (current_state.state == TRANSMIT) {
             send_msg();
             current_state = *current_state.next;
+            recv_msg();
         } else {
             recv_msg();
         }
@@ -446,77 +485,123 @@ _Noreturn void signalman_modem_task()
 void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     LOG_DBG("Button alarm pressed");
-    buzzer_mode.single = true;
-    k_work_submit(&work_buzzer);
     atomic_cas(&alarm_msg_info.req_is_send, 0, 1);
+    k_work_submit(&work_msg_mngr);
 }
 
 
 void button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     LOG_DBG("Button train pass pressed");
-    buzzer_mode.single = true;
-    k_work_submit(&work_buzzer);
     atomic_cas(&train_passed_msg_info.req_is_send, 0, 1);
+    k_work_submit(&work_msg_mngr);
 }
 
 
 void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins)
 {
-    k_work_submit(&work_buzzer);
     LOG_DBG("Button anti-dream pressed");
+    k_work_submit(&work_buzzer); // disable alarm
+    k_timer_stop(&anti_dream_timer);
 }
 
 
 static void periodic_timer_handler(struct k_timer *tim)
 {
     LOG_DBG("Periodic timer handler");
-//    k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
-    k_work_submit(&work_msg_mngr);
+//    k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT); // for debug
+    static uint8_t cnt = 0;
+    if (cnt == 20) { // anti-dream
+        k_work_submit(&work_anti_dream);
+        cnt = 0;
+    }
+    cnt++;
     current_state = transmit_state;
     k_wakeup(modem_task_id);
 }
 
 
+static void anti_dream_timer_handler(struct k_timer *tim)
+{
+    // If anti_dream_timer expiry and (req_is_send == 1) putting anti_dream_msg into queue
+    atomic_cas(&anti_dream_msg_info.req_is_send, 0, 1);
+    k_work_submit(&work_msg_mngr);
+}
+
+
+//static void anti_dream_timer_stop_fn(struct k_timer *tim)
+//{
+//    return;
+//}
+
+
 static void work_buzzer_handler(struct k_work *item)
 {
+    k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
     if (buzzer_mode.single) {
         pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                          BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
         k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
-        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                         0, PWM_FLAGS);
         buzzer_mode.single = false;
     } else if (buzzer_mode.continuous) {
         pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                          BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
-        k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
-    } else {
-        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                         0, PWM_FLAGS);
+        buzzer_mode.continuous = false;
+        k_mutex_unlock(&mut_buzzer_mode);
+        return;
+    } else if (buzzer_mode.ding_dong) {
+        uint8_t i = 0;
+        while (i < 2) {
+            pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                             BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
+            k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
+            pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                             0, PWM_FLAGS);
+            k_sleep(K_MSEC(90));
+            i++;
+        }
+        buzzer_mode.ding_dong = false;
+        k_mutex_unlock(&mut_buzzer_mode);
+        return;
     }
+
+    pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                     0, PWM_FLAGS);
+    k_mutex_unlock(&mut_buzzer_mode);
 }
 
 
 static void work_msg_mngr_handler(struct k_work *item)
 {
-    LOG_DBG("MSG_MNGR HANDLER IN");
     k_mutex_lock(&mut_msg_info, K_FOREVER);
     check_msg_status(&alarm_msg_info);
     check_msg_status(&train_passed_msg_info);
+    check_msg_status(&anti_dream_msg_info);
     k_mutex_unlock(&mut_msg_info);
-    LOG_DBG("MSG_MNGR HANDLER OUT");
-}
-/// Function definition area end
 
-/// TODO: !!!
-static void work_led_strip_blink_handler(struct k_work *item)
-{
-    switch (led_strip_state) {
-        case STANDART:
-        case HOMEWARD:
-        case SEND_MSG:
-        case MSG_IS_SEND:
-            break;
+    set_color(COMMON_STRIP_COLOR_YELLOW);
+
+    // if mut_buzzer_mode taken then work_buzzer_handler is free
+    if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
+        buzzer_mode.single = true;
+//        while(k_work_busy_get(&work_buzzer));
+        k_work_submit(&work_buzzer);
+        k_mutex_unlock(&mut_buzzer_mode);
     }
 }
+
+
+static void work_anti_dream_handler(struct k_work *item)
+{
+    k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
+    buzzer_mode.continuous = true;
+    k_work_submit(&work_buzzer);
+    k_mutex_unlock(&mut_buzzer_mode);
+
+    while(k_work_busy_get(&work_led_strip_blink));
+    set_blink_param(COMMON_STRIP_COLOR_RED, K_MSEC(100), 7);
+    k_work_submit(&work_led_strip_blink);
+
+    k_timer_start(&anti_dream_timer, K_MINUTES(ANTI_DREAM_TIME_MIN), K_NO_WAIT);
+}
+/// Function definition area end

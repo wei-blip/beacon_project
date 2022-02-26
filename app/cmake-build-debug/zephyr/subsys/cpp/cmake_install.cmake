@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/zephyr-2.7.0/zephyr/subsys/cpp
+# Install script for directory: /home/rts/zephyr-rts-master/zephyr/subsys/cpp
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

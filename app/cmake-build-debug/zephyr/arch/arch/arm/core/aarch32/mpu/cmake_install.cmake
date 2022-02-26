@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/zephyr-2.7.0/zephyr/arch/arm/core/aarch32/mpu
+# Install script for directory: /home/rts/zephyr-rts-master/zephyr/arch/arm/core/aarch32/mpu
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

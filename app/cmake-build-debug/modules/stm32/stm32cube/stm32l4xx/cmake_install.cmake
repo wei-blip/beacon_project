@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/zephyr-2.7.0/modules/hal/stm32/stm32cube/stm32l4xx
+# Install script for directory: /home/rts/zephyr-rts-master/modules/hal/stm32/stm32cube/stm32l4xx
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

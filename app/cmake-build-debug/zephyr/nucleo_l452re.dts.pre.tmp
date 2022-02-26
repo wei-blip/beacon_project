@@ -1384,7 +1384,7 @@ arduino_spi: &spi1 {};
                          1
                          3>;
         pwms = <&pwm2 1 0 (0 << 0)>;
-        period-ns = <1000>;
+        period-ns = <1250>;
     };
     pwmleds {
         compatible = "pwm-leds";

@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/zephyr-2.7.0/modules/lib/openthread/zephyr
+# Install script for directory: /home/rts/zephyr-rts-master/modules/lib/openthread/zephyr
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

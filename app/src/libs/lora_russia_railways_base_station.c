@@ -8,8 +8,6 @@
 #include <logging/log.h>
     LOG_MODULE_REGISTER(base_station);
 
-static bool alarm_is_active = false;
-
 /// My threads ids begin
 extern const k_tid_t proc_task_id;
 extern const k_tid_t modem_task_id;
@@ -76,14 +74,16 @@ static void system_init(void)
     /// Kernel services init begin
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_msg_mngr, work_msg_mngr_handler);
-    k_work_init(&work_led_strip)
+    k_work_init(&work_led_strip_blink, blink);
+
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
+
     k_mutex_init(&mut_msg_info);
     k_mutex_init(&mut_buzzer_mode);
     /// Kernel services init end
 
     /// Light down LED strip begin
-    update_indication(&led_strip_state, true, true, true, true);
+    update_indication(&led_strip_state, true, true);
 
     current_state = recv_state;
 
@@ -197,7 +197,6 @@ _Noreturn void base_station_proc_task()
     uint8_t rssi_num = 0;
     int16_t rssi = 0;
     uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
-    uint8_t garbage_buf[MESSAGE_LEN_IN_BYTES];
     uint32_t cur_msg = 0;
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
@@ -250,6 +249,7 @@ _Noreturn void base_station_proc_task()
                             switch (rx_msg_proc.sender_addr) {
                                 case BRIGADE_CHIEF_ADDR:
                                     LOG_DBG("Brigade chief disabled alarm");
+                                    while(k_work_busy_get(&work_buzzer)); // wait while work_buzzer is busy
                                     k_work_submit(&work_buzzer);
                                     break;
                                 default:
@@ -266,7 +266,6 @@ _Noreturn void base_station_proc_task()
                             buzzer_mode.continuous = true;
                             k_mutex_unlock(&mut_buzzer_mode);
                             while(k_work_busy_get(&work_buzzer)); // wait while work_buzzer is busy
-//                            alarm_is_active = true;
                             k_work_submit(&work_buzzer);
                             msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio;
                             break;
@@ -331,13 +330,14 @@ _Noreturn void base_station_proc_task()
             }
 
             if (msgq_cur_msg_tx_ptr) {
+                k_mutex_lock(&mut_msg_info, K_FOREVER);
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
+                k_mutex_unlock(&mut_msg_info);
             }
             rssi_num = check_rssi(rssi);
             led_strip_state.con_status = rssi_num;
             led_strip_state.people_num = rx_msg_proc.workers_in_safe_zone;
-            update_indication(&led_strip_state, true, true,
-                              false, false);
+            update_indication(&led_strip_state, true, true);
         }
         k_sleep(K_USEC(100));
     }
@@ -376,8 +376,8 @@ _Noreturn void base_station_modem_task()
         if (current_state.state == TRANSMIT) {
             send_msg();
             current_state = *current_state.next;
+            recv_msg();
         } else {
-            k_work_submit(&work_msg_mngr);
             recv_msg();
         }
         k_sleep(K_USEC(100));
@@ -388,9 +388,8 @@ _Noreturn void base_station_modem_task()
 void button_homeward_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     LOG_DBG("Button homeward pressed");
-    buzzer_mode.single = true;
-    k_work_submit(&work_buzzer);
     atomic_cas(&home_msg_info.req_is_send, 0, 1);
+    k_work_submit(&work_msg_mngr);
 }
 
 
@@ -418,6 +417,7 @@ static void work_buzzer_handler(struct k_work *item)
     } else if (buzzer_mode.continuous) {
         pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                          BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
+        k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
         buzzer_mode.continuous = false;
         k_mutex_unlock(&mut_buzzer_mode);
         return;

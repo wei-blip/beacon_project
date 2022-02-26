@@ -18,7 +18,7 @@ void SecureElementRandomNumber(uint32_t* rand_num) {
 
 #define STACK_SIZE 1024
 #define PRIORITY_PROC 2
-#define PRIORITY_MODEM_TASK (-1)
+#define PRIORITY_MODEM_TASK (-2)
 
 #ifdef BASE_STATION
 K_THREAD_DEFINE(proc_task_id, STACK_SIZE, base_station_proc_task, NULL, NULL, NULL,

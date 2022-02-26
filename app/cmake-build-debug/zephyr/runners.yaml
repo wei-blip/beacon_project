@@ -11,7 +11,7 @@ debug-runner: openocd
 
 # Common runner configuration values.
 config:
-  board_dir: /home/rts/zephyr-2.7.0/zephyr/boards/arm/nucleo_l452re
+  board_dir: /home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re
   # Build outputs:
   elf_file: zephyr.elf
   hex_file: zephyr.hex

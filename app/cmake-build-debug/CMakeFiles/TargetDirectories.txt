@@ -16,6 +16,7 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/zephyr.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/version_h.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/syscall_list_h_target.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/parse_syscalls_target.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/driver_validation_h_target.dir
@@ -23,8 +24,10 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/zephyr_generated_headers.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/offsets.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/offsets_h.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/linker_zephyr_pre0_script.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/zephyr_pre0.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/linker_zephyr_prebuilt_script_target.dir
-/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/zephyr_prebuilt.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/zephyr_pre1.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/linker_zephyr_final_script_target.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/zephyr_final.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/CMakeFiles/run.dir
@@ -139,8 +142,6 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/led_strip/CMakeFiles/drivers__led_strip.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/led_strip/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/led_strip/CMakeFiles/rebuild_cache.dir
-/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pinmux/CMakeFiles/edit_cache.dir
-/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pinmux/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pwm/CMakeFiles/drivers__pwm.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pwm/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pwm/CMakeFiles/rebuild_cache.dir
@@ -156,6 +157,9 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/timer/CMakeFiles/drivers__timer.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/timer/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/timer/CMakeFiles/rebuild_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pinctrl/CMakeFiles/drivers__pinctrl.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pinctrl/CMakeFiles/edit_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/drivers/pinctrl/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/CANopenNode/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/CANopenNode/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/civetweb/CMakeFiles/edit_cache.dir
@@ -184,6 +188,8 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/cypress/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/espressif/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/espressif/CMakeFiles/rebuild_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/hal_gigadevice/CMakeFiles/edit_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/hal_gigadevice/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/infineon/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/infineon/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/microchip/CMakeFiles/edit_cache.dir
@@ -200,6 +206,8 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/openisa/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/quicklogic/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/quicklogic/CMakeFiles/rebuild_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/hal_rpi_pico/CMakeFiles/edit_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/hal_rpi_pico/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/silabs/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/silabs/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/st/CMakeFiles/edit_cache.dir
@@ -235,8 +243,6 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/mbedtls/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/mcuboot/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/mcuboot/CMakeFiles/rebuild_cache.dir
-/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/mcumgr/CMakeFiles/edit_cache.dir
-/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/mcumgr/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/mipi-sys-t/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/mipi-sys-t/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/nanopb/CMakeFiles/edit_cache.dir
@@ -261,6 +267,8 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/TraceRecorder/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/trusted-firmware-m/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/trusted-firmware-m/CMakeFiles/rebuild_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/zscilib/CMakeFiles/edit_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/zscilib/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/drivers/CMakeFiles/edit_cache.dir

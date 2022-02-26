@@ -1,4 +1,4 @@
-# Install script for directory: /home/rts/zephyr-2.7.0/zephyr/drivers/led_strip
+# Install script for directory: /home/rts/zephyr-rts-master/zephyr/drivers/led_strip
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

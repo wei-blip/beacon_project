@@ -4,14 +4,16 @@
 #include "lora_russia_railways_common.h"
 
 
-/// Extern variable definition and initialisation begin
-// priority queue for sending messages
+/**
+ * Extern variable definition and initialisation begin
+ * */
+/* priority queue for sending messages */
 K_MSGQ_DEFINE(msgq_tx_msg_prio, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
-// none priority queue for sending messages
+/* none priority queue for sending messages */
 K_MSGQ_DEFINE(msgq_tx_msg, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
-// queue for receiving messages
+/* queue for receiving messages */
 K_MSGQ_DEFINE(msgq_rx_msg, MESSAGE_LEN_IN_BYTES, QUEUE_LEN_IN_ELEMENTS, 1);
-// queue for rssi values
+/* queue for rssi values */
 K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
 
 const struct device *lora_dev_ptr = {0};
@@ -43,9 +45,14 @@ struct message_s tx_msg = {0};
 
 uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
-/// Extern variable definition and initialisation end
+/**
+ * Extern variable definition and initialisation end
+ * */
 
 
+/**
+ * Function definition area begin
+ * */
 void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos) {
     uint8_t start_pos = *pos;
     while ( *pos < start_pos + field_len ) {
@@ -158,18 +165,11 @@ void check_msg_status(struct msg_info_s *msg_info)
     // Check response status
     // If response will receive - set flags on false (good transfer)
     // Else if check count status, if cnt == WAITING_PERIOD_NUM - message retransmit (bad transfer)
-//    if (atomic_get(&(msg_info->req_is_send))) {
-//        if (atomic_get(&(msg_info->resp_is_recv))) {
-//            atomic_clear(&(msg_info->req_is_send));
-//            atomic_clear(&(msg_info->resp_is_recv));
-//            printk("        Message transmit!!!\n");
-//        } else {
-//            printk("        Message retransmit!!!\n");
-//            k_msgq_put(msg_info->msg_buf, msg_info->msg, K_NO_WAIT);
-//        }
-//    }
     if (atomic_get((&msg_info->req_is_send))) {
       k_msgq_put(msg_info->msg_buf, msg_info->msg, K_NO_WAIT);
       atomic_clear(&(msg_info->req_is_send));
     }
 }
+/**
+ * Function definition area end
+ * */

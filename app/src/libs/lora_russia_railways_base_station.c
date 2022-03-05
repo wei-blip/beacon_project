@@ -8,14 +8,20 @@
 #include <logging/log.h>
     LOG_MODULE_REGISTER(base_station);
 
-/// My threads ids begin
+/**
+ * My threads ids begin
+ * */
 extern const k_tid_t proc_task_id;
 extern const k_tid_t modem_task_id;
-/// My threads ids end
+/**
+ * My threads ids end
+ * */
 
 static modem_state_t current_state;
 
-/// Structure area begin
+/**
+ * Structure area begin
+ * */
 static struct message_s sync_msg;
 static struct message_s home_msg;
 
@@ -24,17 +30,26 @@ static struct msg_info_s home_msg_info;
 const struct device *button_homeward_gpio_dev_ptr;
 
 struct gpio_callback button_homeward_cb;
-/// Structure area end
+/**
+ * Structure area end
+ * */
 
 
-/// Enum area begin
+//static enum WORKERS_IDS_e cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
+/**
+ * Enum area begin
+ * */
+static uint8_t cur_workers_in_safe_zone = 3;
 static enum DEVICE_ADDR_e cur_dev_addr = BASE_STATION_ADDR;
-static enum WORKERS_IDS_e cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
 static enum BATTERY_LEVEL_e cur_battery_level = BATTERY_LEVEL_GOOD;
-/// Enum area end
+/**
+ * Enum area end
+ * */
 
 
-/// Function declaration area begin
+/**
+ * Function declaration area begin
+ * */
 void button_homeward_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 
 static void system_init(void);
@@ -43,21 +58,31 @@ static void recv_msg(void);
 static void work_buzzer_handler(struct k_work *item);
 static void work_msg_mngr_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer* tim); // callback for periodic_timer
-/// Function declaration area end
+/**
+ * Function declaration area end
+ * */
 
 
-/// Function definition area begin
+/**
+ * Function definition area begin
+ * */
 static void system_init(void)
 {
-    /// Buzzer init begin
+    /**
+     * Buzzer init begin
+     * */
     buzzer_dev_ptr = DEVICE_DT_GET(PWM_CTLR);
     if (!device_is_ready(buzzer_dev_ptr)) {
         LOG_DBG("Error: PWM device %s is not ready\n", buzzer_dev_ptr->name);
         k_sleep(K_FOREVER);
     }
-    /// Buzzer init end
+    /**
+     * Buzzer init end
+     * */
 
-    /// Init IRQ begin
+    /**
+     * Init IRQ begin
+     * */
     button_homeward_gpio_dev_ptr = device_get_binding(BUTTON_HOMEWARD_GPIO_PORT);
 
     gpio_pin_configure(button_homeward_gpio_dev_ptr, BUTTON_HOMEWARD_GPIO_PIN,
@@ -69,43 +94,61 @@ static void system_init(void)
     gpio_init_callback(&button_homeward_cb, button_homeward_pressed_cb, BIT(BUTTON_HOMEWARD_GPIO_PIN));
 
     gpio_add_callback(button_homeward_gpio_dev_ptr, &button_homeward_cb);
-    /// Init IRQ end
+    /**
+     * Init IRQ end
+     * */
 
-    /// Kernel services init begin
+    /**
+     * Kernel services init begin
+     * */
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_msg_mngr, work_msg_mngr_handler);
-    k_work_init(&work_led_strip_blink, blink);
+//    k_work_init(&work_led_strip_blink, blink);
 
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
 
-    k_mutex_init(&mut_msg_info);
     k_mutex_init(&mut_buzzer_mode);
-    /// Kernel services init end
+    /**
+     * Kernel services init end
+     * */
 
-    /// Light down LED strip begin
-    update_indication(&led_strip_state, true, true);
+    /* Light down LED strip */
+    struct led_strip_indicate_s strip_indicate = {
+      .led_strip_state.status.people_num = 0,
+      .led_strip_state.status.con_status = 0,
+      .led_strip_state.status.set_people_num = true,
+      .led_strip_state.status.set_con_status = true,
+      .blink = false
+    };
+
+    k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
 
     current_state = recv_state;
 
-    /// Filling structure
+    /**
+     * Filling structure begin
+     * */
     sync_msg.receiver_addr = BROADCAST_ADDR;
     sync_msg.sender_addr = cur_dev_addr;
     sync_msg.message_type = MESSAGE_TYPE_SYNC;
     sync_msg.direction = REQUEST;
-    sync_msg.workers_in_safe_zone = 0;
+    sync_msg.workers_in_safe_zone = cur_workers_in_safe_zone;
     sync_msg.battery_level = BATTERY_LEVEL_GOOD;
 
     home_msg.receiver_addr = BROADCAST_ADDR;
     home_msg.sender_addr = cur_dev_addr;
     home_msg.message_type = MESSAGE_TYPE_HOMEWARD;
     home_msg.direction = REQUEST;
-    home_msg.workers_in_safe_zone = 0;
+    home_msg.workers_in_safe_zone = cur_workers_in_safe_zone;
     home_msg.battery_level = BATTERY_LEVEL_GOOD;
 
     home_msg_info.msg_buf = &msgq_tx_msg;
     home_msg_info.msg = &home_msg;
     home_msg_info.resp_is_recv = ATOMIC_INIT(0);
     home_msg_info.req_is_send = ATOMIC_INIT(0);
+    /**
+    * Filling structure end
+    * */
 
     buzzer_mode.single = true;
     k_work_submit(&work_buzzer);
@@ -118,29 +161,20 @@ static void send_msg(void)
     volatile int rc = 0;
     uint32_t new_msg = 0;
     struct k_msgq* cur_queue = NULL;
-//    LOG_DBG("Check queues");
-    // If mutex taken then check message into queue
-    // If message present into queue then getting him from current queue
-    if (!k_mutex_lock(&mut_msg_info, K_MSEC(1))) {
-        if (msgq_tx_msg_prio.used_msgs) {
-//        LOG_DBG("Get message from priority queue");
-            k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
-            cur_queue = &msgq_tx_msg_prio;
-        } else if (msgq_tx_msg.used_msgs) {
-//        LOG_DBG("Get message from standart queue");
-            k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
-            cur_queue = &msgq_tx_msg;
-        } else {
-            k_mutex_unlock(&mut_msg_info);
-            return;
-        }
 
-//        if ((tx_msg.direction == RESPONSE) || (tx_msg.message_type == MESSAGE_TYPE_SYNC))
-//            k_msgq_get(cur_queue, &tx_msg, K_NO_WAIT);
+    /* Check messages into queue
+     * Beginning check priority queue, after check standard queue */
+    if (msgq_tx_msg_prio.used_msgs) {
+//        LOG_DBG("Get message from priority queue");
+        k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg_prio;
+    } else if (msgq_tx_msg.used_msgs) {
+//        LOG_DBG("Get message from standard queue");
+        k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg;
     } else {
         return;
     }
-    k_mutex_unlock(&mut_msg_info);
 
     read_write_message(&new_msg, &tx_msg, true);
     for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
@@ -180,8 +214,10 @@ static void recv_msg(void)
         }
     }
 
+    /* Get ticks to expiry timer */
     ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
 
+    /* Receive while timer not expiry */
     rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES,
                    K_MSEC(ticks), &rssi, &snr);
     if (rc > 0) {
@@ -200,6 +236,7 @@ _Noreturn void base_station_proc_task()
     uint32_t cur_msg = 0;
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
+    struct led_strip_indicate_s strip_indicate = {0};
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
     k_sleep(K_FOREVER);
     while(1) {
@@ -329,15 +366,16 @@ _Noreturn void base_station_proc_task()
                     msgq_cur_msg_tx_ptr = NULL;
             }
 
-            if (msgq_cur_msg_tx_ptr) {
-                k_mutex_lock(&mut_msg_info, K_FOREVER);
+            if (msgq_cur_msg_tx_ptr)
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
-                k_mutex_unlock(&mut_msg_info);
-            }
+
             rssi_num = check_rssi(rssi);
-            led_strip_state.con_status = rssi_num;
-            led_strip_state.people_num = rx_msg_proc.workers_in_safe_zone;
-            update_indication(&led_strip_state, true, true);
+            strip_indicate.led_strip_state.status.set_con_status = true;
+            strip_indicate.led_strip_state.status.set_people_num = true;
+            strip_indicate.led_strip_state.status.con_status = rssi_num;
+            strip_indicate.led_strip_state.status.people_num = rx_msg_proc.workers_in_safe_zone;
+            strip_indicate.blink = false;
+            k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
         }
         k_sleep(K_USEC(100));
     }
@@ -350,7 +388,9 @@ _Noreturn void base_station_modem_task()
     int16_t rssi;
     volatile uint32_t ticks = 0;
 
-    /// Lora config begin
+    /**
+     * Lora config begin
+     * */
     lora_cfg.frequency = 433000000;
     lora_cfg.bandwidth = BW_125_KHZ;
     lora_cfg.datarate = SF_12;
@@ -366,9 +406,11 @@ _Noreturn void base_station_modem_task()
     if (lora_config(lora_dev_ptr, &lora_cfg) < 0) {
         k_sleep(K_FOREVER);
     }
-    /// Lora config end
+    /**
+    * Lora config end
+    * */
 
-    /// Init system and send first sync msg
+    /* Init system and send first sync message */
     system_init();
 
     k_sleep(K_FOREVER);
@@ -431,9 +473,7 @@ static void work_buzzer_handler(struct k_work *item)
 
 static void work_msg_mngr_handler(struct k_work *item)
 {
-    k_mutex_lock(&mut_msg_info, K_FOREVER);
     check_msg_status(&home_msg_info);
-    k_mutex_unlock(&mut_msg_info);
 
     if(!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
         buzzer_mode.single = true;
@@ -442,4 +482,12 @@ static void work_msg_mngr_handler(struct k_work *item)
         k_work_submit(&work_buzzer);
     }
 }
-/// Function definition area end
+/**
+ * Function definition area end
+ * */
+
+
+
+
+
+

@@ -43,14 +43,14 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 #define WORKQUEUE_STACK_SIZE 256
 #define WORKQUEUE_PRIO 0
 
-//#define BUZZER_GPIO_PORT "GPIOA"
-//#define BUZZER_GPIO_PIN 1
 #define BUTTON_PRESSED_PERIOD_TIME_USEC 40000UL
 
 
-#define IS_SYNC_MSG ( (rx_buf[0] == 13) && (rx_buf[1] == 64) && (rx_buf[2] == 0) )
+#define IS_SYNC_MSG ((rx_buf[0] == 13) && (rx_buf[1] == 64))
 
-
+/**
+ * Enum, typedefs and structs area begin
+ * */
 enum CONNECTION_QUALITY_RSSI {
     CONNECTION_QUALITY_RSSI_1 = -70,
     CONNECTION_QUALITY_RSSI_2 = -80,
@@ -102,8 +102,17 @@ struct msg_info_s {
 
 };
 
+struct reception_info_s {
 
-/// Extern variable declaration begin
+};
+/**
+ * Enum, typedefs and structs area end
+ * */
+
+
+/**
+ * Extern variable declaration area begin
+ * */
 extern struct lora_modem_config lora_cfg;
 
 extern const struct device *lora_dev_ptr;
@@ -113,11 +122,10 @@ extern struct k_timer periodic_timer; // For switch in tx mode
 
 extern struct k_work work_buzzer; // For signalisation
 extern struct k_work work_msg_mngr; // For putting messages into queues
-extern struct k_work work_led_strip_blink; // For blinking led strip
+//extern struct k_work work_led_strip_blink; // For blinking led strip
 
 //extern struct k_work_q work_q_blink;
 
-extern struct k_mutex mut_msg_info; // Block msgq_tx_msg and msgq_tx_msg_prio
 extern struct k_mutex mut_buzzer_mode; // Block buzzer_mode
 
 extern struct buzzer_mode_s buzzer_mode;
@@ -134,15 +142,22 @@ extern const modem_state_t transmit_state;
 
 extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
 extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
-/// Extern variable declaration end
+/**
+ * Extern variable declaration area end
+ * */
 
 
+/**
+ * Function declaration area begin
+ * */
 uint8_t reverse(uint8_t input);
 uint8_t check_rssi(int16_t rssi);
 void check_msg_status(struct msg_info_s *msg_info);
 void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write);
 void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len, uint8_t* pos);
 void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t* pos);
-
+/**
+ * Function declaration area end
+ * */
 
 #endif //RADIO_SIGNALMAN_LORA_RUSSIA_RAILWAYS_COMMON_H

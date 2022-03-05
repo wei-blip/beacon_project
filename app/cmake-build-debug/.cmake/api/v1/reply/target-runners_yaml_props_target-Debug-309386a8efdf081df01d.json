@@ -12,7 +12,7 @@
 		"files" : 
 		[
 			"/home/rts/zephyr-rts-master/zephyr/cmake/app/boilerplate.cmake",
-			"/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
+			"/home/rts/zephyr-rts-master/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
 			"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/clion-zephyr.cmake",
 			"CMakeLists.txt"
 		],
@@ -44,7 +44,7 @@
 			{
 				"command" : 2,
 				"file" : 1,
-				"line" : 40,
+				"line" : 102,
 				"parent" : 4
 			},
 			{
@@ -60,13 +60,13 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 76,
+				"line" : 97,
 				"parent" : 7
 			}
 		]
 	},
-	"id" : "code_data_relocation_target::@6890427a1f51a3e7e1df",
-	"name" : "code_data_relocation_target",
+	"id" : "runners_yaml_props_target::@6890427a1f51a3e7e1df",
+	"name" : "runners_yaml_props_target",
 	"paths" : 
 	{
 		"build" : ".",

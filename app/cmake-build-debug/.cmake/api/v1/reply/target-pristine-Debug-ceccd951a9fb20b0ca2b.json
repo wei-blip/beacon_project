@@ -12,7 +12,7 @@
 		"files" : 
 		[
 			"/home/rts/zephyr-rts-master/zephyr/cmake/app/boilerplate.cmake",
-			"/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
+			"/home/rts/zephyr-rts-master/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
 			"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/clion-zephyr.cmake",
 			"CMakeLists.txt"
 		],
@@ -44,7 +44,7 @@
 			{
 				"command" : 2,
 				"file" : 1,
-				"line" : 40,
+				"line" : 102,
 				"parent" : 4
 			},
 			{
@@ -60,18 +60,49 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 666,
+				"line" : 182,
 				"parent" : 7
 			}
 		]
 	},
-	"id" : "zephyr_property_target::@6890427a1f51a3e7e1df",
-	"name" : "zephyr_property_target",
+	"id" : "pristine::@6890427a1f51a3e7e1df",
+	"name" : "pristine",
 	"paths" : 
 	{
 		"build" : ".",
 		"source" : "."
 	},
-	"sources" : [],
+	"sourceGroups" : 
+	[
+		{
+			"name" : "",
+			"sourceIndexes" : 
+			[
+				0
+			]
+		},
+		{
+			"name" : "CMake Rules",
+			"sourceIndexes" : 
+			[
+				1
+			]
+		}
+	],
+	"sources" : 
+	[
+		{
+			"backtrace" : 8,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/CMakeFiles/pristine",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 0,
+			"isGenerated" : true,
+			"path" : "cmake-build-debug/CMakeFiles/pristine.rule",
+			"sourceGroupIndex" : 1
+		}
+	],
 	"type" : "UTILITY"
 }

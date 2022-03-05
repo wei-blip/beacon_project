@@ -38,11 +38,11 @@ enum COMMON_STRIP_COLOR_e {
 
 
 ////// Structs area begin ////
-struct led_strip_state_s {
-//    bool homeward;
-//    bool disable_alarm;
+struct status_info_s {
     uint8_t con_status;
     uint8_t people_num;
+    bool set_con_status;
+    bool set_people_num;
 };
 
 struct blink_param_s {
@@ -50,23 +50,31 @@ struct blink_param_s {
     enum COMMON_STRIP_COLOR_e blink_color;
     uint8_t blink_cnt;
 };
+
+union led_strip_state_u {
+  struct status_info_s status;
+  struct blink_param_s blink_param;
+};
+
+struct led_strip_indicate_s {
+  union led_strip_state_u led_strip_state;
+  bool blink;
+};
 ////// Structs area end ////
 
-extern struct led_strip_state_s led_strip_state;
-extern struct blink_param_s blink_param;
+//extern struct status_info_s led_strip_state_global;
+//extern struct blink_param_s blink_param;
+extern struct k_msgq msgq_led_strip;
+extern const k_tid_t update_indication_task_id;
 
 //// Function declaration begin ////
-void blink(struct k_work *item);
+//void blink(struct k_work *item);
+//
+//void set_color(enum COMMON_STRIP_COLOR_e color);
+//
+//void set_blink_param(enum COMMON_STRIP_COLOR_e blink_color, k_timeout_t msec_timeout, uint8_t blink_cnt);
 
-void set_color(enum COMMON_STRIP_COLOR_e color);
-
-void set_blink_param(enum COMMON_STRIP_COLOR_e blink_color, k_timeout_t msec_timeout, uint8_t blink_cnt);
-
-void set_con_status_pixels(uint8_t con_status, uint8_t *pos);
-
-void set_people_num_pixels(uint8_t people_num, uint8_t *pos);
-
-void update_indication(struct led_strip_state_s *strip_state, bool set_con_status, bool set_people_num);
+//void update_indication(void);
 //// Function declaration end ////
 
 #endif //WS2812_PWM_INDICATION_H

@@ -38,18 +38,6 @@
 			"value" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app"
 		},
 		{
-			"name" : "BOARD",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : "Selected board"
-				}
-			],
-			"type" : "STRING",
-			"value" : "nucleo_l452re"
-		},
-		{
 			"name" : "BOARD_DIR",
 			"properties" : 
 			[
@@ -546,11 +534,15 @@
 			"properties" : 
 			[
 				{
+					"name" : "ADVANCED",
+					"value" : "1"
+				},
+				{
 					"name" : "HELPSTRING",
-					"value" : "Path to a program."
+					"value" : "C compiler"
 				}
 			],
-			"type" : "FILEPATH",
+			"type" : "STRING",
 			"value" : "/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc"
 		},
 		{
@@ -1739,7 +1731,7 @@
 				}
 			],
 			"type" : "PATH",
-			"value" : "/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake"
+			"value" : "Zephyr_DIR-NOTFOUND"
 		},
 		{
 			"name" : "_Python3_EXECUTABLE",
@@ -1839,42 +1831,6 @@
 		},
 		{
 			"name" : "lora_russia_railways_SOURCE_DIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : "Value Computed by CMake"
-				}
-			],
-			"type" : "STATIC",
-			"value" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app"
-		},
-		{
-			"name" : "radio_signalman_BINARY_DIR",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : "Value Computed by CMake"
-				}
-			],
-			"type" : "STATIC",
-			"value" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug"
-		},
-		{
-			"name" : "radio_signalman_IS_TOP_LEVEL",
-			"properties" : 
-			[
-				{
-					"name" : "HELPSTRING",
-					"value" : "Value Computed by CMake"
-				}
-			],
-			"type" : "STATIC",
-			"value" : "ON"
-		},
-		{
-			"name" : "radio_signalman_SOURCE_DIR",
 			"properties" : 
 			[
 				{

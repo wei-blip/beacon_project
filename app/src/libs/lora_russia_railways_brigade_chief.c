@@ -35,8 +35,9 @@ const struct device* button_right_train_passed_gpio_dev_ptr;
 
 
 /// Enum area begin
+static uint8_t cur_workers_in_safe_zone = 3;
 static enum DEVICE_ADDR_e cur_dev_addr = BRIGADE_CHIEF_ADDR;
-static enum WORKERS_IDS_e cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
+//static enum WORKERS_IDS_e cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
 static enum BATTERY_LEVEL_e cur_battery_level = BATTERY_LEVEL_GOOD;
 /// Enum area end
 
@@ -105,17 +106,23 @@ void system_init(void)
     //// Kernel services init begin
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_msg_mngr, work_msg_mngr_handler);
-    k_work_init(&work_led_strip_blink, blink);
+//    k_work_init(&work_led_strip_blink, blink);
 
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
 
-    k_mutex_init(&mut_msg_info);
     k_mutex_init(&mut_buzzer_mode);
     /// Kernel services init end
 
-    /// Light down LEDs begin
-    update_indication(&led_strip_state, true, true);
-    /// Light down LEDs end
+    /* Light down LED strip */
+    struct led_strip_indicate_s strip_indicate = {
+      .led_strip_state.status.people_num = 0,
+      .led_strip_state.status.con_status = 0,
+      .led_strip_state.status.set_people_num = true,
+      .led_strip_state.status.set_con_status = true,
+      .blink = false
+    };
+
+    k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
 
     current_state = recv_state;
 
@@ -166,29 +173,19 @@ static void send_msg(void)
     uint32_t new_msg = 0;
     enum COMMON_STRIP_COLOR_e color;
     struct k_msgq* cur_queue = NULL;
-//    LOG_DBG("Check queues");
-    // If mutex taken then check message into queue
-    // If message present into queue then peeking him from current queue
-    if (!k_mutex_lock(&mut_msg_info, K_MSEC(1))) {
-        if (msgq_tx_msg_prio.used_msgs) {
-//        LOG_DBG("Get message from priority queue");
-            k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
-            cur_queue = &msgq_tx_msg_prio;
-        } else if (msgq_tx_msg.used_msgs) {
-//        LOG_DBG("Get message from standart queue");
-            k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
-            cur_queue = &msgq_tx_msg;
-        } else {
-            k_mutex_unlock(&mut_msg_info);
-            return;
-        }
 
-//        if (tx_msg.direction == RESPONSE)
-//            k_msgq_get(cur_queue, &tx_msg, K_NO_WAIT);
+    if (msgq_tx_msg_prio.used_msgs) {
+//        LOG_DBG("Get message from priority queue");
+        k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg_prio;
+    } else if (msgq_tx_msg.used_msgs) {
+//        LOG_DBG("Get message from standart queue");
+        k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
+        cur_queue = &msgq_tx_msg;
     } else {
         return;
     }
-    k_mutex_unlock(&mut_msg_info);
+
 
     read_write_message(&new_msg, &tx_msg, true);
     for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
@@ -212,10 +209,17 @@ static void send_msg(void)
         color = COMMON_STRIP_COLOR_GREEN;
     else
         color = COMMON_STRIP_COLOR_RED;
+//    while(k_work_busy_get(&work_led_strip_blink));
+//    set_blink_param(color, K_MSEC(100), 5);
+//    k_work_submit(&work_led_strip_blink);
 
-    while(k_work_busy_get(&work_led_strip_blink));
-    set_blink_param(color, K_MSEC(100), 5);
-    k_work_submit(&work_led_strip_blink);
+    struct led_strip_indicate_s strip_indicate = {
+      .blink = true,
+      .led_strip_state.blink_param.msec_timeout = K_MSEC(100),
+      .led_strip_state.blink_param.blink_cnt = 5,
+      .led_strip_state.blink_param.blink_color = color
+    };
+    k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
 }
 
 
@@ -267,6 +271,7 @@ _Noreturn void brigade_chief_proc_task(void)
     uint32_t cur_msg = 0;
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
+    struct led_strip_indicate_s strip_indicate = {0};
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
     k_sleep(K_FOREVER);
     while(1) {
@@ -358,11 +363,14 @@ _Noreturn void brigade_chief_proc_task(void)
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
                                 LOG_DBG("Brigade chief disabled alarm");
-                                // TODO: atomic operation
                                 atomic_set_bit(&disable_alarm_msg_info.resp_is_recv, 0);
-                                while(k_work_busy_get(&work_led_strip_blink));
-                                set_blink_param(COMMON_STRIP_COLOR_GREEN, K_MSEC(100), 5);
-                                k_work_submit(&work_led_strip_blink);
+
+                                strip_indicate.blink = true;
+                                strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_GREEN;
+                                strip_indicate.led_strip_state.blink_param.blink_cnt = 5;
+                                strip_indicate.led_strip_state.blink_param.msec_timeout = K_MSEC(100);
+                                k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+
                                 buzzer_mode.ding_dong = true;
                                 while(k_work_busy_get(&work_buzzer));
                                 k_work_submit(&work_buzzer);
@@ -383,11 +391,14 @@ _Noreturn void brigade_chief_proc_task(void)
                         case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_RIGHT_TRAIN_PASSED");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
-                                // TODO: atomic operation
                                 atomic_set_bit(&right_train_passed_msg_info.resp_is_recv, 0);
-                                while(k_work_busy_get(&work_led_strip_blink));
-                                set_blink_param(COMMON_STRIP_COLOR_GREEN, K_MSEC(100), 5);
-                                k_work_submit(&work_led_strip_blink);
+
+                                strip_indicate.blink = true;
+                                strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_GREEN;
+                                strip_indicate.led_strip_state.blink_param.blink_cnt = 5;
+                                strip_indicate.led_strip_state.blink_param.msec_timeout = K_MSEC(100);
+                                k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+
                                 buzzer_mode.ding_dong = true;
                                 while(k_work_busy_get(&work_buzzer));
                                 k_work_submit(&work_buzzer);
@@ -398,11 +409,14 @@ _Noreturn void brigade_chief_proc_task(void)
                         case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_LEFT_TRAIN_PASSED");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
-                                // TODO: atomic operation
                                 atomic_set_bit(&left_train_passed_msg_info.resp_is_recv, 0);
-                                while(k_work_busy_get(&work_led_strip_blink));
-                                set_blink_param(COMMON_STRIP_COLOR_GREEN, K_MSEC(100), 5);
-                                k_work_submit(&work_led_strip_blink);
+
+                                strip_indicate.blink = true;
+                                strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_GREEN;
+                                strip_indicate.led_strip_state.blink_param.blink_cnt = 5;
+                                strip_indicate.led_strip_state.blink_param.msec_timeout = K_MSEC(100);
+                                k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+
                                 buzzer_mode.ding_dong = true;
                                 while(k_work_busy_get(&work_buzzer));
                                 k_work_submit(&work_buzzer);
@@ -423,10 +437,14 @@ _Noreturn void brigade_chief_proc_task(void)
             if (msgq_cur_msg_tx_ptr) {
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
             }
+
             rssi_num = check_rssi(rssi);
-            led_strip_state.con_status = rssi_num;
-            led_strip_state.people_num = rx_msg_proc.workers_in_safe_zone;
-            update_indication(&led_strip_state, true, true);
+            strip_indicate.led_strip_state.status.set_con_status = true;
+            strip_indicate.led_strip_state.status.set_people_num = true;
+            strip_indicate.led_strip_state.status.con_status = rssi_num;
+            strip_indicate.led_strip_state.status.people_num = rx_msg_proc.workers_in_safe_zone;
+            strip_indicate.blink = false;
+            k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
         }
         k_sleep(K_USEC(100));
     }
@@ -551,13 +569,17 @@ static void work_buzzer_handler(struct k_work *item)
 
 static void work_msg_mngr_handler(struct k_work *item)
 {
-    k_mutex_lock(&mut_msg_info, K_FOREVER);
+    struct led_strip_indicate_s strip_indicate = {0};
+
     check_msg_status(&disable_alarm_msg_info);
     check_msg_status(&right_train_passed_msg_info);
     check_msg_status(&left_train_passed_msg_info);
-    k_mutex_unlock(&mut_msg_info);
 
-    set_color(COMMON_STRIP_COLOR_YELLOW);
+//    set_color(COMMON_STRIP_COLOR_YELLOW);
+    strip_indicate.blink = true;
+    strip_indicate.led_strip_state.blink_param.msec_timeout = K_FOREVER;
+    strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_YELLOW;
+    k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
 
     if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
         buzzer_mode.single = true;

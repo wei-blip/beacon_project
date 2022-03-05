@@ -25,7 +25,7 @@
 		[
 			"/home/rts/zephyr-rts-master/zephyr/cmake/extensions.cmake",
 			"/home/rts/zephyr-rts-master/zephyr/cmake/app/boilerplate.cmake",
-			"/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
+			"/home/rts/zephyr-rts-master/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
 			"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/clion-zephyr.cmake",
 			"CMakeLists.txt",
 			"/home/rts/zephyr-rts-master/zephyr/CMakeLists.txt"
@@ -58,7 +58,7 @@
 			{
 				"command" : 3,
 				"file" : 2,
-				"line" : 40,
+				"line" : 102,
 				"parent" : 4
 			},
 			{

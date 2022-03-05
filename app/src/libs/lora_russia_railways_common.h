@@ -34,9 +34,9 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 #define QUEUE_LEN_IN_ELEMENTS 10
 #define WAITING_PERIOD_NUM 2
 
-#define SLOT_TIME_MSEC 980UL
+#define SLOT_TIME_MSEC 566UL
 #define PERIOD_TIME_MSEC (4*SLOT_TIME_MSEC)
-#define DELAY_TIME_MSEC 150U
+#define DELAY_TIME_MSEC 34U
 #define STOCK_TIME_MSEC 10
 #define CORRECT_VALUE_MSEC 10
 #define RECV_TIME_MSEC 900
@@ -46,7 +46,14 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 #define BUTTON_PRESSED_PERIOD_TIME_USEC 40000UL
 
 
-#define IS_SYNC_MSG ((rx_buf[0] == 13) && (rx_buf[1] == 64))
+#define IS_SYNC_MSG (rx_buf[0] == 13) /* SENDER_ADDR = BASE_STATION, RECV_ADDR = BROADCAST, MESSAGE_TYPE = SYNC  */
+
+/*
+ * This macro using in processing thread
+ * rx_buf_proc - local variable processing thread
+ * Array indexes have range from 0 to MESSAGE_LEN_IN_BYTES-1
+ * */
+#define IS_EMPTY_MSG ((rx_buf_proc[0] == 0) && (rx_buf_proc[MESSAGE_LEN_IN_BYTES-1] == 0))
 
 /**
  * Enum, typedefs and structs area begin

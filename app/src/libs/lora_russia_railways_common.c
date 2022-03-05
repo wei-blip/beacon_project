@@ -19,7 +19,17 @@ K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
 const struct device *lora_dev_ptr = {0};
 const struct device *buzzer_dev_ptr = {0};
 
-struct lora_modem_config lora_cfg = {0};
+struct lora_modem_config lora_cfg = {
+  .frequency = 433000000,
+  .bandwidth = BW_125_KHZ,
+  .datarate = SF_12,
+  .preamble_len = 5,
+  .coding_rate = CR_4_5,
+  .tx_power = 0,
+  .tx = true,
+  .fixed_len = true,
+  .payload_len = MESSAGE_LEN_IN_BYTES
+};
 
 struct k_timer periodic_timer = {0};
 

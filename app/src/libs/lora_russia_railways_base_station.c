@@ -243,12 +243,14 @@ _Noreturn void base_station_proc_task()
         if ( msgq_rx_msg.used_msgs ) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
             k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
-            if (rx_buf_proc[0] == rx_buf_proc[1] == rx_buf_proc[2] == 0) {
+            if (IS_EMPTY_MSG) {
                 LOG_DBG("Empty message");
                 continue;
             }
 
-            /// Processing receive data
+            /**
+             * Processing receive data
+             * */
             cur_msg = 0;
             for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
                 rx_buf_proc[i] = reverse(rx_buf_proc[i]);
@@ -391,12 +393,6 @@ _Noreturn void base_station_modem_task()
     /**
      * Lora config begin
      * */
-    lora_cfg.frequency = 433000000;
-    lora_cfg.bandwidth = BW_125_KHZ;
-    lora_cfg.datarate = SF_12;
-    lora_cfg.preamble_len = 8;
-    lora_cfg.coding_rate = CR_4_5;
-    lora_cfg.tx_power = 0;
     lora_cfg.tx = true;
 
     lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);

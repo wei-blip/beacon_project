@@ -103,30 +103,30 @@ static void system_init(void)
     /**
      * Init IRQ (change gpio init after tests) begin
      * */
-//    button_alarm_gpio_dev_ptr = device_get_binding(BUTTON_ALARM_GPIO_PORT);
-    button_anti_dream_gpio_dev_ptr = device_get_binding(BUTTON_ANTI_DREAM_GPIO_PORT);
+    button_alarm_gpio_dev_ptr = device_get_binding(BUTTON_ALARM_GPIO_PORT);
+//    button_anti_dream_gpio_dev_ptr = device_get_binding(BUTTON_ANTI_DREAM_GPIO_PORT);
 //    button_train_passed_gpio_dev_ptr = device_get_binding(BUTTON_TRAIN_PASSED_GPIO_PORT);
 
-//    gpio_pin_configure(button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
-//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
-    gpio_pin_configure(button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PIN,
+    gpio_pin_configure(button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
                        (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
+//    gpio_pin_configure(button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PIN,
+//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
 //    gpio_pin_configure(button_train_passed_gpio_dev_ptr, BUTTON_TRAIN_PASSED_GPIO_PIN,
 //                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
 
-//    gpio_pin_interrupt_configure(button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
-//                                 GPIO_INT_EDGE_TO_ACTIVE);
-    gpio_pin_interrupt_configure(button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PIN,
+    gpio_pin_interrupt_configure(button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
                                  GPIO_INT_EDGE_TO_ACTIVE);
+//    gpio_pin_interrupt_configure(button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PIN,
+//                                 GPIO_INT_EDGE_TO_ACTIVE);
 //    gpio_pin_interrupt_configure(button_train_passed_gpio_dev_ptr, BUTTON_TRAIN_PASSED_GPIO_PIN,
 //                                 GPIO_INT_EDGE_TO_ACTIVE);
 
-//    gpio_init_callback(&button_alarm_cb, button_alarm_pressed_cb, BIT(BUTTON_ALARM_GPIO_PIN));
-    gpio_init_callback(&button_anti_dream_cb, button_anti_dream_pressed_cb, BIT(BUTTON_ANTI_DREAM_GPIO_PIN));
+    gpio_init_callback(&button_alarm_cb, button_alarm_pressed_cb, BIT(BUTTON_ALARM_GPIO_PIN));
+//    gpio_init_callback(&button_anti_dream_cb, button_anti_dream_pressed_cb, BIT(BUTTON_ANTI_DREAM_GPIO_PIN));
 //    gpio_init_callback(&button_train_passed_cb, button_train_pass_pressed_cb, BIT(BUTTON_TRAIN_PASSED_GPIO_PIN));
 
-//    gpio_add_callback(button_alarm_gpio_dev_ptr, &button_alarm_cb);
-    gpio_add_callback(button_anti_dream_gpio_dev_ptr, &button_anti_dream_cb);
+    gpio_add_callback(button_alarm_gpio_dev_ptr, &button_alarm_cb);
+//    gpio_add_callback(button_anti_dream_gpio_dev_ptr, &button_anti_dream_cb);
 //    gpio_add_callback(button_train_passed_gpio_dev_ptr, &button_train_passed_cb);
     /**
      * Init IRQ end
@@ -322,7 +322,7 @@ _Noreturn void signalman_proc_task()
         if (msgq_rx_msg.used_msgs) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
             k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
-            if (rx_buf_proc[0] == rx_buf_proc[1] == 0) {
+            if (IS_EMPTY_MSG) {
                 LOG_DBG("Empty message");
                 continue;
             }
@@ -509,12 +509,6 @@ _Noreturn void signalman_modem_task()
     /**
      * Lora config begin
      * */
-    lora_cfg.frequency = 433000000;
-    lora_cfg.bandwidth = BW_125_KHZ;
-    lora_cfg.datarate = SF_12;
-    lora_cfg.preamble_len = 8;
-    lora_cfg.coding_rate = CR_4_5;
-    lora_cfg.tx_power = 0;
     lora_cfg.tx = false;
 
     lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
@@ -587,10 +581,10 @@ static void periodic_timer_handler(struct k_timer *tim)
     LOG_DBG("Periodic timer handler");
 //    k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT); // for debug
     static uint8_t cnt = 0;
-    if (cnt == 20) { /* For anti-dream */
-        k_work_submit(&work_anti_dream);
-        cnt = 0;
-    }
+//    if (cnt == 20) { /* For anti-dream */
+//        k_work_submit(&work_anti_dream);
+//        cnt = 0;
+//    }
     cnt++;
     current_state = transmit_state;
     k_wakeup(modem_task_id);
@@ -651,6 +645,7 @@ static void work_msg_mngr_handler(struct k_work *item)
     strip_indicate.led_strip_state.blink_param.msec_timeout = K_FOREVER;
     strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_YELLOW;
     k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+    k_wakeup(update_indication_task_id);
 //    set_color(COMMON_STRIP_COLOR_YELLOW);
 
     /* If mut_buzzer_mode taken -> work_buzzer_handler is free */

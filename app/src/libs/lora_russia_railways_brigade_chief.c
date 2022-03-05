@@ -8,14 +8,20 @@
 LOG_MODULE_REGISTER(brigade_chief);
 
 
-/// My threads ids begin
+/**
+ * My threads ids begin
+ * */
 extern const k_tid_t proc_task_id;
 extern const k_tid_t modem_task_id;
-/// My threads ids end
-
+/**
+ * My threads ids end
+ * */
 
 static modem_state_t current_state;
-/// Structure area begin
+
+/**
+ * Structure area begin
+ * */
 static struct message_s disable_alarm_msg;
 static struct message_s left_train_passed_msg;
 static struct message_s right_train_passed_msg;
@@ -31,18 +37,27 @@ struct gpio_callback button_left_train_passed_cb;
 const struct device* button_disable_alarm_gpio_dev_ptr;
 const struct device* button_left_train_passed_gpio_dev_ptr;
 const struct device* button_right_train_passed_gpio_dev_ptr;
-/// Structure area end
+/**
+ * Structure area end
+ * */
 
 
-/// Enum area begin
+
+/**
+ * Enum area begin
+ * */
 static uint8_t cur_workers_in_safe_zone = 3;
 static enum DEVICE_ADDR_e cur_dev_addr = BRIGADE_CHIEF_ADDR;
 //static enum WORKERS_IDS_e cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
 static enum BATTERY_LEVEL_e cur_battery_level = BATTERY_LEVEL_GOOD;
-/// Enum area end
+/**
+ * Enum area end
+ * */
 
 
-/// Function declaration area begin
+/**
+ * Function declaration area begin
+ * */
 void button_disable_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 void button_left_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 void button_right_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
@@ -52,10 +67,14 @@ static void recv_msg(void);
 static void work_buzzer_handler(struct k_work *item);
 static void work_msg_mngr_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer *tim);
-/// Function declaration area end
+/**
+ * Function declaration area end
+ * */
 
 
-//// Function definition area begin
+/**
+ * Function definition area begin
+ * */
 void system_init(void)
 {
     volatile int rc = -1;
@@ -63,15 +82,21 @@ void system_init(void)
     int16_t rssi = 0;
     int8_t snr = 0;
 
-    /// Buzzer init begin
+    /**
+     * Buzzer init begin
+     * */
     buzzer_dev_ptr = DEVICE_DT_GET(PWM_CTLR);
     if (!device_is_ready(buzzer_dev_ptr)) {
         LOG_DBG("Error: PWM device %s is not ready\n", buzzer_dev_ptr->name);
         k_sleep(K_FOREVER);
     }
-    /// Buzzer init end
+    /**
+     * Buzzer init end
+     * */
 
-    //// Init IRQ (change gpio init after tests) begin
+    /**
+     * Init IRQ begin
+     * */
     button_disable_alarm_gpio_dev_ptr = device_get_binding(BUTTON_DISABLE_ALARM_GPIO_PORT);
 //        button_left_train_passed_gpio_dev_ptr = device_get_binding(BUTTON_LEFT_TRAIN_PASSED_GPIO_PORT);
 //        button_right_train_passed_gpio_dev_ptr = device_get_binding(BUTTON_RIGHT_TRAIN_PASSED_GPIO_PORT);
@@ -101,9 +126,13 @@ void system_init(void)
     gpio_add_callback(button_disable_alarm_gpio_dev_ptr, &button_disable_alarm_cb);
 //    gpio_add_callback(button_left_train_passed_gpio_dev_ptr, &button_left_train_passed_cb);
 //    gpio_add_callback(button_right_train_passed_gpio_dev_ptr, &button_right_train_passed_cb);
-    /// Init IRQ end
+    /**
+     * Init IRQ end
+     * */
 
-    //// Kernel services init begin
+    /**
+     * Kernel services init begin
+     * */
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_msg_mngr, work_msg_mngr_handler);
 //    k_work_init(&work_led_strip_blink, blink);
@@ -111,7 +140,9 @@ void system_init(void)
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
 
     k_mutex_init(&mut_buzzer_mode);
-    /// Kernel services init end
+    /**
+     * Kernel services init end
+     * */
 
     /* Light down LED strip */
     struct led_strip_indicate_s strip_indicate = {
@@ -126,6 +157,9 @@ void system_init(void)
 
     current_state = recv_state;
 
+    /**
+     * Filling structure begin
+     * */
     disable_alarm_msg.receiver_addr = BASE_STATION_ADDR;
     disable_alarm_msg.sender_addr = cur_dev_addr;
     disable_alarm_msg.message_type = MESSAGE_TYPE_DISABLE_ALARM;
@@ -161,6 +195,9 @@ void system_init(void)
     right_train_passed_msg_info.msg = &right_train_passed_msg;
     right_train_passed_msg_info.req_is_send = ATOMIC_INIT(0);
     right_train_passed_msg_info.resp_is_recv = ATOMIC_INIT(0);
+    /**
+    * Filling structure end
+    * */
 
     buzzer_mode.single = true;
     k_work_submit(&work_buzzer);
@@ -278,12 +315,14 @@ _Noreturn void brigade_chief_proc_task(void)
         if (msgq_rx_msg.used_msgs) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
             k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
-            if (rx_buf_proc[0] == rx_buf_proc[1] == rx_buf_proc[2] == 0) {
+            if (IS_EMPTY_MSG) {
                 LOG_DBG("Empty message");
                 continue;
             }
 
-            /// Processing receive data
+            /**
+             * Processing receive data
+             * */
             cur_msg = 0;
             for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
                 rx_buf_proc[i] = reverse(rx_buf_proc[i]);
@@ -457,13 +496,9 @@ _Noreturn void brigade_chief_modem_task(void)
     int16_t rssi;
     volatile uint32_t ticks = 0;
 
-    /// Lora config begin
-    lora_cfg.frequency = 433000000;
-    lora_cfg.bandwidth = BW_125_KHZ;
-    lora_cfg.datarate = SF_12;
-    lora_cfg.preamble_len = 8;
-    lora_cfg.coding_rate = CR_4_5;
-    lora_cfg.tx_power = 0;
+    /**
+     * Lora config begin
+     * */
     lora_cfg.tx = false;
 
     lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
@@ -473,11 +508,15 @@ _Noreturn void brigade_chief_modem_task(void)
     if ( lora_config(lora_dev_ptr, &lora_cfg) < 0 ) {
         k_sleep(K_FOREVER);
     }
-    /// Lora config end
+    /**
+     * Lora config end
+     * */
 
     system_init();
 
-    /// Receive sync message begin
+    /**
+     * Receive start sync message begin
+     * */
     lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES, K_FOREVER, &rssi, &snr);
     k_sleep(K_MSEC(DELAY_TIME_MSEC));
     k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC),K_MSEC(PERIOD_TIME_MSEC));
@@ -485,7 +524,9 @@ _Noreturn void brigade_chief_modem_task(void)
     k_msgq_put(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
     k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
     k_wakeup(proc_task_id);
-    /// Receive sync message end
+    /**
+     * Receive start sync message end
+     * */
 
     while(1) {
         if (current_state.state == TRANSMIT) {
@@ -580,6 +621,7 @@ static void work_msg_mngr_handler(struct k_work *item)
     strip_indicate.led_strip_state.blink_param.msec_timeout = K_FOREVER;
     strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_YELLOW;
     k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+    k_wakeup(update_indication_task_id);
 
     if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
         buzzer_mode.single = true;
@@ -588,4 +630,6 @@ static void work_msg_mngr_handler(struct k_work *item)
         k_work_submit(&work_buzzer);
     }
 }
-/// Function definition area end
+/**
+ * Function definition area end
+ * */

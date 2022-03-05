@@ -190,8 +190,10 @@ static void set_people_num_pixels(uint8_t people_num, uint8_t *pos)
 {
     uint8_t start_pos = (*pos);
     while (*pos < start_pos + WORKERS_LED_LEN) {
-        (people_num & BIT((*pos)-start_pos)) ? led_hsv2rgb(&blue_hsv, &pixels_rgb[ (*pos)])
-            : led_hsv2rgb(&empty_hsv, &pixels_rgb[ (*pos)]);
+        if (((*pos) - start_pos) < people_num)
+            led_hsv2rgb(&blue_hsv, &pixels_rgb[*pos]);
+        else
+            led_hsv2rgb(&empty_hsv, &pixels_rgb[*pos]);
         (*pos)++;
     }
 }
@@ -233,6 +235,7 @@ _Noreturn void update_indication_task(void)
                         break;
                 }
 
+                cnt = 0;
                 while (cnt < STRIP_NUM_PIXELS) {
                     led_hsv2rgb(&color_hsv, &color_rgb[cnt++]);
                 }
@@ -249,7 +252,9 @@ _Noreturn void update_indication_task(void)
                         k_sleep(led_strip_state.blink_param.msec_timeout);
                         led_strip_update_rgb(strip_dev, empty_rgb, STRIP_NUM_PIXELS);
                         k_sleep(led_strip_state.blink_param.msec_timeout);
+                        cnt++;
                     }
+                    led_strip_update_rgb(strip_dev, pixels_rgb, STRIP_NUM_PIXELS);
                 }
             } else {
                 cnt = 0;
@@ -258,6 +263,8 @@ _Noreturn void update_indication_task(void)
 
                 if (led_strip_state.status.set_people_num)
                     set_people_num_pixels(led_strip_state.status.people_num, &cnt);
+
+                led_strip_update_rgb(strip_dev, pixels_rgb, STRIP_NUM_PIXELS);
             }
 
         } else {

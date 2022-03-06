@@ -52,9 +52,10 @@ static enum BATTERY_LEVEL_e cur_battery_level = BATTERY_LEVEL_GOOD;
  * */
 void button_homeward_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 
+inline static void send_msg(void);
+inline static void recv_msg(void);
+
 static void system_init(void);
-static void send_msg(void);
-static void recv_msg(void);
 static void work_buzzer_handler(struct k_work *item);
 static void work_msg_mngr_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer* tim); // callback for periodic_timer
@@ -156,7 +157,7 @@ static void system_init(void)
 }
 
 
-static void send_msg(void)
+inline static void send_msg(void)
 {
     volatile int rc = 0;
     uint32_t new_msg = 0;
@@ -198,7 +199,7 @@ static void send_msg(void)
 }
 
 
-static void recv_msg(void)
+inline static void recv_msg(void)
 {
     volatile int rc = -1;
     volatile uint32_t ticks = 0;
@@ -237,7 +238,7 @@ _Noreturn void base_station_proc_task()
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
     struct led_strip_indicate_s strip_indicate = {0};
-    struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
+    struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; /* Default queue */
     k_sleep(K_FOREVER);
     while(1) {
         if ( msgq_rx_msg.used_msgs ) {
@@ -275,8 +276,8 @@ _Noreturn void base_station_proc_task()
                     tx_msg_proc.sender_addr = rx_msg_proc.sender_addr;
                     tx_msg_proc.receiver_addr = BROADCAST_ADDR;
                     tx_msg_proc.message_type = rx_msg_proc.message_type;
-                    tx_msg_proc.workers_in_safe_zone = 0;
-                    tx_msg_proc.battery_level = BATTERY_LEVEL_GOOD; // change it after
+                    tx_msg_proc.workers_in_safe_zone = cur_workers_in_safe_zone;
+                    tx_msg_proc.battery_level = BATTERY_LEVEL_GOOD;
                     tx_msg_proc.direction = RESPONSE;
 
                     switch (rx_msg_proc.message_type) {

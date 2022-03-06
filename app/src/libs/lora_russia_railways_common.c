@@ -19,6 +19,8 @@ K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
 const struct device *lora_dev_ptr = {0};
 const struct device *buzzer_dev_ptr = {0};
 
+atomic_t fun_call_count = ATOMIC_DEFINE(0);
+
 struct lora_modem_config lora_cfg = {
   .frequency = 433000000,
   .bandwidth = BW_125_KHZ,
@@ -63,7 +65,7 @@ uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 /**
  * Function definition area begin
  * */
-void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos) {
+inline void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos) {
     uint8_t start_pos = *pos;
     while ( *pos < start_pos + field_len ) {
         *msg_ptr &= ( ~BIT(*pos) ); // clear bit
@@ -73,7 +75,7 @@ void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t fiel
 }
 
 
-void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos)
+inline void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos)
 {
     uint8_t start_pos = *pos;
     while ( *pos < start_pos + field_len ) {
@@ -84,7 +86,7 @@ void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t 
 }
 
 
-uint8_t reverse(uint8_t input)
+inline uint8_t reverse(uint8_t input)
 {
     uint8_t output;
     uint8_t bit = 0;
@@ -102,7 +104,7 @@ uint8_t reverse(uint8_t input)
 }
 
 
-void read_write_message(uint32_t *new_msg, struct message_s *msg_ptr, bool write)
+inline void read_write_message(uint32_t *new_msg, struct message_s *msg_ptr, bool write)
 {
     uint8_t pos = 0;
     for (int cur_field = 0; cur_field < MESSAGE_FIELD_NUMBER; ++cur_field) {
@@ -138,7 +140,7 @@ void read_write_message(uint32_t *new_msg, struct message_s *msg_ptr, bool write
 }
 
 
-uint8_t check_rssi(const int16_t rssi)
+inline uint8_t check_rssi(const int16_t rssi)
 {
     if ( rssi >= CONNECTION_QUALITY_RSSI_1 ) {
         return LIGHT_UP_EIGHT;
@@ -170,15 +172,34 @@ uint8_t check_rssi(const int16_t rssi)
 }
 
 
-void check_msg_status(struct msg_info_s *msg_info)
+inline void check_msg_status(struct msg_info_s *msg_info)
 {
-    // Check response status
-    // If response will receive - set flags on false (good transfer)
-    // Else if check count status, if cnt == WAITING_PERIOD_NUM - message retransmit (bad transfer)
     if (atomic_get((&msg_info->req_is_send))) {
       k_msgq_put(msg_info->msg_buf, msg_info->msg, K_NO_WAIT);
       atomic_clear(&(msg_info->req_is_send));
     }
+}
+
+void work_button_pressed_handler(struct k_work *item)
+{
+    atomic_set(&fun_call_count, 0);
+    /* While button pressed count number of intervals */
+    while (gpio_pin_get) {
+        k_sleep(K_MSEC(50));
+        atomic_inc(&fun_call_count);
+    }
+
+    if ((fun_call_count > SHORT_PRESSED_MIN_VAL ) && (fun_call_count < SHORT_PRESSED_MAX_VAL)) { /* Is short pressed */
+
+    } else if ((fun_call_count > LONG_PRESSED_MIN_VAL ) && (fun_call_count < LONG_PRESSED_MAX_VAL)) { /* Long pressed */
+        
+    } else { /* Button not be pressed */
+
+    }
+}
+inline void button_pressed_50ms(void)
+{
+    atomic_inc(&fun_call_count);
 }
 /**
  * Function definition area end

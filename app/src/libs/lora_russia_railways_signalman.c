@@ -65,8 +65,9 @@ void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb,
 void button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 void button_anti_dream_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 
-static void send_msg(void);
-static void recv_msg(void);
+inline static void send_msg(void);
+inline static void recv_msg(void);
+
 static void system_init(void);
 static void work_buzzer_handler(struct k_work *item);
 static void work_msg_mngr_handler(struct k_work *item);
@@ -211,7 +212,7 @@ static void system_init(void)
 }
 
 
-static void send_msg(void)
+inline static void send_msg(void)
 {
     volatile int rc = 0;
     uint32_t new_msg = 0;
@@ -267,7 +268,7 @@ static void send_msg(void)
 }
 
 
-static void recv_msg(void)
+inline static void recv_msg(void)
 {
     volatile int rc = -1;
     volatile uint32_t ticks = 0;
@@ -317,7 +318,7 @@ _Noreturn void signalman_proc_task()
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
     struct led_strip_indicate_s strip_indicate = {0};
-    struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
+    struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; /* Default queue */
     while(1) {
         if (msgq_rx_msg.used_msgs) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
@@ -360,6 +361,7 @@ _Noreturn void signalman_proc_task()
                         case MESSAGE_TYPE_SYNC:
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
+
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
                             msgq_cur_msg_tx_ptr = NULL;
@@ -451,7 +453,7 @@ _Noreturn void signalman_proc_task()
                         case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
-                                atomic_set_bit(&train_passed_msg_info.resp_is_recv, 0); // message received
+                                atomic_set_bit(&train_passed_msg_info.resp_is_recv, 0); /* message received */
 //                                while(k_work_busy_get(&work_led_strip_blink)) {
 //                                    k_sleep(K_MSEC(10));
 //                                }
@@ -554,6 +556,11 @@ _Noreturn void signalman_modem_task()
 void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     LOG_DBG("Button alarm pressed");
+    atomic_val_t start_val = atomic_get(&fun_call_count);
+    /* If fun_call_count = 0 then it first call this function */
+    if (!atomic_get(&fun_call_count)) {
+        while
+    }
     atomic_cas(&alarm_msg_info.req_is_send, 0, 1);
     k_work_submit(&work_msg_mngr);
 }

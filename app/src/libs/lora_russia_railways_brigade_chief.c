@@ -62,8 +62,9 @@ void button_disable_alarm_pressed_cb(const struct device *dev, struct gpio_callb
 void button_left_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 void button_right_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 
-static void send_msg(void);
-static void recv_msg(void);
+inline static void send_msg(void);
+inline static void recv_msg(void);
+
 static void work_buzzer_handler(struct k_work *item);
 static void work_msg_mngr_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer *tim);
@@ -204,7 +205,7 @@ void system_init(void)
 }
 
 
-static void send_msg(void)
+inline static void send_msg(void)
 {
     volatile int rc = 0;
     uint32_t new_msg = 0;
@@ -260,7 +261,7 @@ static void send_msg(void)
 }
 
 
-static void recv_msg(void)
+inline static void recv_msg(void)
 {
     volatile int rc = -1;
     volatile uint32_t ticks = 0;
@@ -309,7 +310,7 @@ _Noreturn void brigade_chief_proc_task(void)
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
     struct led_strip_indicate_s strip_indicate = {0};
-    struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; // Default queue
+    struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; /* Default queue */
     k_sleep(K_FOREVER);
     while(1) {
         if (msgq_rx_msg.used_msgs) {
@@ -354,6 +355,7 @@ _Noreturn void brigade_chief_proc_task(void)
                         case MESSAGE_TYPE_SYNC:
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
+
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
                             // TODO Indication for signalman and brigade chief
@@ -376,10 +378,13 @@ _Noreturn void brigade_chief_proc_task(void)
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
+                            /*
                             if (rx_msg_proc.sender_addr == cur_dev_addr)
                                 msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio; // For response message
                             else
                                 msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
+                            */
+
                             break;
 
                         case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
@@ -391,6 +396,7 @@ _Noreturn void brigade_chief_proc_task(void)
                         default:
                             LOG_DBG("Not correct message type");
                             msgq_cur_msg_tx_ptr = NULL;
+                            break;
                     }
                     break;
 
@@ -420,7 +426,7 @@ _Noreturn void brigade_chief_proc_task(void)
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
                             msgq_cur_msg_tx_ptr = NULL;
-                            break;
+                            continue;
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
@@ -466,12 +472,14 @@ _Noreturn void brigade_chief_proc_task(void)
                         default:
                             LOG_DBG("Not correct message type");
                             msgq_cur_msg_tx_ptr = NULL;
+                            continue;
                     }
                     break;
 
                 default:
                     LOG_DBG("Not correct message direction");
                     msgq_cur_msg_tx_ptr = NULL;
+                    continue;
             }
             if (msgq_cur_msg_tx_ptr) {
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);

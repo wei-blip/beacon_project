@@ -34,17 +34,14 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 #define QUEUE_LEN_IN_ELEMENTS 10
 #define WAITING_PERIOD_NUM 2
 
-#define SLOT_TIME_MSEC 566UL
+#define SLOT_TIME_MSEC 600UL /* Time on receive plus DELAY_TIME_MSEC */
 #define PERIOD_TIME_MSEC (4*SLOT_TIME_MSEC)
 #define DELAY_TIME_MSEC 34U
 #define STOCK_TIME_MSEC 10
 #define CORRECT_VALUE_MSEC 10
-#define RECV_TIME_MSEC 900
-#define WORKQUEUE_STACK_SIZE 256
-#define WORKQUEUE_PRIO 0
+#define RECV_TIME_MSEC 600UL
 
 #define BUTTON_PRESSED_PERIOD_TIME_USEC 40000UL
-
 
 #define IS_SYNC_MSG (rx_buf[0] == 13) /* SENDER_ADDR = BASE_STATION, RECV_ADDR = BROADCAST, MESSAGE_TYPE = SYNC  */
 
@@ -55,6 +52,15 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
  * */
 #define IS_EMPTY_MSG ((rx_buf_proc[0] == 0) && (rx_buf_proc[MESSAGE_LEN_IN_BYTES-1] == 0))
 
+/*
+ * fun_call_count value for detected short pressed
+ * If fun_call_count value will be greater than this macros then it long pressed
+ * */
+#define SHORT_PRESSED_MIN_VAL 2
+#define SHORT_PRESSED_MAX_VAL 5
+
+extern atomic_t fun_call_count; /* Counted number of function button pressed call */
+
 /**
  * Enum, typedefs and structs area begin
  * */
@@ -64,9 +70,9 @@ enum CONNECTION_QUALITY_RSSI {
     CONNECTION_QUALITY_RSSI_3 = -90,
     CONNECTION_QUALITY_RSSI_4 = -100,
     CONNECTION_QUALITY_RSSI_5 = -105,
-    CONNECTION_QUALITY_RSSI_6 = -110,
-    CONNECTION_QUALITY_RSSI_7 = -115,
-    CONNECTION_QUALITY_RSSI_8 = -120
+    CONNECTION_QUALITY_RSSI_6 = -125,
+    CONNECTION_QUALITY_RSSI_7 = -127,
+    CONNECTION_QUALITY_RSSI_8 = -130
 };
 
 
@@ -125,15 +131,12 @@ extern struct lora_modem_config lora_cfg;
 extern const struct device *lora_dev_ptr;
 extern const struct device *buzzer_dev_ptr;
 
-extern struct k_timer periodic_timer; // For switch in tx mode
+extern struct k_timer periodic_timer; /* For switch in tx mode */
 
-extern struct k_work work_buzzer; // For signalisation
-extern struct k_work work_msg_mngr; // For putting messages into queues
-//extern struct k_work work_led_strip_blink; // For blinking led strip
+extern struct k_work work_buzzer; /* For signalisation */
+extern struct k_work work_msg_mngr; /* For putting messages into queues */
 
-//extern struct k_work_q work_q_blink;
-
-extern struct k_mutex mut_buzzer_mode; // Block buzzer_mode
+extern struct k_mutex mut_buzzer_mode; /* Block buzzer_mode */
 
 extern struct buzzer_mode_s buzzer_mode;
 
@@ -157,12 +160,13 @@ extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
 /**
  * Function declaration area begin
  * */
-uint8_t reverse(uint8_t input);
-uint8_t check_rssi(int16_t rssi);
-void check_msg_status(struct msg_info_s *msg_info);
-void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write);
-void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len, uint8_t* pos);
-void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t* pos);
+inline void button_pressed_50ms(void);
+inline uint8_t reverse(uint8_t input);
+inline uint8_t check_rssi(int16_t rssi);
+inline void check_msg_status(struct msg_info_s *msg_info);
+inline void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write);
+inline void fill_msg_bit_field(uint32_t* msg_ptr, uint8_t field_val, uint8_t field_len, uint8_t* pos);
+inline void extract_msg_bit_field(const uint32_t* msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t* pos);
 /**
  * Function declaration area end
  * */

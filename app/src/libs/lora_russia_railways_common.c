@@ -19,7 +19,7 @@ K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
 const struct device *lora_dev_ptr = {0};
 const struct device *buzzer_dev_ptr = {0};
 
-atomic_t fun_call_count = ATOMIC_DEFINE(0);
+atomic_t fun_call_count = ATOMIC_INIT(0);
 
 struct lora_modem_config lora_cfg = {
   .frequency = 433000000,
@@ -63,9 +63,18 @@ uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 
 
 /**
+ * Function declaration begin
+ * */
+static inline void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos);
+static inline void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos);
+/**
+* Function declaration end
+* */
+
+/**
  * Function definition area begin
  * */
-inline void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos) {
+static inline void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos) {
     uint8_t start_pos = *pos;
     while ( *pos < start_pos + field_len ) {
         *msg_ptr &= ( ~BIT(*pos) ); // clear bit
@@ -75,7 +84,7 @@ inline void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8
 }
 
 
-inline void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos)
+static inline void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos)
 {
     uint8_t start_pos = *pos;
     while ( *pos < start_pos + field_len ) {
@@ -86,7 +95,7 @@ inline void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, u
 }
 
 
-inline uint8_t reverse(uint8_t input)
+uint8_t reverse(uint8_t input)
 {
     uint8_t output;
     uint8_t bit = 0;
@@ -104,7 +113,7 @@ inline uint8_t reverse(uint8_t input)
 }
 
 
-inline void read_write_message(uint32_t *new_msg, struct message_s *msg_ptr, bool write)
+void read_write_message(uint32_t *new_msg, struct message_s *msg_ptr, bool write)
 {
     uint8_t pos = 0;
     for (int cur_field = 0; cur_field < MESSAGE_FIELD_NUMBER; ++cur_field) {
@@ -140,7 +149,7 @@ inline void read_write_message(uint32_t *new_msg, struct message_s *msg_ptr, boo
 }
 
 
-inline uint8_t check_rssi(const int16_t rssi)
+uint8_t check_rssi(const int16_t rssi)
 {
     if ( rssi >= CONNECTION_QUALITY_RSSI_1 ) {
         return LIGHT_UP_EIGHT;
@@ -172,7 +181,7 @@ inline uint8_t check_rssi(const int16_t rssi)
 }
 
 
-inline void check_msg_status(struct msg_info_s *msg_info)
+void check_msg_status(struct msg_info_s *msg_info)
 {
     if (atomic_get((&msg_info->req_is_send))) {
       k_msgq_put(msg_info->msg_buf, msg_info->msg, K_NO_WAIT);
@@ -180,24 +189,26 @@ inline void check_msg_status(struct msg_info_s *msg_info)
     }
 }
 
-void work_button_pressed_handler(struct k_work *item)
-{
-    atomic_set(&fun_call_count, 0);
-    /* While button pressed count number of intervals */
-    while (gpio_pin_get) {
-        k_sleep(K_MSEC(50));
-        atomic_inc(&fun_call_count);
-    }
+//void work_button_pressed_handler(struct k_work *item)
+//{
+//    atomic_set(&fun_call_count, 0);
+//    /* While button pressed count number of intervals */
+//    while (gpio_pin_get) {
+//        k_sleep(K_MSEC(50));
+//        atomic_inc(&fun_call_count);
+//    }
+//
+//    if ((fun_call_count > SHORT_PRESSED_MIN_VAL ) && (fun_call_count < SHORT_PRESSED_MAX_VAL)) { /* Is short pressed */
+//
+//    } else if (fun_call_count > LONG_PRESSED_MIN_VAL ) { /* Long pressed */
+//
+//    } else { /* Button not be pressed */
+//
+//    }
+//}
 
-    if ((fun_call_count > SHORT_PRESSED_MIN_VAL ) && (fun_call_count < SHORT_PRESSED_MAX_VAL)) { /* Is short pressed */
 
-    } else if ((fun_call_count > LONG_PRESSED_MIN_VAL ) && (fun_call_count < LONG_PRESSED_MAX_VAL)) { /* Long pressed */
-        
-    } else { /* Button not be pressed */
-
-    }
-}
-inline void button_pressed_50ms(void)
+void button_pressed_50ms(void)
 {
     atomic_inc(&fun_call_count);
 }

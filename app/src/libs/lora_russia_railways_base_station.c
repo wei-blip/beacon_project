@@ -305,7 +305,10 @@ _Noreturn void base_station_proc_task()
                             k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
                             buzzer_mode.continuous = true;
                             k_mutex_unlock(&mut_buzzer_mode);
-                            while(k_work_busy_get(&work_buzzer)); // wait while work_buzzer is busy
+                            // wait while work_buzzer is busy
+                            while(k_work_busy_get(&work_buzzer)) {
+                                k_sleep(K_MSEC(10));
+                            }
                             k_work_submit(&work_buzzer);
                             msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio;
                             break;
@@ -320,11 +323,11 @@ _Noreturn void base_station_proc_task()
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
                             msgq_cur_msg_tx_ptr = NULL;
-                            break;
 
                         default:
                             LOG_DBG("Not correct message type");
                             msgq_cur_msg_tx_ptr = NULL;
+                            continue;
                     }
                     break;
 
@@ -335,18 +338,18 @@ _Noreturn void base_station_proc_task()
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
                             msgq_cur_msg_tx_ptr = NULL;
-                            break;
+                            continue;
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             msgq_cur_msg_tx_ptr = NULL;
-                            break;
+                            continue;
 
                         case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
                         case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
                             msgq_cur_msg_tx_ptr = NULL;
-                            break;
+                            continue;
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
@@ -356,17 +359,19 @@ _Noreturn void base_station_proc_task()
 //                                k_work_submit(&work_msg_mngr);
                             }
                             msgq_cur_msg_tx_ptr = NULL;
-                            break;
+                            continue;
 
                         default:
                             LOG_DBG("Not correct message type");
                             msgq_cur_msg_tx_ptr = NULL;
+                            continue;
                     }
                     break;
 
                 default:
                     LOG_DBG("Not correct message direction");
                     msgq_cur_msg_tx_ptr = NULL;
+                    continue;
             }
 
             if (msgq_cur_msg_tx_ptr)

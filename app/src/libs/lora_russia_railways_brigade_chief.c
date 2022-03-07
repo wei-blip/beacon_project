@@ -368,7 +368,7 @@ _Noreturn void brigade_chief_proc_task(void)
                                     LOG_DBG("Undefined sender address for this message type");
                                     break;
                             }
-                            break;
+                            continue;
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
@@ -384,19 +384,19 @@ _Noreturn void brigade_chief_proc_task(void)
                             else
                                 msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
                             */
-
-                            break;
+                            msgq_cur_msg_tx_ptr = NULL;
+                            continue;
 
                         case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
                         case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
                             msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
-                            break;
+                            continue;
 
                         default:
                             LOG_DBG("Not correct message type");
                             msgq_cur_msg_tx_ptr = NULL;
-                            break;
+                            continue;
                     }
                     break;
 
@@ -431,7 +431,7 @@ _Noreturn void brigade_chief_proc_task(void)
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             msgq_cur_msg_tx_ptr = NULL;
-                            break;
+                            continue;
 
                         case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_RIGHT_TRAIN_PASSED");

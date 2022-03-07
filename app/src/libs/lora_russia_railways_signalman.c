@@ -376,7 +376,7 @@ _Noreturn void signalman_proc_task()
                                     LOG_DBG("Undefined sender address for this message type");
                                     break;
                             }
-                            break;
+                            continue;
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
@@ -386,10 +386,13 @@ _Noreturn void signalman_proc_task()
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
-                            if (rx_msg_proc.sender_addr == cur_dev_addr)
+                            if (rx_msg_proc.sender_addr == cur_dev_addr) {
                                 msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio; // For response message (priority queue)
-                            else
+                            }
+                            else {
                                 msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
+                                continue;
+                            }
                             break;
 
                         case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
@@ -399,6 +402,7 @@ _Noreturn void signalman_proc_task()
                         default:
                             LOG_DBG("Not correct message type");
                             msgq_cur_msg_tx_ptr = NULL;
+                            continue;
                     }
                     break;
 
@@ -418,22 +422,18 @@ _Noreturn void signalman_proc_task()
                                     LOG_DBG("Undefined sender address for this message type");
                                     break;
                             }
-                            break;
+                            continue;
 
                         case MESSAGE_TYPE_HOMEWARD:
+                            /* TODO: Make response */
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
                             msgq_cur_msg_tx_ptr = NULL;
-                            break;
+                            continue;
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
                                 atomic_set_bit(&alarm_msg_info.resp_is_recv, 0); // message received
-//                                while(k_work_busy_get(&work_led_strip_blink)) {
-//                                    k_sleep(K_MSEC(10));
-//                                }
-//                                set_blink_param(COMMON_STRIP_COLOR_GREEN, K_MSEC(100), 5);
-//                                k_work_submit(&work_led_strip_blink);
                                 strip_indicate.blink = true;
                                 strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_GREEN;
                                 strip_indicate.led_strip_state.blink_param.blink_cnt = 5;
@@ -454,11 +454,6 @@ _Noreturn void signalman_proc_task()
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
                                 atomic_set_bit(&train_passed_msg_info.resp_is_recv, 0); /* message received */
-//                                while(k_work_busy_get(&work_led_strip_blink)) {
-//                                    k_sleep(K_MSEC(10));
-//                                }
-//                                set_blink_param(COMMON_STRIP_COLOR_GREEN, K_MSEC(100), 5);
-//                                k_work_submit(&work_led_strip_blink);
 
                                 strip_indicate.blink = true;
                                 strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_GREEN;
@@ -478,12 +473,14 @@ _Noreturn void signalman_proc_task()
                         default:
                             LOG_DBG("Not correct message type");
                             msgq_cur_msg_tx_ptr = NULL;
+                            continue;
                     }
                     break;
 
                 default:
                     LOG_DBG("Not correct message direction");
                     msgq_cur_msg_tx_ptr = NULL;
+                    continue;
             }
 
             if (msgq_cur_msg_tx_ptr)
@@ -558,9 +555,9 @@ void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb,
     LOG_DBG("Button alarm pressed");
     atomic_val_t start_val = atomic_get(&fun_call_count);
     /* If fun_call_count = 0 then it first call this function */
-    if (!atomic_get(&fun_call_count)) {
-        while
-    }
+//    if (!atomic_get(&fun_call_count)) {
+//        while
+//    }
     atomic_cas(&alarm_msg_info.req_is_send, 0, 1);
     k_work_submit(&work_msg_mngr);
 }

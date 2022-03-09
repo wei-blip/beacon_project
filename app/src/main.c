@@ -1,6 +1,6 @@
 //#define BASE_STATION
-//#define SIGNALMAN
-#define BRIGADE_CHIEF
+#define SIGNALMAN
+//#define BRIGADE_CHIEF
 
 #ifdef BASE_STATION
 #include "lora_russia_railways_base_station.h"

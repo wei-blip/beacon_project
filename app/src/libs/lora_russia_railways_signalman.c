@@ -41,6 +41,14 @@ struct device *button_train_passed_gpio_dev_ptr;
 struct gpio_callback button_anti_dream_cb;
 struct gpio_callback button_alarm_cb;
 struct gpio_callback button_train_passed_cb;
+
+const static struct led_strip_indicate_s anti_dream_ind = {
+    .start_led_pos = 0,
+    .end_led_pos = STRIP_NUM_PIXELS,
+    .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_RED,
+    .led_strip_state.strip_param.blink_cnt = 25,
+};
+
 /**
  * Structure area end
  * */
@@ -72,6 +80,7 @@ static void system_init(void);
 static void work_buzzer_handler(struct k_work *item);
 static void work_msg_mngr_handler(struct k_work *item);
 static void work_anti_dream_handler(struct k_work *item);
+static void work_button_pressed_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer *tim); // callback for periodic_timer
 static void anti_dream_timer_handler(struct k_timer *tim); // callback for anti-dream timer
 /**
@@ -88,6 +97,7 @@ static void system_init(void)
     uint32_t new_msg = 0;
     int16_t rssi = 0;
     int8_t snr = 0;
+    struct led_strip_indicate_s *strip_ind = &status_ind;
 
     /**
      * Buzzer init begin
@@ -138,7 +148,7 @@ static void system_init(void)
      * */
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_msg_mngr, work_msg_mngr_handler);
-//    k_work_init(&work_led_strip_blink, blink);
+    k_work_init(&work_button_pressed, work_button_pressed_handler);
     k_work_init(&work_anti_dream, work_anti_dream_handler);
 
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
@@ -150,15 +160,8 @@ static void system_init(void)
      * */
 
      /* Light down LED strip */
-    struct led_strip_indicate_s strip_indicate = {
-      .led_strip_state.status.people_num = 0,
-      .led_strip_state.status.con_status = 0,
-      .led_strip_state.status.set_people_num = true,
-      .led_strip_state.status.set_con_status = true,
-      .blink = false
-    };
 
-    k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+    k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
     current_state = recv_state;
 
@@ -218,6 +221,7 @@ inline static void send_msg(void)
     uint32_t new_msg = 0;
     enum COMMON_STRIP_COLOR_e color;
     struct k_msgq* cur_queue = NULL;
+    struct led_strip_indicate_s *strip_ind = NULL;
 
     if (msgq_tx_msg_prio.used_msgs) {
 //        LOG_DBG("Get message from priority queue");
@@ -249,22 +253,11 @@ inline static void send_msg(void)
     rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
 
     if (!rc)
-        color = COMMON_STRIP_COLOR_GREEN;
+        strip_ind = &msg_send_good_ind;
     else
-        color = COMMON_STRIP_COLOR_RED;
+        strip_ind = &msg_send_bad_ind;
 
-//    while(k_work_busy_get(&work_led_strip_blink)) {
-//        k_sleep(K_MSEC(10));
-//    }
-//    set_blink_param(color, K_MSEC(100), 5);
-//    k_work_submit(&work_led_strip_blink);
-    struct led_strip_indicate_s strip_indicate = {
-      .blink = true,
-      .led_strip_state.blink_param.msec_timeout = K_MSEC(100),
-      .led_strip_state.blink_param.blink_cnt = 5,
-      .led_strip_state.blink_param.blink_color = color
-    };
-    k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+    k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 }
 
 
@@ -315,12 +308,13 @@ _Noreturn void signalman_proc_task()
     int16_t rssi = 0;
     uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
     uint32_t cur_msg = 0;
+    int32_t ret = 0;
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
-    struct led_strip_indicate_s strip_indicate = {0};
+    struct led_strip_indicate_s *strip_ind = &status_ind;
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; /* Default queue */
     while(1) {
-        if (msgq_rx_msg.used_msgs) {
+        if (k_msgq_num_used_get(&msgq_rx_msg)) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
             k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
             if (IS_EMPTY_MSG) {
@@ -434,11 +428,8 @@ _Noreturn void signalman_proc_task()
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
                                 atomic_set_bit(&alarm_msg_info.resp_is_recv, 0); // message received
-                                strip_indicate.blink = true;
-                                strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_GREEN;
-                                strip_indicate.led_strip_state.blink_param.blink_cnt = 5;
-                                strip_indicate.led_strip_state.blink_param.msec_timeout = K_MSEC(100);
-                                k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+                                strip_ind = &msg_recv_ind;
+                                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
                                 buzzer_mode.ding_dong = true;
                                 while(k_work_busy_get(&work_buzzer)) {
@@ -454,12 +445,8 @@ _Noreturn void signalman_proc_task()
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
                                 atomic_set_bit(&train_passed_msg_info.resp_is_recv, 0); /* message received */
-
-                                strip_indicate.blink = true;
-                                strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_GREEN;
-                                strip_indicate.led_strip_state.blink_param.blink_cnt = 5;
-                                strip_indicate.led_strip_state.blink_param.msec_timeout = K_MSEC(100);
-                                k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+                                strip_ind = &msg_recv_ind;
+                                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
                                 buzzer_mode.ding_dong = true;
                                 while(k_work_busy_get(&work_buzzer)) {
@@ -487,12 +474,15 @@ _Noreturn void signalman_proc_task()
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
 
             rssi_num = check_rssi(rssi);
-            strip_indicate.led_strip_state.status.set_con_status = true;
-            strip_indicate.led_strip_state.status.set_people_num = true;
-            strip_indicate.led_strip_state.status.con_status = rssi_num;
-            strip_indicate.led_strip_state.status.people_num = rx_msg_proc.workers_in_safe_zone;
-            strip_indicate.blink = false;
-            k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+            atomic_set(&status_ind.led_strip_state.status.con_status, rssi_num);
+            atomic_set(&status_ind.led_strip_state.status.people_num, rx_msg_proc.workers_in_safe_zone);
+            ret = k_poll(&event_indicate, 1, K_NO_WAIT);
+            if (!ret)
+                strip_ind = &status_ind;
+            else if (ret == (-EAGAIN))
+                strip_ind = &disable_indication;
+            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+
         }
         k_sleep(K_USEC(100));
     }
@@ -553,13 +543,10 @@ _Noreturn void signalman_modem_task()
 void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     LOG_DBG("Button alarm pressed");
-    atomic_val_t start_val = atomic_get(&fun_call_count);
-    /* If fun_call_count = 0 then it first call this function */
-//    if (!atomic_get(&fun_call_count)) {
-//        while
-//    }
-    atomic_cas(&alarm_msg_info.req_is_send, 0, 1);
-    k_work_submit(&work_msg_mngr);
+    atomic_val_t start_val = atomic_get(&atomic_interval_count);
+    cur_irq_gpio.port = dev;
+    cur_irq_gpio.pin = BUTTON_ALARM_GPIO_PIN;
+    k_work_submit(&work_button_pressed);
 }
 
 
@@ -583,13 +570,26 @@ void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback
 static void periodic_timer_handler(struct k_timer *tim)
 {
     LOG_DBG("Periodic timer handler");
+    struct led_strip_indicate_s *strip_ind = NULL;
 //    k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT); // for debug
-    static uint8_t cnt = 0;
-//    if (cnt == 20) { /* For anti-dream */
+    static uint8_t anti_dream_cnt = 0;
+    static uint8_t indicate_cnt = 0;
+
+    if (!k_poll(&event_indicate, 1, K_NO_WAIT)) {
+        if (DISABLE_INDICATE) {
+            strip_ind = &disable_indication;
+            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+            event_indicate.signal->signaled = 0;
+            event_indicate.state = K_POLL_STATE_NOT_READY;
+            indicate_cnt = 0;
+        }
+        indicate_cnt++;
+    }
+//    if (ANTI_DREAM_START) { /* For anti-dream */
 //        k_work_submit(&work_anti_dream);
-//        cnt = 0;
+//        anti_dream_cnt = 0;
 //    }
-    cnt++;
+    anti_dream_cnt++;
     current_state = transmit_state;
     k_wakeup(modem_task_id);
 }
@@ -641,16 +641,13 @@ static void work_buzzer_handler(struct k_work *item)
 
 static void work_msg_mngr_handler(struct k_work *item)
 {
-    struct led_strip_indicate_s strip_indicate = {0};
+    struct led_strip_indicate_s *strip_ind = NULL;
     check_msg_status(&alarm_msg_info);
     check_msg_status(&train_passed_msg_info);
 
-    strip_indicate.blink = true;
-    strip_indicate.led_strip_state.blink_param.msec_timeout = K_FOREVER;
-    strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_YELLOW;
-    k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+//    strip_ind = &msg_in_queue_ind;
+    k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
     k_wakeup(update_indication_task_id);
-//    set_color(COMMON_STRIP_COLOR_YELLOW);
 
     /* If mut_buzzer_mode taken -> work_buzzer_handler is free */
     if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
@@ -661,11 +658,88 @@ static void work_msg_mngr_handler(struct k_work *item)
 }
 
 
+static void work_button_pressed_handler(struct k_work *item)
+{
+    bool short_pressed_is_set = false;
+    bool middle_pressed_is_set = false;
+    bool long_pressed_is_set = false;
+    struct led_strip_indicate_s *strip_ind = NULL;
+    atomic_set(&atomic_interval_count, 0);
+
+    /* While button pressed count number of intervals */
+    while (gpio_pin_get(cur_irq_gpio.port, cur_irq_gpio.pin)) {
+        k_sleep(K_MSEC(INTERVAL_TIME_MS));
+        atomic_inc(&atomic_interval_count);
+        if ((atomic_get(&atomic_interval_count) > SHORT_PRESSED_MIN_VAL) &&
+          (atomic_get(&atomic_interval_count) <= SHORT_PRESSED_MAX_VAL)) { /* Short pressed */
+            /* Light up first half strip */
+            if (!short_pressed_is_set) {
+                strip_ind = &status_ind;
+                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+                short_pressed_is_set = true;
+                k_poll_signal_raise(&signal_indicate, 1);
+            }
+        } else if ((atomic_get(&atomic_interval_count) > MIDDLE_PRESSED_MIN_VAL) &&
+          (atomic_get(&atomic_interval_count) <= MIDDLE_PRESSED_MAX_VAL)) { /* Middle pressed */
+            /* Light up full strip */
+            if (!middle_pressed_is_set) {
+                strip_ind = &middle_pressed_button_ind;
+                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+                middle_pressed_is_set = true;
+            }
+        } else if (atomic_get(&atomic_interval_count) > LONG_PRESSED_MIN_VAL) { /* Long pressed */
+
+        }
+    }
+
+    /* Sound indicate */
+    if (short_pressed_is_set) {
+        if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
+            buzzer_mode.single = true;
+            k_mutex_unlock(&mut_buzzer_mode);
+            while(k_work_busy_get(&work_buzzer)) {
+                K_MSEC(10);
+            }
+            k_work_submit(&work_buzzer);
+        }
+    }
+
+    /* Do action */
+    if (short_pressed_is_set && (!middle_pressed_is_set)) { /* Short pressed */
+        /* TODO: Booting device */
+    } else if (middle_pressed_is_set && !long_pressed_is_set) { /* Middle pressed */
+        /* Send alarm message */
+        if ((!strcmp(BUTTON_ALARM_GPIO_PORT, cur_irq_gpio.port->name)) &&
+          (cur_irq_gpio.pin == BUTTON_ALARM_GPIO_PIN)) {
+            k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
+        }
+
+        /* TODO: Uncomment this after tests */
+//        /* Send train passed message */
+//        if ((!strcmp(BUTTON_TRAIN_PASSED_GPIO_PORT, cur_irq_gpio.port->name)) &&
+//          (cur_irq_gpio.pin == BUTTON_TRAIN_PASSED_GPIO_PIN)) {
+//            k_msgq_put(&msgq_tx_msg, &train_passed_msg, K_NO_WAIT);
+//        }
+//
+//        /* Anti-dream handler */
+//        if ((!strcmp(BUTTON_ANTI_DREAM_GPIO_PORT, cur_irq_gpio.port->name)) &&
+//          (cur_irq_gpio.pin == BUTTON_ANTI_DREAM_GPIO_PIN)) {
+//            k_work_submit(&work_buzzer); /* Disable alarm */
+//            k_timer_stop(&anti_dream_timer);
+//            atomic_set(&anti_dream_active, 0);
+//        }
+
+    } else if (long_pressed_is_set) { /* Long pressed */
+        /* TODO: Shut down device */
+    }
+}
+
+
 static void work_anti_dream_handler(struct k_work *item)
 {
     /* TODO: Check anti-dream status */
     if (!atomic_get(&anti_dream_active)) {
-        struct led_strip_indicate_s strip_indicate = {0};
+        struct led_strip_indicate_s *strip_ind = NULL;
         k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
         buzzer_mode.continuous = true;
         k_work_submit(&work_buzzer);
@@ -674,17 +748,9 @@ static void work_anti_dream_handler(struct k_work *item)
         atomic_set(&anti_dream_active, 1);
         k_timer_start(&anti_dream_timer, K_MINUTES(ANTI_DREAM_TIME_MIN), K_MINUTES(ANTI_DREAM_TIME_MIN));
 
-        strip_indicate.blink = true;
-        strip_indicate.led_strip_state.blink_param.msec_timeout = K_FOREVER;
-        strip_indicate.led_strip_state.blink_param.blink_color = COMMON_STRIP_COLOR_RED;
-        strip_indicate.led_strip_state.blink_param.blink_cnt = 25;
-        k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
-        k_wakeup(update_indication_task_id);
-//        while(k_work_busy_get(&work_led_strip_blink)) {
-//            k_sleep(K_MSEC(10));
-//        }
-//        set_blink_param(COMMON_STRIP_COLOR_RED, K_MSEC(100), 25);
-//        k_work_submit(&work_led_strip_blink);
+        strip_ind = &anti_dream_ind;
+        k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+        k_wakeup(update_indication_task_id);;
     }
 }
 /**

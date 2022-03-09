@@ -21,6 +21,7 @@
 #define BUTTON_TRAIN_PASSED_GPIO_PIN 13
 
 #define ANTI_DREAM_TIME_MIN 1
+#define ANTI_DREAM_START (anti_dream_cnt == 20)
 
 void signalman_proc_task(void);
 void signalman_modem_task(void);

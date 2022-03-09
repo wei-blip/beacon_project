@@ -34,14 +34,15 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 #define QUEUE_LEN_IN_ELEMENTS 10
 #define WAITING_PERIOD_NUM 2
 
-#define SLOT_TIME_MSEC 660UL /* Time on receive(566ms) plus DELAY_TIME_MSEC */
+#define SLOT_TIME_MSEC 764UL /* Time on receive(664ms) plus DELAY_TIME_MSEC */
 #define PERIOD_TIME_MSEC (4*SLOT_TIME_MSEC)
-#define DELAY_TIME_MSEC 94U
+#define DELAY_TIME_MSEC 100U
 #define STOCK_TIME_MSEC 10
 
 #define BUTTON_PRESSED_PERIOD_TIME_USEC 40000UL
 
 #define IS_SYNC_MSG (rx_buf[0] == 13) /* SENDER_ADDR = BASE_STATION, RECV_ADDR = BROADCAST, MESSAGE_TYPE = SYNC  */
+#define DISABLE_INDICATE (indicate_cnt == 5)
 
 /*
  * This macro using in processing thread
@@ -53,12 +54,16 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 /*
  * fun_call_count value for detected short pressed
  * If fun_call_count value will be greater than this macros then it long pressed
+ * Interval time = 100 ms
  * */
-#define SHORT_PRESSED_MIN_VAL 2
-#define SHORT_PRESSED_MAX_VAL 5
-#define LONG_PRESSED_MIN_VAL 6
+#define INTERVAL_TIME_MS 100
+#define SHORT_PRESSED_MIN_VAL 2  /* 200 ms */
+#define SHORT_PRESSED_MAX_VAL 10 /* 1000 ms */
+#define MIDDLE_PRESSED_MIN_VAL (SHORT_PRESSED_MAX_VAL+1)  /* 1100 ms */
+#define MIDDLE_PRESSED_MAX_VAL 20   /* 2000 ms */
+#define LONG_PRESSED_MIN_VAL (MIDDLE_PRESSED_MAX_VAL+1) /* 2100 ms */
 
-extern atomic_t fun_call_count; /* Counted number of function button pressed call */
+extern atomic_t atomic_interval_count; /* Counted number of function button pressed call */
 
 /**
  * Enum, typedefs and structs area begin
@@ -113,10 +118,6 @@ struct msg_info_s {
     struct message_s *msg;
 
 };
-
-struct reception_info_s {
-
-};
 /**
  * Enum, typedefs and structs area end
  * */
@@ -130,10 +131,13 @@ extern struct lora_modem_config lora_cfg;
 extern const struct device *lora_dev_ptr;
 extern const struct device *buzzer_dev_ptr;
 
+extern struct gpio_dt_spec cur_irq_gpio;
+
 extern struct k_timer periodic_timer; /* For switch in tx mode */
 
 extern struct k_work work_buzzer; /* For signalisation */
 extern struct k_work work_msg_mngr; /* For putting messages into queues */
+extern struct k_work work_button_pressed;
 
 extern struct k_mutex mut_buzzer_mode; /* Block buzzer_mode */
 
@@ -151,6 +155,15 @@ extern const modem_state_t transmit_state;
 
 extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
 extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
+
+/* Indicate structure */
+extern struct led_strip_indicate_s status_ind;
+
+extern const struct led_strip_indicate_s disable_indication;
+extern const struct led_strip_indicate_s middle_pressed_button_ind;
+extern const struct led_strip_indicate_s msg_send_good_ind;
+extern const struct led_strip_indicate_s msg_send_bad_ind;
+extern const struct led_strip_indicate_s msg_recv_ind;
 /**
  * Extern variable declaration area end
  * */
@@ -159,7 +172,6 @@ extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
 /**
  * Function declaration area begin
  * */
-void button_pressed_50ms(void);
 uint8_t reverse(uint8_t input);
 uint8_t check_rssi(int16_t rssi);
 void check_msg_status(struct msg_info_s *msg_info);

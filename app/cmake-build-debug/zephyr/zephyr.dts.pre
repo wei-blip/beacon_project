@@ -1796,8 +1796,9 @@ arduino_spi: &spi1 {};
             pwms = <&pwm2 2 0 (0 << 0)>;
         };
     };
+# 35 "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l452re.overlay"
+   aliases {
 
- aliases {
         led-strip = &led_strip;
         pwm-sound = &external_pwm_led;
     };

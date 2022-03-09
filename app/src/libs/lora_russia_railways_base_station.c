@@ -69,6 +69,7 @@ static void periodic_timer_handler(struct k_timer* tim); // callback for periodi
  * */
 static void system_init(void)
 {
+    struct led_strip_indicate_s *strip_ind = &status_ind;
     /**
      * Buzzer init begin
      * */
@@ -114,15 +115,15 @@ static void system_init(void)
      * */
 
     /* Light down LED strip */
-    struct led_strip_indicate_s strip_indicate = {
-      .led_strip_state.status.people_num = 0,
-      .led_strip_state.status.con_status = 0,
-      .led_strip_state.status.set_people_num = true,
-      .led_strip_state.status.set_con_status = true,
-      .blink = false
-    };
+//    struct led_strip_indicate_s strip_indicate = {
+//      .led_strip_state.status.people_num = 0,
+//      .led_strip_state.status.con_status = 0,
+//      .led_strip_state.status.set_people_num = true,
+//      .led_strip_state.status.set_con_status = true,
+//      .blink = false
+//    };
 
-    k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+    k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
     current_state = recv_state;
 
@@ -153,7 +154,7 @@ static void system_init(void)
 
     buzzer_mode.single = true;
     k_work_submit(&work_buzzer);
-    k_timer_start(&periodic_timer, K_NO_WAIT,K_MSEC(PERIOD_TIME_MSEC));
+    k_timer_start(&periodic_timer, K_NO_WAIT, K_MSEC(PERIOD_TIME_MSEC));
 }
 
 
@@ -237,7 +238,7 @@ _Noreturn void base_station_proc_task()
     uint32_t cur_msg = 0;
     struct message_s tx_msg_proc = {0};
     struct message_s rx_msg_proc = {0};
-    struct led_strip_indicate_s strip_indicate = {0};
+    struct led_strip_indicate_s *strip_ind = NULL;
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; /* Default queue */
     k_sleep(K_FOREVER);
     while(1) {
@@ -378,12 +379,15 @@ _Noreturn void base_station_proc_task()
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
 
             rssi_num = check_rssi(rssi);
-            strip_indicate.led_strip_state.status.set_con_status = true;
-            strip_indicate.led_strip_state.status.set_people_num = true;
-            strip_indicate.led_strip_state.status.con_status = rssi_num;
-            strip_indicate.led_strip_state.status.people_num = rx_msg_proc.workers_in_safe_zone;
-            strip_indicate.blink = false;
-            k_msgq_put(&msgq_led_strip, &strip_indicate, K_NO_WAIT);
+//            strip_indicate.led_strip_state.status.set_con_status = true;
+//            strip_indicate.led_strip_state.status.set_people_num = true;
+//            strip_indicate.led_strip_state.status.con_status = rssi_num;
+//            strip_indicate.led_strip_state.status.people_num = rx_msg_proc.workers_in_safe_zone;
+//            strip_indicate.blink = false;
+            atomic_set(&status_ind.led_strip_state.status.con_status, rssi_num);
+            atomic_set(&status_ind.led_strip_state.status.people_num, rx_msg_proc.workers_in_safe_zone);
+            strip_ind = &status_ind;
+            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
         }
         k_sleep(K_USEC(100));
     }
@@ -480,7 +484,9 @@ static void work_msg_mngr_handler(struct k_work *item)
     if(!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
         buzzer_mode.single = true;
         k_mutex_unlock(&mut_buzzer_mode);
-        while(k_work_busy_get(&work_buzzer)); // wait while work_buzzer is busy
+        while(k_work_busy_get(&work_buzzer)) {
+            k_sleep(K_MSEC(10)); /* Wait while work_buzzer is busy */
+        }
         k_work_submit(&work_buzzer);
     }
 }

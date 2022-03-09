@@ -19,13 +19,15 @@ K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
 const struct device *lora_dev_ptr = {0};
 const struct device *buzzer_dev_ptr = {0};
 
-atomic_t fun_call_count = ATOMIC_INIT(0);
+atomic_t atomic_interval_count = ATOMIC_INIT(0);
+atomic_t atomic_device_device_active = ATOMIC_INIT(0);
+
 
 struct lora_modem_config lora_cfg = {
   .frequency = 433000000,
   .bandwidth = BW_125_KHZ,
   .datarate = SF_12,
-  .preamble_len = 5,
+  .preamble_len = 8,
   .coding_rate = CR_4_5,
   .tx_power = 0,
   .tx = true,
@@ -37,10 +39,12 @@ struct k_timer periodic_timer = {0};
 
 struct k_work work_buzzer = {0};
 struct k_work work_msg_mngr = {0};
-struct k_work work_led_strip_blink = {0};
+struct k_work work_button_pressed = {0};
 
 struct k_mutex mut_msg_info = {0};
 struct k_mutex mut_buzzer_mode = {0};
+
+struct gpio_dt_spec cur_irq_gpio = {0};
 
 struct buzzer_mode_s buzzer_mode = {0};
 
@@ -57,6 +61,54 @@ struct message_s tx_msg = {0};
 
 uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
+
+const struct led_strip_indicate_s msg_send_good_ind = {
+    .start_led_pos = 0,
+    .end_led_pos = STRIP_NUM_PIXELS,
+    .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_GREEN,
+    .led_strip_state.strip_param.blink_cnt = 5,
+    .indication_type = INDICATION_TYPE_BLINK
+};
+
+const struct led_strip_indicate_s msg_send_bad_ind = {
+    .start_led_pos = 0,
+    .end_led_pos = STRIP_NUM_PIXELS,
+    .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_RED,
+    .led_strip_state.strip_param.blink_cnt = 5,
+    .indication_type = INDICATION_TYPE_BLINK
+};
+
+const struct led_strip_indicate_s msg_recv_ind = {
+    .start_led_pos = 0,
+    .end_led_pos = STRIP_NUM_PIXELS,
+    .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_GREEN,
+    .led_strip_state.strip_param.blink_cnt = 5,
+    .indication_type = INDICATION_TYPE_BLINK
+};
+
+struct led_strip_indicate_s status_ind = {
+    .start_led_pos = 0,
+    .end_led_pos = STRIP_NUM_PIXELS,
+    .led_strip_state.status.people_num = ATOMIC_INIT(0),
+    .led_strip_state.status.con_status = ATOMIC_INIT(0),
+    .indication_type = INDICATION_TYPE_STATUS_INFO
+};
+
+const struct led_strip_indicate_s disable_indication = {
+  .start_led_pos = 0,
+  .end_led_pos = STRIP_NUM_PIXELS,
+  .led_strip_state.status.people_num = ATOMIC_INIT(0),
+  .led_strip_state.status.con_status = ATOMIC_INIT(0),
+  .indication_type = INDICATION_TYPE_STATUS_INFO
+};
+
+const struct led_strip_indicate_s middle_pressed_button_ind = {
+  .start_led_pos = 0,
+  .end_led_pos = STRIP_NUM_PIXELS,
+  .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_PURPLE,
+  .indication_type = INDICATION_TYPE_STATIC_COLOR
+};
+//const struct led_strip_indicate_s *disable_indicate_ptr = &disable_indication;
 /**
  * Extern variable definition and initialisation end
  * */
@@ -187,30 +239,6 @@ void check_msg_status(struct msg_info_s *msg_info)
       k_msgq_put(msg_info->msg_buf, msg_info->msg, K_NO_WAIT);
       atomic_clear(&(msg_info->req_is_send));
     }
-}
-
-//void work_button_pressed_handler(struct k_work *item)
-//{
-//    atomic_set(&fun_call_count, 0);
-//    /* While button pressed count number of intervals */
-//    while (gpio_pin_get) {
-//        k_sleep(K_MSEC(50));
-//        atomic_inc(&fun_call_count);
-//    }
-//
-//    if ((fun_call_count > SHORT_PRESSED_MIN_VAL ) && (fun_call_count < SHORT_PRESSED_MAX_VAL)) { /* Is short pressed */
-//
-//    } else if (fun_call_count > LONG_PRESSED_MIN_VAL ) { /* Long pressed */
-//
-//    } else { /* Button not be pressed */
-//
-//    }
-//}
-
-
-void button_pressed_50ms(void)
-{
-    atomic_inc(&fun_call_count);
 }
 /**
  * Function definition area end

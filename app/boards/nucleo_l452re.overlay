@@ -24,7 +24,16 @@
         };
     };
 
-	aliases {
+//    gpio_keys {
+//        compatible = "gpio-keys";
+//        button_alarm: button_0 {
+//            label = "ALARM";
+//            gpios = <&gpioc 13 GPIO_ACTIVE_LOW>;
+//        };
+//    };
+
+	  aliases {
+        //sw0 = &button_alarm;
         led-strip = &led_strip;
         pwm-sound = &external_pwm_led;
     };

@@ -26,17 +26,9 @@ static modem_state_t current_state;
 static struct k_timer anti_dream_timer;
 static struct k_work work_anti_dream;
 
-static struct message_s alarm_msg;
-static struct message_s train_passed_msg;
-static struct message_s anti_dream_msg;
-
 static struct msg_info_s alarm_msg_info;
 static struct msg_info_s train_passed_msg_info;
 static struct msg_info_s anti_dream_msg_info;
-
-struct device *button_alarm_gpio_dev_ptr;
-struct device *button_anti_dream_gpio_dev_ptr;
-struct device *button_train_passed_gpio_dev_ptr;
 
 struct gpio_callback button_anti_dream_cb;
 struct gpio_callback button_alarm_cb;
@@ -78,9 +70,7 @@ inline static void recv_msg(void);
 
 static void system_init(void);
 static void work_buzzer_handler(struct k_work *item);
-static void work_msg_mngr_handler(struct k_work *item);
 static void work_anti_dream_handler(struct k_work *item);
-static void work_button_pressed_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer *tim); // callback for periodic_timer
 static void anti_dream_timer_handler(struct k_timer *tim); // callback for anti-dream timer
 /**
@@ -114,29 +104,34 @@ static void system_init(void)
     /**
      * Init IRQ (change gpio init after tests) begin
      * */
-    button_alarm_gpio_dev_ptr = device_get_binding(BUTTON_ALARM_GPIO_PORT);
-//    button_anti_dream_gpio_dev_ptr = device_get_binding(BUTTON_ANTI_DREAM_GPIO_PORT);
-//    button_train_passed_gpio_dev_ptr = device_get_binding(BUTTON_TRAIN_PASSED_GPIO_PORT);
+     if (!device_is_ready(button_alarm.port)) {
+         LOG_DBG("Error: button device %s is not ready\n", button_alarm.port->name);
+         k_sleep(K_FOREVER);
+     }
 
-    gpio_pin_configure(button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
-                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
-//    gpio_pin_configure(button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PIN,
-//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
-//    gpio_pin_configure(button_train_passed_gpio_dev_ptr, BUTTON_TRAIN_PASSED_GPIO_PIN,
-//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
+//     if (!device_is_ready(button_anti_dream.port)) {
+//         LOG_DBG("Error: button device %s is not ready\n", button_anti_dream.port->name);
+//         k_sleep(K_FOREVER);
+//     }
+//
+//    if (!device_is_ready(button_train_passed.port)) {
+//        LOG_DBG("Error: button device %s is not ready\n", button_train_passed.port->name);
+//        k_sleep(K_FOREVER);
+//    }
 
-    gpio_pin_interrupt_configure(button_alarm_gpio_dev_ptr, BUTTON_ALARM_GPIO_PIN,
-                                 GPIO_INT_EDGE_TO_ACTIVE);
-//    gpio_pin_interrupt_configure(button_anti_dream_gpio_dev_ptr, BUTTON_ANTI_DREAM_GPIO_PIN,
-//                                 GPIO_INT_EDGE_TO_ACTIVE);
-//    gpio_pin_interrupt_configure(button_train_passed_gpio_dev_ptr, BUTTON_TRAIN_PASSED_GPIO_PIN,
-//                                 GPIO_INT_EDGE_TO_ACTIVE);
+    gpio_pin_configure_dt(&button_alarm, GPIO_INPUT);
+//    gpio_pin_configure_dt(&button_anti_dream, GPIO_INPUT);
+//    gpio_pin_configure_dt(&button_train_passed, GPIO_INPUT);
 
-    gpio_init_callback(&button_alarm_cb, button_alarm_pressed_cb, BIT(BUTTON_ALARM_GPIO_PIN));
-//    gpio_init_callback(&button_anti_dream_cb, button_anti_dream_pressed_cb, BIT(BUTTON_ANTI_DREAM_GPIO_PIN));
-//    gpio_init_callback(&button_train_passed_cb, button_train_pass_pressed_cb, BIT(BUTTON_TRAIN_PASSED_GPIO_PIN));
+    gpio_pin_interrupt_configure_dt(&button_alarm, GPIO_INT_EDGE_TO_ACTIVE);
+//    gpio_pin_interrupt_configure_dt(&button_anti_dream, GPIO_INT_EDGE_TO_ACTIVE);
+//    gpio_pin_interrupt_configure_dt(&button_train_passed, GPIO_INT_EDGE_TO_ACTIVE);
 
-    gpio_add_callback(button_alarm_gpio_dev_ptr, &button_alarm_cb);
+    gpio_init_callback(&button_alarm_cb, button_alarm_pressed_cb, BIT(button_alarm.pin));
+//    gpio_init_callback(&button_anti_dream_cb, button_anti_dream_pressed_cb, BIT(button_anti_dream.pin));
+//    gpio_init_callback(&button_train_passed_cb, button_train_pass_pressed_cb, BIT(button_train_passed.pin));
+
+    gpio_add_callback(button_alarm.port, &button_alarm_cb);
 //    gpio_add_callback(button_anti_dream_gpio_dev_ptr, &button_anti_dream_cb);
 //    gpio_add_callback(button_train_passed_gpio_dev_ptr, &button_train_passed_cb);
     /**
@@ -147,7 +142,6 @@ static void system_init(void)
      * Kernel services init begin
      * */
     k_work_init(&work_buzzer, work_buzzer_handler);
-    k_work_init(&work_msg_mngr, work_msg_mngr_handler);
     k_work_init(&work_button_pressed, work_button_pressed_handler);
     k_work_init(&work_anti_dream, work_anti_dream_handler);
 
@@ -160,55 +154,9 @@ static void system_init(void)
      * */
 
      /* Light down LED strip */
-
     k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
     current_state = recv_state;
-
-    /**
-     * Filling structure begin
-     * */
-    alarm_msg.receiver_addr = BASE_STATION_ADDR;
-    alarm_msg.sender_addr = cur_dev_addr;
-    alarm_msg.message_type = MESSAGE_TYPE_ALARM;
-    alarm_msg.direction = REQUEST;
-    alarm_msg.battery_level = BATTERY_LEVEL_GOOD;
-    alarm_msg.workers_in_safe_zone = 0;
-
-    alarm_msg_info.msg_buf = &msgq_tx_msg_prio;
-    alarm_msg_info.req_is_send = ATOMIC_INIT(0);
-    alarm_msg_info.resp_is_recv = ATOMIC_INIT(0);
-    alarm_msg_info.msg = &alarm_msg;
-
-    train_passed_msg.receiver_addr = BASE_STATION_ADDR;
-    train_passed_msg.sender_addr = cur_dev_addr;
-    train_passed_msg.direction = REQUEST;
-    train_passed_msg.battery_level = BATTERY_LEVEL_GOOD;
-    train_passed_msg.workers_in_safe_zone = 0;
-    if (cur_dev_addr == SIGNALMAN_1_ADDR)
-        train_passed_msg.message_type = MESSAGE_TYPE_LEFT_TRAIN_PASSED;
-    else
-        train_passed_msg.message_type = MESSAGE_TYPE_RIGHT_TRAIN_PASSED;
-
-    train_passed_msg_info.msg_buf = &msgq_tx_msg;
-    train_passed_msg_info.req_is_send = ATOMIC_INIT(0);
-    train_passed_msg_info.resp_is_recv = ATOMIC_INIT(0);
-    train_passed_msg_info.msg = &train_passed_msg;
-
-    anti_dream_msg.receiver_addr = BASE_STATION_ADDR;
-    anti_dream_msg.sender_addr = cur_dev_addr;
-    anti_dream_msg.message_type = MESSAGE_TYPE_ANTI_DREAM;
-    anti_dream_msg.direction = REQUEST;
-    anti_dream_msg.battery_level = BATTERY_LEVEL_GOOD;
-    anti_dream_msg.workers_in_safe_zone = 0;
-
-    anti_dream_msg_info.msg_buf = &msgq_tx_msg_prio;
-    anti_dream_msg_info.req_is_send = ATOMIC_INIT(0);
-    anti_dream_msg_info.resp_is_recv = ATOMIC_INIT(0);
-    anti_dream_msg_info.msg = &anti_dream_msg;
-    /**
-    * Filling structure begin
-    * */
 
     buzzer_mode.single = true;
     k_work_submit(&work_buzzer);
@@ -427,7 +375,6 @@ _Noreturn void signalman_proc_task()
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
-                                atomic_set_bit(&alarm_msg_info.resp_is_recv, 0); // message received
                                 strip_ind = &msg_recv_ind;
                                 k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
@@ -444,7 +391,6 @@ _Noreturn void signalman_proc_task()
                         case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
                             if (rx_msg_proc.sender_addr == cur_dev_addr) {
-                                atomic_set_bit(&train_passed_msg_info.resp_is_recv, 0); /* message received */
                                 strip_ind = &msg_recv_ind;
                                 k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
@@ -543,9 +489,7 @@ _Noreturn void signalman_modem_task()
 void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     LOG_DBG("Button alarm pressed");
-    atomic_val_t start_val = atomic_get(&atomic_interval_count);
-    cur_irq_gpio.port = dev;
-    cur_irq_gpio.pin = BUTTON_ALARM_GPIO_PIN;
+    cur_irq_gpio_ptr = &button_alarm;
     k_work_submit(&work_button_pressed);
 }
 
@@ -553,14 +497,15 @@ void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb,
 void button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     LOG_DBG("Button train pass pressed");
-    atomic_cas(&train_passed_msg_info.req_is_send, 0, 1);
-    k_work_submit(&work_msg_mngr);
+    cur_irq_gpio_ptr = &button_train_passed;
+
 }
 
 
 void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins)
 {
     LOG_DBG("Button anti-dream pressed");
+    cur_irq_gpio_ptr = &button_anti_dream;
     k_work_submit(&work_buzzer); /* Disable alarm */
     k_timer_stop(&anti_dream_timer);
     atomic_set(&anti_dream_active, 0);
@@ -574,6 +519,7 @@ static void periodic_timer_handler(struct k_timer *tim)
 //    k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT); // for debug
     static uint8_t anti_dream_cnt = 0;
     static uint8_t indicate_cnt = 0;
+    current_state = transmit_state;
 
     if (!k_poll(&event_indicate, 1, K_NO_WAIT)) {
         if (DISABLE_INDICATE) {
@@ -590,7 +536,6 @@ static void periodic_timer_handler(struct k_timer *tim)
 //        anti_dream_cnt = 0;
 //    }
     anti_dream_cnt++;
-    current_state = transmit_state;
     k_wakeup(modem_task_id);
 }
 
@@ -599,7 +544,7 @@ static void anti_dream_timer_handler(struct k_timer *tim)
 {
     /* If anti_dream_timer expiry and (req_is_send == 1) putting anti_dream_msg into queue */
     atomic_cas(&anti_dream_msg_info.req_is_send, 0, 1);
-    check_msg_status(&anti_dream_msg_info);
+//    check_msg_status(&anti_dream_msg_info);
 }
 
 
@@ -636,102 +581,6 @@ static void work_buzzer_handler(struct k_work *item)
     pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                      0, PWM_FLAGS);
     k_mutex_unlock(&mut_buzzer_mode);
-}
-
-
-static void work_msg_mngr_handler(struct k_work *item)
-{
-    struct led_strip_indicate_s *strip_ind = NULL;
-    check_msg_status(&alarm_msg_info);
-    check_msg_status(&train_passed_msg_info);
-
-//    strip_ind = &msg_in_queue_ind;
-    k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-    k_wakeup(update_indication_task_id);
-
-    /* If mut_buzzer_mode taken -> work_buzzer_handler is free */
-    if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
-        buzzer_mode.single = true;
-        k_work_submit(&work_buzzer);
-        k_mutex_unlock(&mut_buzzer_mode);
-    }
-}
-
-
-static void work_button_pressed_handler(struct k_work *item)
-{
-    bool short_pressed_is_set = false;
-    bool middle_pressed_is_set = false;
-    bool long_pressed_is_set = false;
-    struct led_strip_indicate_s *strip_ind = NULL;
-    atomic_set(&atomic_interval_count, 0);
-
-    /* While button pressed count number of intervals */
-    while (gpio_pin_get(cur_irq_gpio.port, cur_irq_gpio.pin)) {
-        k_sleep(K_MSEC(INTERVAL_TIME_MS));
-        atomic_inc(&atomic_interval_count);
-        if ((atomic_get(&atomic_interval_count) > SHORT_PRESSED_MIN_VAL) &&
-          (atomic_get(&atomic_interval_count) <= SHORT_PRESSED_MAX_VAL)) { /* Short pressed */
-            /* Light up first half strip */
-            if (!short_pressed_is_set) {
-                strip_ind = &status_ind;
-                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-                short_pressed_is_set = true;
-                k_poll_signal_raise(&signal_indicate, 1);
-            }
-        } else if ((atomic_get(&atomic_interval_count) > MIDDLE_PRESSED_MIN_VAL) &&
-          (atomic_get(&atomic_interval_count) <= MIDDLE_PRESSED_MAX_VAL)) { /* Middle pressed */
-            /* Light up full strip */
-            if (!middle_pressed_is_set) {
-                strip_ind = &middle_pressed_button_ind;
-                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-                middle_pressed_is_set = true;
-            }
-        } else if (atomic_get(&atomic_interval_count) > LONG_PRESSED_MIN_VAL) { /* Long pressed */
-
-        }
-    }
-
-    /* Sound indicate */
-    if (short_pressed_is_set) {
-        if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
-            buzzer_mode.single = true;
-            k_mutex_unlock(&mut_buzzer_mode);
-            while(k_work_busy_get(&work_buzzer)) {
-                K_MSEC(10);
-            }
-            k_work_submit(&work_buzzer);
-        }
-    }
-
-    /* Do action */
-    if (short_pressed_is_set && (!middle_pressed_is_set)) { /* Short pressed */
-        /* TODO: Booting device */
-    } else if (middle_pressed_is_set && !long_pressed_is_set) { /* Middle pressed */
-        /* Send alarm message */
-        if ((!strcmp(BUTTON_ALARM_GPIO_PORT, cur_irq_gpio.port->name)) &&
-          (cur_irq_gpio.pin == BUTTON_ALARM_GPIO_PIN)) {
-            k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
-        }
-
-        /* TODO: Uncomment this after tests */
-//        /* Send train passed message */
-//        if ((!strcmp(BUTTON_TRAIN_PASSED_GPIO_PORT, cur_irq_gpio.port->name)) &&
-//          (cur_irq_gpio.pin == BUTTON_TRAIN_PASSED_GPIO_PIN)) {
-//            k_msgq_put(&msgq_tx_msg, &train_passed_msg, K_NO_WAIT);
-//        }
-//
-//        /* Anti-dream handler */
-//        if ((!strcmp(BUTTON_ANTI_DREAM_GPIO_PORT, cur_irq_gpio.port->name)) &&
-//          (cur_irq_gpio.pin == BUTTON_ANTI_DREAM_GPIO_PIN)) {
-//            k_work_submit(&work_buzzer); /* Disable alarm */
-//            k_timer_stop(&anti_dream_timer);
-//            atomic_set(&anti_dream_active, 0);
-//        }
-
-    } else if (long_pressed_is_set) { /* Long pressed */
-        /* TODO: Shut down device */
-    }
 }
 
 

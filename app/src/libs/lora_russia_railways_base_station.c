@@ -57,7 +57,6 @@ inline static void recv_msg(void);
 
 static void system_init(void);
 static void work_buzzer_handler(struct k_work *item);
-static void work_msg_mngr_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer* tim); // callback for periodic_timer
 /**
  * Function declaration area end
@@ -104,7 +103,6 @@ static void system_init(void)
      * Kernel services init begin
      * */
     k_work_init(&work_buzzer, work_buzzer_handler);
-    k_work_init(&work_msg_mngr, work_msg_mngr_handler);
 //    k_work_init(&work_led_strip_blink, blink);
 
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
@@ -437,7 +435,6 @@ void button_homeward_pressed_cb(const struct device *dev, struct gpio_callback *
 {
     LOG_DBG("Button homeward pressed");
     atomic_cas(&home_msg_info.req_is_send, 0, 1);
-    k_work_submit(&work_msg_mngr);
 }
 
 
@@ -474,21 +471,6 @@ static void work_buzzer_handler(struct k_work *item)
     pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                          0, PWM_FLAGS);
     k_mutex_unlock(&mut_buzzer_mode);
-}
-
-
-static void work_msg_mngr_handler(struct k_work *item)
-{
-    check_msg_status(&home_msg_info);
-
-    if(!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
-        buzzer_mode.single = true;
-        k_mutex_unlock(&mut_buzzer_mode);
-        while(k_work_busy_get(&work_buzzer)) {
-            k_sleep(K_MSEC(10)); /* Wait while work_buzzer is busy */
-        }
-        k_work_submit(&work_buzzer);
-    }
 }
 /**
  * Function definition area end

@@ -298,7 +298,7 @@ DTC:FILEPATH=/opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/dtc
 // parameter. These settings will override the settings in the
 // board's .dts file. Multiple files may be listed, e.g. DTC_OVERLAY_FILE="dts1.overlay
 // dts2.overlay"
-DTC_OVERLAY_FILE:STRING=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l452re.overlay
+DTC_OVERLAY_FILE:STRING=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l452re_base_station.overlay
 
 //Path to a program.
 GPERF:FILEPATH=/usr/bin/gperf

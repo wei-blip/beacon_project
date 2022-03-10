@@ -38,7 +38,7 @@
 			{
 				"command" : 2,
 				"file" : 4,
-				"line" : 8,
+				"line" : 10,
 				"parent" : 0
 			},
 			{
@@ -107,13 +107,13 @@
 			{
 				"command" : 7,
 				"file" : 4,
-				"line" : 13,
+				"line" : 15,
 				"parent" : 0
 			},
 			{
 				"command" : 8,
 				"file" : 4,
-				"line" : 12,
+				"line" : 14,
 				"parent" : 0
 			}
 		]

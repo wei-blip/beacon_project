@@ -1491,7 +1491,7 @@
 				}
 			],
 			"type" : "STRING",
-			"value" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l452re.overlay"
+			"value" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l452re_base_station.overlay"
 		},
 		{
 			"name" : "FIND_PACKAGE_MESSAGE_DETAILS_Python3",

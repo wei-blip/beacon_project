@@ -16,5 +16,5 @@ empty_file.o: /home/rts/zephyr-rts-master/zephyr/misc/empty_file.c \
  /home/rts/zephyr-rts-master/modules/hal/stm32/dts/st/l4/stm32l452r(c-e)tx-pinctrl.dtsi \
  /home/rts/zephyr-rts-master/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl.h \
  /home/rts/zephyr-rts-master/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl-common.h \
- /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l452re.overlay \
+ /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l452re_base_station.overlay \
  /home/rts/zephyr-rts-master/zephyr/include/dt-bindings/led/led.h

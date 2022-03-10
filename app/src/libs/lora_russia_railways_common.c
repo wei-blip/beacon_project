@@ -3,6 +3,74 @@
 //
 #include "lora_russia_railways_common.h"
 
+#if CUR_DEVICE == BASE_STATION
+#elif CUR_DEVICE == SIGNALMAN
+
+const struct gpio_dt_spec button_alarm = GPIO_DT_SPEC_GET_OR(ALARM_NODE, gpios,{0});
+//const struct gpio_dt_spec button_anti_dream = GPIO_DT_SPEC_GET_OR(ANTI_DREAM_NODE, gpios,{0});
+//const struct gpio_dt_spec button_train_passed = GPIO_DT_SPEC_GET_OR(TRAIN_PASSED_NODE, gpios,{0});
+
+static const struct message_s alarm_msg = {
+  .receiver_addr = BASE_STATION_ADDR,
+  .sender_addr = SIGNALMAN_1_ADDR,
+  .message_type = MESSAGE_TYPE_ALARM,
+  .direction = REQUEST,
+  .battery_level = BATTERY_LEVEL_GOOD,
+  .workers_in_safe_zone = 0
+};
+
+static const struct message_s train_passed_msg = {
+  .receiver_addr = BASE_STATION_ADDR,
+  .sender_addr = SIGNALMAN_1_ADDR,
+  .direction = REQUEST,
+  .battery_level = BATTERY_LEVEL_GOOD,
+  .workers_in_safe_zone = 0,
+  .message_type = MESSAGE_TYPE_LEFT_TRAIN_PASSED
+};
+
+static const struct message_s anti_dream_msg = {
+  .receiver_addr = BASE_STATION_ADDR,
+  .sender_addr = SIGNALMAN_1_ADDR,
+  .message_type = MESSAGE_TYPE_ANTI_DREAM,
+  .direction = REQUEST,
+  .battery_level = BATTERY_LEVEL_GOOD,
+  .workers_in_safe_zone = 0
+};
+
+#elif CUR_DEVICE == BRIGADE_CHIEF
+
+const struct gpio_dt_spec button_disable_alarm = GPIO_DT_SPEC_GET_OR(DISABLE_ALARM_NODE, gpios,{0});
+//const struct gpio_dt_spec button_right_train_passed = GPIO_DT_SPEC_GET_OR(RIGHT_TRAIN_PASSED_NODE, gpios,{0});
+//const struct gpio_dt_spec button_left_train_passed = GPIO_DT_SPEC_GET_OR(LEFT_TRAIN_PASSED_NODE, gpios,{0});
+
+static const struct message_s disable_alarm_msg = {
+  .receiver_addr = BASE_STATION_ADDR,
+  .sender_addr = BRIGADE_CHIEF_ADDR,
+  .message_type = MESSAGE_TYPE_DISABLE_ALARM,
+  .direction = REQUEST,
+  .battery_level = BATTERY_LEVEL_GOOD,
+  .workers_in_safe_zone = 0
+};
+
+static const struct message_s left_train_passed_msg = {
+  .receiver_addr = BASE_STATION_ADDR,
+  .sender_addr = BRIGADE_CHIEF_ADDR,
+  .message_type = MESSAGE_TYPE_LEFT_TRAIN_PASSED,
+  .direction = REQUEST,
+  .battery_level = BATTERY_LEVEL_GOOD,
+  .workers_in_safe_zone = 0
+};
+
+static const struct message_s right_train_passed_msg = {
+  .receiver_addr = BASE_STATION_ADDR,
+  .sender_addr = BRIGADE_CHIEF_ADDR,
+  .message_type = MESSAGE_TYPE_RIGHT_TRAIN_PASSED,
+  .direction = REQUEST,
+  .battery_level = BATTERY_LEVEL_GOOD,
+  .workers_in_safe_zone = 0
+};
+
+#endif
 
 /**
  * Extern variable definition and initialisation begin
@@ -20,7 +88,7 @@ const struct device *lora_dev_ptr = {0};
 const struct device *buzzer_dev_ptr = {0};
 
 atomic_t atomic_interval_count = ATOMIC_INIT(0);
-atomic_t atomic_device_device_active = ATOMIC_INIT(0);
+atomic_t atomic_device_active = ATOMIC_INIT(0);
 
 
 struct lora_modem_config lora_cfg = {
@@ -38,13 +106,12 @@ struct lora_modem_config lora_cfg = {
 struct k_timer periodic_timer = {0};
 
 struct k_work work_buzzer = {0};
-struct k_work work_msg_mngr = {0};
 struct k_work work_button_pressed = {0};
 
 struct k_mutex mut_msg_info = {0};
 struct k_mutex mut_buzzer_mode = {0};
 
-struct gpio_dt_spec cur_irq_gpio = {0};
+struct gpio_dt_spec *cur_irq_gpio_ptr = {0};
 
 struct buzzer_mode_s buzzer_mode = {0};
 
@@ -115,129 +182,101 @@ const struct led_strip_indicate_s middle_pressed_button_ind = {
 
 
 /**
- * Function declaration begin
- * */
-static inline void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos);
-static inline void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos);
-/**
-* Function declaration end
-* */
-
-/**
  * Function definition area begin
  * */
-static inline void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos) {
-    uint8_t start_pos = *pos;
-    while ( *pos < start_pos + field_len ) {
-        *msg_ptr &= ( ~BIT(*pos) ); // clear bit
-        *msg_ptr |= ( field_val & BIT((*pos) - start_pos) ) << start_pos;
-        (*pos)++;
-    }
-}
-
-
-static inline void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos)
+void work_button_pressed_handler(struct k_work *item)
 {
-    uint8_t start_pos = *pos;
-    while ( *pos < start_pos + field_len ) {
-        *field_val &= ( ~BIT((*pos) - start_pos) ); // clear bit
-        (*field_val) |= ( (*msg_ptr) & BIT((*pos) ) ) >> start_pos;
-        (*pos)++;
-    }
-}
+    bool short_pressed_is_set = false;
+    bool middle_pressed_is_set = false;
+    bool long_pressed_is_set = false;
+    struct led_strip_indicate_s *strip_ind = NULL;
+    atomic_set(&atomic_interval_count, 0);
 
-
-uint8_t reverse(uint8_t input)
-{
-    uint8_t output;
-    uint8_t bit = 0;
-    uint8_t pos = 0;
-    while( pos < 7 ) {
-        bit = input & BIT(0);
-        output |= bit;
-        output = output << 1;
-        input = input >> 1;
-        pos++;
-    }
-    bit = input & BIT(0);
-    output |= bit;
-    return output;
-}
-
-
-void read_write_message(uint32_t *new_msg, struct message_s *msg_ptr, bool write)
-{
-    uint8_t pos = 0;
-    for (int cur_field = 0; cur_field < MESSAGE_FIELD_NUMBER; ++cur_field) {
-        switch (cur_field) {
-            case SENDER_ADDR:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->sender_addr, SENDER_ADDR_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->sender_addr, SENDER_ADDR_FIELD_LEN, &pos);
-                break;
-            case RECEIVER_ADDR:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->receiver_addr, RECEIVER_ADDR_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->receiver_addr, RECEIVER_ADDR_FIELD_LEN, &pos);
-                break;
-            case MESSAGE_TYPE:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->message_type, MESSAGE_TYPE_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->message_type, MESSAGE_TYPE_FIELD_LEN, &pos);
-                break;
-            case DIRECTION:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->direction, DIRECTION_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->direction, DIRECTION_FIELD_LEN, &pos);
-                break;
-            case BATTERY:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->battery_level, BATTERY_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->battery_level, BATTERY_FIELD_LEN, &pos);
-                break;
-            case PEOPLE_IN_SAFE_ZONE:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->workers_in_safe_zone, PEOPLE_IN_SAFE_ZONE_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->workers_in_safe_zone, PEOPLE_IN_SAFE_ZONE_FIELD_LEN, &pos);
-                break;
-            default:
-                break;
+    /* While button pressed count number of intervals */
+    while (gpio_pin_get(cur_irq_gpio_ptr->port, cur_irq_gpio_ptr->pin)) {
+        k_sleep(K_MSEC(INTERVAL_TIME_MS));
+        atomic_inc(&atomic_interval_count);
+        if ((atomic_get(&atomic_interval_count) > SHORT_PRESSED_MIN_VAL) &&
+          (atomic_get(&atomic_interval_count) <= SHORT_PRESSED_MAX_VAL)) { /* Short pressed */
+            /* Light up first half strip */
+            if (!short_pressed_is_set) {
+                strip_ind = &status_ind;
+                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+                short_pressed_is_set = true;
+                k_poll_signal_raise(&signal_indicate, 1);
+            }
+        } else if ((atomic_get(&atomic_interval_count) > MIDDLE_PRESSED_MIN_VAL) &&
+          (atomic_get(&atomic_interval_count) <= MIDDLE_PRESSED_MAX_VAL)) { /* Middle pressed */
+            /* Light up full strip */
+            if (!middle_pressed_is_set) {
+                strip_ind = &middle_pressed_button_ind;
+                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+                middle_pressed_is_set = true;
+            }
+        } else if (atomic_get(&atomic_interval_count) > LONG_PRESSED_MIN_VAL) { /* Long pressed */
+            long_pressed_is_set = true;
         }
     }
-}
 
+    /* Sound indicate */
+    if (short_pressed_is_set) {
+        if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
+            buzzer_mode.single = true;
+            k_mutex_unlock(&mut_buzzer_mode);
+            while(k_work_busy_get(&work_buzzer)) {
+                K_MSEC(10);
+            }
+            k_work_submit(&work_buzzer);
+        }
+    }
 
-uint8_t check_rssi(const int16_t rssi)
-{
-    if ( rssi >= CONNECTION_QUALITY_RSSI_1 ) {
-        return LIGHT_UP_EIGHT;
-    }
-    else if ( (rssi < CONNECTION_QUALITY_RSSI_1) && (rssi >= CONNECTION_QUALITY_RSSI_2) ) {
-        return LIGHT_UP_SEVEN;
-    }
-    else if ( (rssi < CONNECTION_QUALITY_RSSI_2) && (rssi >= CONNECTION_QUALITY_RSSI_3) ) {
-        return LIGHT_UP_SIX;
-    }
-    else if ( (rssi < CONNECTION_QUALITY_RSSI_3) && (rssi >= CONNECTION_QUALITY_RSSI_4) ) {
-        return LIGHT_UP_FIVE;
-    }
-    else if ( (rssi < CONNECTION_QUALITY_RSSI_4) && (rssi >= CONNECTION_QUALITY_RSSI_5) ) {
-        return LIGHT_UP_FOUR;
-    }
-    else if ( (rssi < CONNECTION_QUALITY_RSSI_5) && (rssi >= CONNECTION_QUALITY_RSSI_6) ) {
-        return LIGHT_UP_THREE;
-    }
-    else if ( (rssi < CONNECTION_QUALITY_RSSI_6) && (rssi >= CONNECTION_QUALITY_RSSI_7) ) {
-        return LIGHT_UP_TWO;
-    }
-    else if ( (rssi < CONNECTION_QUALITY_RSSI_7) && (rssi >= CONNECTION_QUALITY_RSSI_8) ) {
-        return LIGHT_UP_ONE;
-    }
-    else if ( rssi < CONNECTION_QUALITY_RSSI_8 ) {
-        return LIGHT_UP_ZERO;
-    }
-}
+    /* Do action */
+    if (short_pressed_is_set && (!middle_pressed_is_set)) { /* Short pressed */
+        /* TODO: Booting device */
+    } else if (middle_pressed_is_set && !long_pressed_is_set) { /* Middle pressed */
+#if CUR_DEVICE == SIGNALMAN
+        /* Send alarm message */
+        if ((!strcmp(button_alarm.port->name, cur_irq_gpio_ptr->port->name)) &&
+          (cur_irq_gpio_ptr->pin == button_alarm.pin)) {
+            k_msgq_put(&msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
+        }
 
+        /* TODO: Uncomment this after tests */
+//        /* Send train passed message */
+//        if ((!strcmp(BUTTON_TRAIN_PASSED_GPIO_PORT, cur_irq_gpio.port->name)) &&
+//          (cur_irq_gpio.pin == BUTTON_TRAIN_PASSED_GPIO_PIN)) {
+//            k_msgq_put(&msgq_tx_msg, &train_passed_msg, K_NO_WAIT);
+//        }
+//
+//        /* Anti-dream handler */
+//        if ((!strcmp(BUTTON_ANTI_DREAM_GPIO_PORT, cur_irq_gpio.port->name)) &&
+//          (cur_irq_gpio.pin == BUTTON_ANTI_DREAM_GPIO_PIN)) {
+//            k_work_submit(&work_buzzer); /* Disable alarm */
+//            k_timer_stop(&anti_dream_timer);
+//            atomic_set(&anti_dream_active, 0);
+//        }
+#elif CUR_DEVICE == BRIGADE_CHIEF
+        /* Send disable alarm message */
+        if ((!strcmp(button_disable_alarm.port->name, cur_irq_gpio_ptr->port->name)) &&
+          (cur_irq_gpio_ptr->pin == button_disable_alarm.pin)) {
+            k_msgq_put(&msgq_tx_msg_prio, &disable_alarm_msg, K_NO_WAIT);
+        }
 
-void check_msg_status(struct msg_info_s *msg_info)
-{
-    if (atomic_get((&msg_info->req_is_send))) {
-      k_msgq_put(msg_info->msg_buf, msg_info->msg, K_NO_WAIT);
-      atomic_clear(&(msg_info->req_is_send));
+//        /* TODO: Uncomment this after tests */
+//        /* Send right train passed message */
+//        if ((!strcmp(BUTTON_RIGHT_TRAIN_PASSED_GPIO_PORT, cur_irq_gpio.port->name)) &&
+//          (cur_irq_gpio.pin == BUTTON_RIGHT_TRAIN_PASSED_GPIO_PIN)) {
+//            k_msgq_put(&msgq_tx_msg, &right_train_passed_msg, K_NO_WAIT);
+//        }
+//
+//        /* Send left train passed */
+//        if ((!strcmp(BUTTON_LEFT_TRAIN_PASSED_GPIO_PORT, cur_irq_gpio.port->name)) &&
+//          (cur_irq_gpio.pin == BUTTON_LEFT_TRAIN_PASSED_GPIO_PIN)) {
+//            k_msgq_put(&msgq_tx_msg, &left_train_passed_msg, K_NO_WAIT);
+//        }
+#endif
+    } else if (long_pressed_is_set) { /* Long pressed */
+        /* TODO: Shut down device */
     }
 }
 /**

@@ -24,7 +24,7 @@
 			{
 				"command" : 1,
 				"file" : 3,
-				"line" : 8,
+				"line" : 10,
 				"parent" : 0
 			},
 			{
@@ -60,49 +60,18 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 182,
+				"line" : 97,
 				"parent" : 7
 			}
 		]
 	},
-	"id" : "pristine::@6890427a1f51a3e7e1df",
-	"name" : "pristine",
+	"id" : "runners_yaml_props_target::@6890427a1f51a3e7e1df",
+	"name" : "runners_yaml_props_target",
 	"paths" : 
 	{
 		"build" : ".",
 		"source" : "."
 	},
-	"sourceGroups" : 
-	[
-		{
-			"name" : "",
-			"sourceIndexes" : 
-			[
-				0
-			]
-		},
-		{
-			"name" : "CMake Rules",
-			"sourceIndexes" : 
-			[
-				1
-			]
-		}
-	],
-	"sources" : 
-	[
-		{
-			"backtrace" : 8,
-			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/pristine",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 0,
-			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/pristine.rule",
-			"sourceGroupIndex" : 1
-		}
-	],
+	"sources" : [],
 	"type" : "UTILITY"
 }

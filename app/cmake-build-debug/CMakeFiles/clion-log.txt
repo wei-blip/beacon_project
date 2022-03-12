@@ -11,7 +11,7 @@ Including boilerplate (Freestanding): /home/rts/zephyr-rts-master/zephyr/cmake/a
 -- Found dtc: /opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.6.0", minimum required is "1.4.6")
 -- Found toolchain: zephyr 0.13.1 (/opt/zephyr-sdk)
 -- Found BOARD.dts: /home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re.dts
--- Found devicetree overlay: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l452re_base_station.overlay
+-- Found devicetree overlay: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/boards/nucleo_l452re.overlay
 -- Generated zephyr.dts: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/zephyr.dts
 -- Generated devicetree_unfixed.h: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/devicetree_unfixed.h
 -- Generated device_extern.h: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/include/generated/device_extern.h

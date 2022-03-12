@@ -3,6 +3,13 @@
 //
 #include "lora_russia_railways_common.h"
 
+#include <logging/log.h>
+    LOG_MODULE_REGISTER(common);
+
+
+/**
+ * Devices settings area begin
+ * */
 #if CUR_DEVICE == BASE_STATION
 #elif CUR_DEVICE == SIGNALMAN
 
@@ -71,6 +78,10 @@ static const struct message_s right_train_passed_msg = {
 };
 
 #endif
+/**
+ * Devices settings area end
+ * */
+
 
 /**
  * Extern variable definition and initialisation begin
@@ -108,21 +119,28 @@ struct k_timer periodic_timer = {0};
 struct k_work work_buzzer = {0};
 struct k_work work_button_pressed = {0};
 
-struct k_mutex mut_msg_info = {0};
-struct k_mutex mut_buzzer_mode = {0};
+//struct k_mutex mut_buzzer_mode = {0};
+struct k_poll_signal signal_buzzer = K_POLL_SIGNAL_INITIALIZER(signal_buzzer);
+struct k_poll_event event_buzzer = K_POLL_EVENT_STATIC_INITIALIZER( K_POLL_TYPE_SIGNAL,
+                                                                    K_POLL_MODE_NOTIFY_ONLY,
+                                                                    &signal_buzzer,
+                                                                    0);
 
 struct gpio_dt_spec *cur_irq_gpio_ptr = {0};
 
-struct buzzer_mode_s buzzer_mode = {0};
+//struct buzzer_mode_s buzzer_mode = {0};
 
 const modem_state_t recv_state = {
-        .next = &transmit_state,
-        .state = RECEIVE
+  .next = &transmit_state,
+  .state = RECEIVE
 };
+
 const modem_state_t transmit_state = {
-        .next = &recv_state,
-        .state = TRANSMIT
+  .next = &recv_state,
+  .state = TRANSMIT
 };
+
+modem_state_t current_state = {0};
 
 struct message_s tx_msg = {0};
 
@@ -130,35 +148,35 @@ uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 
 const struct led_strip_indicate_s msg_send_good_ind = {
-    .start_led_pos = 0,
-    .end_led_pos = STRIP_NUM_PIXELS,
-    .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_GREEN,
-    .led_strip_state.strip_param.blink_cnt = 5,
-    .indication_type = INDICATION_TYPE_BLINK
+  .start_led_pos = 0,
+  .end_led_pos = STRIP_NUM_PIXELS,
+  .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_GREEN,
+  .led_strip_state.strip_param.blink_cnt = 3,
+  .indication_type = INDICATION_TYPE_BLINK
 };
 
 const struct led_strip_indicate_s msg_send_bad_ind = {
-    .start_led_pos = 0,
-    .end_led_pos = STRIP_NUM_PIXELS,
-    .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_RED,
-    .led_strip_state.strip_param.blink_cnt = 5,
-    .indication_type = INDICATION_TYPE_BLINK
+  .start_led_pos = 0,
+  .end_led_pos = STRIP_NUM_PIXELS,
+  .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_RED,
+  .led_strip_state.strip_param.blink_cnt = 3,
+  .indication_type = INDICATION_TYPE_BLINK
 };
 
 const struct led_strip_indicate_s msg_recv_ind = {
-    .start_led_pos = 0,
-    .end_led_pos = STRIP_NUM_PIXELS,
-    .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_GREEN,
-    .led_strip_state.strip_param.blink_cnt = 5,
-    .indication_type = INDICATION_TYPE_BLINK
+  .start_led_pos = 0,
+  .end_led_pos = STRIP_NUM_PIXELS,
+  .led_strip_state.strip_param.color = COMMON_STRIP_COLOR_GREEN,
+  .led_strip_state.strip_param.blink_cnt = 3,
+  .indication_type = INDICATION_TYPE_BLINK
 };
 
 struct led_strip_indicate_s status_ind = {
-    .start_led_pos = 0,
-    .end_led_pos = STRIP_NUM_PIXELS,
-    .led_strip_state.status.people_num = ATOMIC_INIT(0),
-    .led_strip_state.status.con_status = ATOMIC_INIT(0),
-    .indication_type = INDICATION_TYPE_STATUS_INFO
+  .start_led_pos = 0,
+  .end_led_pos = STRIP_NUM_PIXELS,
+  .led_strip_state.status.people_num = ATOMIC_INIT(0),
+  .led_strip_state.status.con_status = ATOMIC_INIT(0),
+  .indication_type = INDICATION_TYPE_STATUS_INFO
 };
 
 const struct led_strip_indicate_s disable_indication = {
@@ -200,10 +218,7 @@ void work_button_pressed_handler(struct k_work *item)
           (atomic_get(&atomic_interval_count) <= SHORT_PRESSED_MAX_VAL)) { /* Short pressed */
             /* Light up first half strip */
             if (!short_pressed_is_set) {
-                strip_ind = &status_ind;
-                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
                 short_pressed_is_set = true;
-                k_poll_signal_raise(&signal_indicate, 1);
             }
         } else if ((atomic_get(&atomic_interval_count) > MIDDLE_PRESSED_MIN_VAL) &&
           (atomic_get(&atomic_interval_count) <= MIDDLE_PRESSED_MAX_VAL)) { /* Middle pressed */
@@ -220,18 +235,23 @@ void work_button_pressed_handler(struct k_work *item)
 
     /* Sound indicate */
     if (short_pressed_is_set) {
-        if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
-            buzzer_mode.single = true;
-            k_mutex_unlock(&mut_buzzer_mode);
-            while(k_work_busy_get(&work_buzzer)) {
-                K_MSEC(10);
-            }
-            k_work_submit(&work_buzzer);
-        }
+        k_work_submit(&work_buzzer);
+        k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_SINGLE);
+//        if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
+//            buzzer_mode.single = true;
+//            k_mutex_unlock(&mut_buzzer_mode);
+//            while(k_work_busy_get(&work_buzzer)) {
+//                K_MSEC(10);
+//            }
+//            k_work_submit(&work_buzzer);
+//        }
     }
 
     /* Do action */
     if (short_pressed_is_set && (!middle_pressed_is_set)) { /* Short pressed */
+        strip_ind = &status_ind;
+        k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+        k_poll_signal_raise(&signal_indicate, 1);
         /* TODO: Booting device */
     } else if (middle_pressed_is_set && !long_pressed_is_set) { /* Middle pressed */
 #if CUR_DEVICE == SIGNALMAN
@@ -278,6 +298,70 @@ void work_button_pressed_handler(struct k_work *item)
     } else if (long_pressed_is_set) { /* Long pressed */
         /* TODO: Shut down device */
     }
+}
+
+
+void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int16_t rssi, int8_t snr)
+{
+    /*
+     * Compare first byte in receive message and 13
+     * 13 means thar received message has the following parameters:
+     * SENDER_ADDR = BASE_STATION, RECV_ADDR = BROADCAST, MESSAGE_TYPE = SYNC  */
+    static struct k_spinlock spin;
+    static k_spinlock_key_t key;
+    key = k_spin_lock(&spin);
+    if ((*data) == 13) {
+        LOG_DBG(" REQUEST");
+        LOG_DBG(" MESSAGE_TYPE_SYNC");
+        k_timer_stop(&periodic_timer);
+        // little delay to account execution time
+        k_sleep(K_MSEC(DELAY_TIME_MSEC));
+        k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC), K_MSEC(PERIOD_TIME_MSEC));
+    }
+    k_msgq_put(&msgq_rx_msg, data, K_NO_WAIT);
+    k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
+    k_spin_unlock(&spin, key);
+}
+
+
+void work_buzzer_handler(struct k_work *item)
+{
+    uint8_t i = 0;
+//    k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
+    /* Wait while signal will be raised */
+    while(k_poll(&event_buzzer, 1, K_MSEC(1))) {
+        k_sleep(K_MSEC(5));
+    }
+
+    switch (event_buzzer.signal->result) {
+        case BUZZER_MODE_CONTINUOUS:
+            pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                             BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
+            break;
+        case BUZZER_MODE_DING_DONG:
+            i = 0;
+            while (i < 2) {
+                pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                                 BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
+                k_sleep(K_USEC(2*BUTTON_PRESSED_PERIOD_TIME_USEC));
+                pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                                 0, PWM_FLAGS);
+                k_sleep(K_USEC(2*BUTTON_PRESSED_PERIOD_TIME_USEC));
+                i++;
+            }
+            break;
+        case BUZZER_MODE_SINGLE:
+            pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                             BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
+            k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
+        case BUZZER_MODE_IDLE:
+        default:
+            pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                             0, PWM_FLAGS);
+            break;
+    }
+    event_buzzer.signal->signaled = 0;
+    event_buzzer.state = K_POLL_STATE_NOT_READY;
 }
 /**
  * Function definition area end

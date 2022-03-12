@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 if(NOT DEFINED BOARD)
     set(BOARD nucleo_l452re)
 endif()
-set(DTC_OVERLAY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boards/nucleo_l452re_base_station.overlay)
+#set(DTC_OVERLAY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boards/nucleo_l452re_base_station.overlay)
 #set(DTC_OVERLAY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boards/nucleo_l452re_signalman.overlay)
 #set(DTC_OVERLAY_FILE ${CMAKE_CURRENT_SOURCE_DIR}/boards/nucleo_l452re_brigade_chief.overlay)
 

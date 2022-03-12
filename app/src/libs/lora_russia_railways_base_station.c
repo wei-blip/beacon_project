@@ -17,15 +17,12 @@ extern const k_tid_t modem_task_id;
  * My threads ids end
  * */
 
-static modem_state_t current_state;
 
 /**
  * Structure area begin
  * */
 static struct message_s sync_msg;
 static struct message_s home_msg;
-
-static struct msg_info_s home_msg_info;
 
 const struct device *button_homeward_gpio_dev_ptr;
 
@@ -35,7 +32,6 @@ struct gpio_callback button_homeward_cb;
  * */
 
 
-//static enum WORKERS_IDS_e cur_workers_in_safe_zone = FIRST_PEOPLE_ID;
 /**
  * Enum area begin
  * */
@@ -56,7 +52,6 @@ inline static void send_msg(void);
 inline static void recv_msg(void);
 
 static void system_init(void);
-static void work_buzzer_handler(struct k_work *item);
 static void periodic_timer_handler(struct k_timer* tim); // callback for periodic_timer
 /**
  * Function declaration area end
@@ -106,21 +101,11 @@ static void system_init(void)
 //    k_work_init(&work_led_strip_blink, blink);
 
     k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
-
-    k_mutex_init(&mut_buzzer_mode);
     /**
      * Kernel services init end
      * */
 
     /* Light down LED strip */
-//    struct led_strip_indicate_s strip_indicate = {
-//      .led_strip_state.status.people_num = 0,
-//      .led_strip_state.status.con_status = 0,
-//      .led_strip_state.status.set_people_num = true,
-//      .led_strip_state.status.set_con_status = true,
-//      .blink = false
-//    };
-
     k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
     current_state = recv_state;
@@ -141,90 +126,13 @@ static void system_init(void)
     home_msg.direction = REQUEST;
     home_msg.workers_in_safe_zone = cur_workers_in_safe_zone;
     home_msg.battery_level = BATTERY_LEVEL_GOOD;
-
-    home_msg_info.msg_buf = &msgq_tx_msg;
-    home_msg_info.msg = &home_msg;
-    home_msg_info.resp_is_recv = ATOMIC_INIT(0);
-    home_msg_info.req_is_send = ATOMIC_INIT(0);
     /**
     * Filling structure end
     * */
-
-    buzzer_mode.single = true;
+    k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_SINGLE);
+//    buzzer_mode.single = true;
     k_work_submit(&work_buzzer);
     k_timer_start(&periodic_timer, K_NO_WAIT, K_MSEC(PERIOD_TIME_MSEC));
-}
-
-
-inline static void send_msg(void)
-{
-    volatile int rc = 0;
-    uint32_t new_msg = 0;
-    struct k_msgq* cur_queue = NULL;
-
-    /* Check messages into queue
-     * Beginning check priority queue, after check standard queue */
-    if (msgq_tx_msg_prio.used_msgs) {
-//        LOG_DBG("Get message from priority queue");
-        k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
-        cur_queue = &msgq_tx_msg_prio;
-    } else if (msgq_tx_msg.used_msgs) {
-//        LOG_DBG("Get message from standard queue");
-        k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
-        cur_queue = &msgq_tx_msg;
-    } else {
-        return;
-    }
-
-    read_write_message(&new_msg, &tx_msg, true);
-    for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
-        tx_buf[i] = (new_msg & (0x000000FF << i * 8) ) >> i * 8;
-        tx_buf[i] = reverse(tx_buf[i]);
-    }
-
-    if (!lora_cfg.tx) {
-        lora_cfg.tx = true;
-        rc = lora_config(lora_dev_ptr, &lora_cfg);
-        if (rc < 0) {
-            LOG_DBG("Modem not configure!!!");
-            k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
-            return;
-        }
-    }
-//    LOG_DBG("Send message");
-    rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
-//    LOG_DBG("Message sending");
-
-}
-
-
-inline static void recv_msg(void)
-{
-    volatile int rc = -1;
-    volatile uint32_t ticks = 0;
-
-    int16_t rssi = 0;
-    int8_t snr = 0;
-
-    if (lora_cfg.tx) {
-        lora_cfg.tx = false;
-        rc = lora_config(lora_dev_ptr, &lora_cfg);
-        if (rc < 0) {
-            return;
-        }
-    }
-
-    /* Get ticks to expiry timer */
-    ticks = k_ticks_to_ms_floor32(k_timer_remaining_ticks(&periodic_timer));
-
-    /* Receive while timer not expiry */
-    rc = lora_recv(lora_dev_ptr, rx_buf, MESSAGE_LEN_IN_BYTES,
-                   K_MSEC(ticks), &rssi, &snr);
-    if (rc > 0) {
-        k_msgq_put(&msgq_rx_msg, &rx_buf, K_NO_WAIT);
-        k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
-        k_wakeup(proc_task_id);
-    }
 }
 
 
@@ -238,12 +146,12 @@ _Noreturn void base_station_proc_task()
     struct message_s rx_msg_proc = {0};
     struct led_strip_indicate_s *strip_ind = NULL;
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; /* Default queue */
-    k_sleep(K_FOREVER);
+
     while(1) {
-        if ( msgq_rx_msg.used_msgs ) {
+        if (k_msgq_num_used_get(&msgq_rx_msg)) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
             k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
-            if (IS_EMPTY_MSG) {
+            if (is_empty_msg(rx_buf_proc, MESSAGE_LEN_IN_BYTES)) {
                 LOG_DBG("Empty message");
                 continue;
             }
@@ -288,8 +196,10 @@ _Noreturn void base_station_proc_task()
                             switch (rx_msg_proc.sender_addr) {
                                 case BRIGADE_CHIEF_ADDR:
                                     LOG_DBG("Brigade chief disabled alarm");
-                                    while(k_work_busy_get(&work_buzzer)); // wait while work_buzzer is busy
                                     k_work_submit(&work_buzzer);
+                                    k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_IDLE);
+//                                    while(k_work_busy_get(&work_buzzer)); // wait while work_buzzer is busy
+//                                    k_work_submit(&work_buzzer);
                                     break;
                                 default:
                                     LOG_DBG("Undefined sender address for this message type");
@@ -301,14 +211,14 @@ _Noreturn void base_station_proc_task()
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             // TODO: On signalization, calculate workers_safe_zone
-                            k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
-                            buzzer_mode.continuous = true;
-                            k_mutex_unlock(&mut_buzzer_mode);
-                            // wait while work_buzzer is busy
-                            while(k_work_busy_get(&work_buzzer)) {
-                                k_sleep(K_MSEC(10));
-                            }
                             k_work_submit(&work_buzzer);
+                            k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_CONTINUOUS);
+//                            buzzer_mode.continuous = true;
+//                            k_mutex_unlock(&mut_buzzer_mode);
+                            // wait while work_buzzer is busy
+//                            while(k_work_busy_get(&work_buzzer)) {
+//                                k_sleep(K_MSEC(10));
+//                            }
                             msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio;
                             break;
 
@@ -352,11 +262,6 @@ _Noreturn void base_station_proc_task()
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
-                            if (rx_msg_proc.sender_addr == cur_dev_addr) {
-                                /// TODO: atomic operation
-                                atomic_set_bit(&home_msg_info.resp_is_recv, 0);
-//                                k_work_submit(&work_msg_mngr);
-                            }
                             msgq_cur_msg_tx_ptr = NULL;
                             continue;
 
@@ -377,11 +282,6 @@ _Noreturn void base_station_proc_task()
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
 
             rssi_num = check_rssi(rssi);
-//            strip_indicate.led_strip_state.status.set_con_status = true;
-//            strip_indicate.led_strip_state.status.set_people_num = true;
-//            strip_indicate.led_strip_state.status.con_status = rssi_num;
-//            strip_indicate.led_strip_state.status.people_num = rx_msg_proc.workers_in_safe_zone;
-//            strip_indicate.blink = false;
             atomic_set(&status_ind.led_strip_state.status.con_status, rssi_num);
             atomic_set(&status_ind.led_strip_state.status.people_num, rx_msg_proc.workers_in_safe_zone);
             strip_ind = &status_ind;
@@ -394,20 +294,11 @@ _Noreturn void base_station_proc_task()
 
 _Noreturn void base_station_modem_task()
 {
-    int8_t snr;
-    int16_t rssi;
-    volatile uint32_t ticks = 0;
-
     /**
      * Lora config begin
      * */
-    lora_cfg.tx = true;
-
     lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
     if (!device_is_ready(lora_dev_ptr)) {
-        k_sleep(K_FOREVER);
-    }
-    if (lora_config(lora_dev_ptr, &lora_cfg) < 0) {
         k_sleep(K_FOREVER);
     }
     /**
@@ -416,16 +307,10 @@ _Noreturn void base_station_modem_task()
 
     /* Init system and send first sync message */
     system_init();
-
     k_sleep(K_FOREVER);
+
     while(1) {
-        if (current_state.state == TRANSMIT) {
-            send_msg();
-            current_state = *current_state.next;
-            recv_msg();
-        } else {
-            recv_msg();
-        }
+        modem_fun();
         k_sleep(K_USEC(100));
     }
 }
@@ -434,43 +319,22 @@ _Noreturn void base_station_modem_task()
 void button_homeward_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     LOG_DBG("Button homeward pressed");
-    atomic_cas(&home_msg_info.req_is_send, 0, 1);
 }
 
 
 static void periodic_timer_handler(struct k_timer* tim)
 {
-    current_state = transmit_state;
+    LOG_DBG("Periodic timer handler");
     static uint8_t count = 10;
-    if (count == 10) {
+
+    current_state = transmit_state;
+
+    if (count == (SYNC_COUNT + CURRENT_DEVICE_NUM)) {
         k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
         count = 0;
     }
     count++;
     k_wakeup(modem_task_id);
-}
-
-
-static void work_buzzer_handler(struct k_work *item)
-{
-    k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
-    if (buzzer_mode.single) {
-        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                              BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
-        k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
-        buzzer_mode.single = false;
-    } else if (buzzer_mode.continuous) {
-        pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                         BUTTON_PRESSED_PERIOD_TIME_USEC/2U, PWM_FLAGS);
-        k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
-        buzzer_mode.continuous = false;
-        k_mutex_unlock(&mut_buzzer_mode);
-        return;
-    }
-
-    pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                         0, PWM_FLAGS);
-    k_mutex_unlock(&mut_buzzer_mode);
 }
 /**
  * Function definition area end

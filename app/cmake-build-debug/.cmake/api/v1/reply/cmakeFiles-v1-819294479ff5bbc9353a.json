@@ -1423,7 +1423,7 @@
 			"path" : "/home/rts/zephyr-rts-master/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl-common.h"
 		},
 		{
-			"path" : "boards/nucleo_l452re_base_station.overlay"
+			"path" : "boards/nucleo_l452re.overlay"
 		},
 		{
 			"isExternal" : true,

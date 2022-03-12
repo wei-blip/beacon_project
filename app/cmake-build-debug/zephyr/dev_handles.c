@@ -45,7 +45,7 @@
  *   - /soc/pin-controller@48000000/gpio@48001c00
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
-__devicehdl_DT_N_S_soc_S_rcc_40021000[] = { DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, 11, 6, 3, 7, 4, 10, 2, 9, 5, DEVICE_HANDLE_ENDS };
+__devicehdl_DT_N_S_soc_S_rcc_40021000[] = { DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, 7, 6, 4, 10, 2, 9, 5, 11, 3, DEVICE_HANDLE_ENDS };
 
 /* 2 : /soc/pin-controller@48000000/gpio@48001c00:
  * Direct Dependencies:
@@ -77,6 +77,7 @@ __devicehdl_DT_N_S_soc_S_pin_controller_48000000_S_gpio_48000c00[] = { 1, DEVICE
  *   - /soc/rcc@40021000
  * Supported:
  *   - (/gpio_keys/button)
+ *   - (/gpio_keys/button_0)
  *   - /soc/spi@40013000/sx1278@0
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
@@ -91,7 +92,7 @@ __devicehdl_DT_N_S_soc_S_pin_controller_48000000_S_gpio_48000800[] = { 1, DEVICE
  *   - /soc/spi@40013000/sx1278@0
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
-__devicehdl_DT_N_S_soc_S_pin_controller_48000000_S_gpio_48000400[] = { 1, DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, 12, 11, DEVICE_HANDLE_ENDS };
+__devicehdl_DT_N_S_soc_S_pin_controller_48000000_S_gpio_48000400[] = { 1, DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, 11, 12, DEVICE_HANDLE_ENDS };
 
 /* 7 : /soc/pin-controller@48000000/gpio@48000000:
  * Direct Dependencies:
@@ -146,7 +147,7 @@ __devicehdl_DT_N_S_soc_S_timers_40000000_S_pwm[] = { 1, DEVICE_HANDLE_SEP, DEVIC
  *   - /soc/spi@40013000/sx1278@0
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
-__devicehdl_DT_N_S_soc_S_spi_40013000[] = { 1, 6, DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, 12, DEVICE_HANDLE_ENDS };
+__devicehdl_DT_N_S_soc_S_spi_40013000[] = { 6, 1, DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, 12, DEVICE_HANDLE_ENDS };
 
 /* 12 : /soc/spi@40013000/sx1278@0:
  * Direct Dependencies:
@@ -155,7 +156,7 @@ __devicehdl_DT_N_S_soc_S_spi_40013000[] = { 1, 6, DEVICE_HANDLE_SEP, DEVICE_HAND
  *   - /soc/pin-controller@48000000/gpio@48000800
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
-__devicehdl_DT_N_S_soc_S_spi_40013000_S_sx1278_0[] = { 6, 11, 5, DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, DEVICE_HANDLE_ENDS };
+__devicehdl_DT_N_S_soc_S_spi_40013000_S_sx1278_0[] = { 11, 5, 6, DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, DEVICE_HANDLE_ENDS };
 
 /* 13 : /ws2812:
  * Direct Dependencies:

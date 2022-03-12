@@ -14,6 +14,7 @@
 #include "message_format.h"
 #include "indication.h"
 
+
 /**
  * Available devices begin
  * */
@@ -26,6 +27,10 @@
  * Available devices end
  * */
 
+
+/**
+ * Common peripheral settings area begin
+ * */
 #define DEFAULT_RADIO_NODE DT_NODELABEL(lora0)
 BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
              "No default LoRa radio specified in DT");
@@ -42,24 +47,39 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 #define PWM_CHANNEL	0
 #define PWM_FLAGS	0
 #endif
+/**
+ * Common peripheral settings area end
+ * */
 
+
+/**
+ * Devices settings area begin
+ * */
 #if CUR_DEVICE == BASE_STATION
+
+#define CURRENT_DEVICE_NUM 0
+
 #elif CUR_DEVICE == SIGNALMAN
 
 #define CURRENT_DEVICE_NUM 1
 
-#define ALARM_NODE	DT_ALIAS(alarm_sw)
+/*
+ * SW0 - alarm button
+ * SW1 - anti-dream button
+ * SW2 - train passed button
+ * */
+#define ALARM_NODE	DT_ALIAS(sw0)
 #if !DT_NODE_HAS_STATUS(ALARM_NODE, okay)
 #error "Unsupported board: alarm_sw devicetree alias is not defined"
 #endif
 
 /*TODO: Uncomment this*/
-//#define ANTI_DREAM_NODE	DT_ALIAS(anti_dream_sw)
+//#define ANTI_DREAM_NODE	DT_ALIAS(sw1)
 //#if !DT_NODE_HAS_STATUS(ANTI_DREAM_NODE, okay)
 //#error "Unsupported board: anti_dream_sw devicetree alias is not defined"
 //#endif
 //
-//#define TRAIN_PASSED_NODE DT_ALIAS(train_passed_sw)
+//#define TRAIN_PASSED_NODE DT_ALIAS(sw2)
 //#if !DT_NODE_HAS_STATUS(TRAIN_PASSED_NODE, okay)
 //#error "Unsupported board: train_passed_sw alias is not defined"
 //#endif
@@ -68,37 +88,56 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 
 #define CURRENT_DEVICE_NUM 2
 
-#define DISABLE_ALARM_NODE	DT_ALIAS(disable_alarm_sw)
+/*
+ * SW0 - disable alarm button
+ * SW1 - left train passed button
+ * SW2 - right train passed button
+ * */
+#define DISABLE_ALARM_NODE	DT_ALIAS(sw0)
 #if !DT_NODE_HAS_STATUS(DISABLE_ALARM_NODE, okay)
 #error "Unsupported board: disable_alarm_sw devicetree alias is not defined"
 #endif
 
-//#define LEFT_TRAIN_PASSED_NODE	DT_ALIAS(left_train_passed_sw)
+//#define LEFT_TRAIN_PASSED_NODE	DT_ALIAS(sw1)
 //#if !DT_NODE_HAS_STATUS(LEFT_TRAIN_PASSED_NODE, okay)
 //#error "Unsupported board: left_train_passed_sw devicetree alias is not defined"
 //#endif
 //
-//#define RIGHT_TRAIN_PASSED_NODE DT_ALIAS(right_train_passed_sw)
+//#define RIGHT_TRAIN_PASSED_NODE DT_ALIAS(sw2)
 //#if !DT_NODE_HAS_STATUS(RIGHT_TRAIN_PASSED_NODE, okay)
 //#error "Unsupported board: right_train_passed_sw alias is not defined"
 //#endif
 
 #endif
+/**
+ * Devices settings area end
+ * */
+
+
+/**
+ * Buzzer modes begin
+ * */
+#define BUZZER_MODE_SINGLE 0
+#define BUZZER_MODE_CONTINUOUS 1
+#define BUZZER_MODE_DING_DONG 2
+#define BUZZER_MODE_IDLE 3
+/**
+* Buzzer modes end
+* */
+
 
 #define QUEUE_LEN_IN_ELEMENTS 10
-#define WAITING_PERIOD_NUM 2
 
-#define SLOT_TIME_MSEC 764UL /* Time on receive(664ms) plus DELAY_TIME_MSEC */
+#define SLOT_TIME_MSEC 765UL /* Time on receive(664ms) + DELAY_TIME_MSEC */
 #define PERIOD_TIME_MSEC (4*SLOT_TIME_MSEC)
 #define DELAY_TIME_MSEC 100U
-#define STOCK_TIME_MSEC 10
 #define DURATION_TIME_MSEC (SLOT_TIME_MSEC*(CURRENT_DEVICE_NUM-1))
+
 
 #define BUTTON_PRESSED_PERIOD_TIME_USEC 40000UL
 
-#define IS_SYNC_MSG (rx_buf[0] == 13) /* SENDER_ADDR = BASE_STATION, RECV_ADDR = BROADCAST, MESSAGE_TYPE = SYNC  */
 #define DISABLE_INDICATE (indicate_cnt == 5)
-
+#define SYNC_COUNT 10
 /*
  * This macro using in processing thread
  * rx_buf_proc - local variable in processing thread
@@ -160,19 +199,19 @@ typedef struct modem_state_s {
 } modem_state_t;
 
 
-struct buzzer_mode_s {
-    bool continuous;
-    bool single;
-    bool ding_dong;
-};
+//struct buzzer_mode_s {
+//    bool continuous;
+//    bool single;
+//    bool ding_dong;
+//};
 
-struct msg_info_s {
-    atomic_t req_is_send;
-    atomic_t resp_is_recv;
-    struct k_msgq *msg_buf;
-    struct message_s *msg;
-
-};
+//struct msg_info_s {
+//    atomic_t req_is_send;
+//    atomic_t resp_is_recv;
+//    struct k_msgq *msg_buf;
+//    struct message_s *msg;
+//
+//};
 /**
  * Enum, typedefs and structs area end
  * */
@@ -208,9 +247,11 @@ extern struct k_timer periodic_timer; /* For switching in tx mode */
 extern struct k_work work_buzzer; /* For signalisation */
 extern struct k_work work_button_pressed;
 
-extern struct k_mutex mut_buzzer_mode; /* Block buzzer_mode */
+//extern struct k_mutex mut_buzzer_mode; /* Block buzzer_mode */
 
 extern struct buzzer_mode_s buzzer_mode;
+extern struct k_poll_event event_buzzer;
+extern struct k_poll_signal signal_buzzer;
 
 extern struct message_s tx_msg;
 
@@ -221,6 +262,7 @@ extern struct k_msgq msgq_rssi;
 
 extern const modem_state_t recv_state;
 extern const modem_state_t transmit_state;
+extern modem_state_t current_state;
 
 extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
 extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
@@ -241,7 +283,9 @@ extern const struct led_strip_indicate_s msg_recv_ind;
 /**
  * Function declaration area begin
  * */
+void work_buzzer_handler(struct k_work *item);
 void work_button_pressed_handler(struct k_work *item);
+void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int16_t rssi, int8_t snr);
 /**
  * Function declaration area end
  * */
@@ -355,6 +399,84 @@ static inline void read_write_message(uint32_t* new_msg, struct message_s* msg_p
                 break;
         }
     }
+}
+
+
+static inline int32_t modem_fun(void)
+{
+    uint32_t new_msg = 0;
+    int32_t rc = 1;
+    struct k_msgq *cur_queue = NULL;
+    static struct k_spinlock spin;
+    static k_spinlock_key_t key;
+    /* Check messages into queue
+     * Beginning check priority queue, after check standard queue
+     * If queue's is not empty receiving will be stopped */
+    if (current_state.state == TRANSMIT) {
+        if (k_msgq_num_used_get(&msgq_tx_msg_prio)) {
+            k_msgq_get(&msgq_tx_msg_prio, &tx_msg, K_NO_WAIT);
+            cur_queue = &msgq_tx_msg_prio;
+        } else if (k_msgq_num_used_get(&msgq_tx_msg)) {
+            k_msgq_get(&msgq_tx_msg, &tx_msg, K_NO_WAIT);
+            cur_queue = &msgq_tx_msg;
+        } else {
+            /* Return 1 */
+            return rc;
+        }
+        key = k_spin_lock(&spin);
+        /* Stop receiving */
+        lora_recv_async(lora_dev_ptr, NULL);
+
+        read_write_message(&new_msg, &tx_msg, true);
+        for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
+            tx_buf[i] = (new_msg & (0x000000FF << i * 8) ) >> i * 8;
+            tx_buf[i] = reverse(tx_buf[i]);
+        }
+
+        lora_cfg.tx = true;
+        rc = lora_config(lora_dev_ptr, &lora_cfg);
+        if (rc < 0) {
+            k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
+            return rc;
+        }
+
+        rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
+
+        if (!rc) {
+            lora_cfg.tx = false;
+            rc = lora_config(lora_dev_ptr, &lora_cfg);
+            if (rc < 0) {
+                return rc;
+            } else {
+                lora_recv_async(lora_dev_ptr, lora_receive_cb);
+            }
+        } else {
+            k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
+        }
+
+        if (tx_msg.message_type == MESSAGE_TYPE_SYNC)
+            rc = 1;
+        k_spin_unlock(&spin, key);
+    }
+
+    /*
+     * Return 1 if current_state.state != TRANSMIT_STATE
+     * */
+    return rc;
+}
+
+
+static inline bool is_empty_msg(const uint8_t *buf, size_t len)
+{
+    uint8_t i = 0;
+    uint8_t cnt = 0;
+    while(i < len) {
+        if (!(*(buf + i))) {
+            cnt++;
+        }
+        i++;
+    }
+    return (cnt==len);
 }
 /**
  * Function definition area end

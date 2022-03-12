@@ -116,6 +116,7 @@ _Noreturn void update_indication_task(void)
     k_poll_event_init(&event_indicate,_POLL_TYPE_SIGNAL,
                       K_POLL_MODE_NOTIFY_ONLY,
                       &signal_indicate);
+    k_poll_signal_raise(&signal_indicate, 1);
     while(1) {
         if (k_msgq_num_used_get(&msgq_led_strip)) {
             k_msgq_get(&msgq_led_strip, &strip_indicate, K_NO_WAIT);

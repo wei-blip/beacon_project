@@ -15,7 +15,7 @@
 		zephyr,canbus = &can1;
 	};
 	aliases {
-		sw0 = &user_button;
+		sw0 = &button_0;
 		led0 = &green_led;
 		led-strip = &led_strip;
 		pwm-sound = &external_pwm_led;
@@ -1262,6 +1262,11 @@
 		compatible = "gpio-keys";
 		user_button: button {
 			label = "User";
+			gpios = < &gpioc 0xd 0x1 >;
+		};
+		button_0: button_0 {
+			label = "BUTTON_0";
+			status = "okay";
 			gpios = < &gpioc 0xd 0x1 >;
 		};
 	};

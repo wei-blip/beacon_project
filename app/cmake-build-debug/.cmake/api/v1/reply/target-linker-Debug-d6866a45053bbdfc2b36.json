@@ -11,9 +11,9 @@
 		],
 		"files" : 
 		[
-			"/home/rts/zephyr-rts-master/zephyr/cmake/kconfig.cmake",
+			"/home/rts/zephyr-rts-master/zephyr/cmake/target_toolchain.cmake",
 			"/home/rts/zephyr-rts-master/zephyr/cmake/app/boilerplate.cmake",
-			"/home/rts/zephyr-rts-master/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
+			"/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
 			"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/clion-zephyr.cmake",
 			"CMakeLists.txt"
 		],
@@ -45,7 +45,7 @@
 			{
 				"command" : 2,
 				"file" : 2,
-				"line" : 102,
+				"line" : 40,
 				"parent" : 4
 			},
 			{
@@ -61,7 +61,7 @@
 			{
 				"command" : 1,
 				"file" : 1,
-				"line" : 543,
+				"line" : 588,
 				"parent" : 7
 			},
 			{
@@ -71,49 +71,18 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 141,
+				"line" : 39,
 				"parent" : 9
 			}
 		]
 	},
-	"id" : "menuconfig::@6890427a1f51a3e7e1df",
-	"name" : "menuconfig",
+	"id" : "linker::@6890427a1f51a3e7e1df",
+	"name" : "linker",
 	"paths" : 
 	{
 		"build" : ".",
 		"source" : "."
 	},
-	"sourceGroups" : 
-	[
-		{
-			"name" : "",
-			"sourceIndexes" : 
-			[
-				0
-			]
-		},
-		{
-			"name" : "CMake Rules",
-			"sourceIndexes" : 
-			[
-				1
-			]
-		}
-	],
-	"sources" : 
-	[
-		{
-			"backtrace" : 10,
-			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/menuconfig",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 0,
-			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/menuconfig.rule",
-			"sourceGroupIndex" : 1
-		}
-	],
+	"sources" : [],
 	"type" : "UTILITY"
 }

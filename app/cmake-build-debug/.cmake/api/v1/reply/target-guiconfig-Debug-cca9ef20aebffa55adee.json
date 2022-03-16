@@ -13,7 +13,7 @@
 		[
 			"/home/rts/zephyr-rts-master/zephyr/cmake/kconfig.cmake",
 			"/home/rts/zephyr-rts-master/zephyr/cmake/app/boilerplate.cmake",
-			"/home/rts/zephyr-rts-master/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
+			"/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake/ZephyrConfig.cmake",
 			"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/clion-zephyr.cmake",
 			"CMakeLists.txt"
 		],
@@ -45,7 +45,7 @@
 			{
 				"command" : 2,
 				"file" : 2,
-				"line" : 102,
+				"line" : 40,
 				"parent" : 4
 			},
 			{
@@ -71,13 +71,13 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 295,
+				"line" : 141,
 				"parent" : 9
 			}
 		]
 	},
-	"id" : "config-twister::@6890427a1f51a3e7e1df",
-	"name" : "config-twister",
+	"id" : "guiconfig::@6890427a1f51a3e7e1df",
+	"name" : "guiconfig",
 	"paths" : 
 	{
 		"build" : ".",
@@ -105,13 +105,13 @@
 		{
 			"backtrace" : 10,
 			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/config-twister",
+			"path" : "cmake-build-debug/CMakeFiles/guiconfig",
 			"sourceGroupIndex" : 0
 		},
 		{
 			"backtrace" : 0,
 			"isGenerated" : true,
-			"path" : "cmake-build-debug/CMakeFiles/config-twister.rule",
+			"path" : "cmake-build-debug/CMakeFiles/guiconfig.rule",
 			"sourceGroupIndex" : 1
 		}
 	],

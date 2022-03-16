@@ -38,6 +38,18 @@
 			"value" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app"
 		},
 		{
+			"name" : "BOARD",
+			"properties" : 
+			[
+				{
+					"name" : "HELPSTRING",
+					"value" : "Selected board"
+				}
+			],
+			"type" : "STRING",
+			"value" : "nucleo_l452re"
+		},
+		{
 			"name" : "BOARD_DIR",
 			"properties" : 
 			[
@@ -534,15 +546,11 @@
 			"properties" : 
 			[
 				{
-					"name" : "ADVANCED",
-					"value" : "1"
-				},
-				{
 					"name" : "HELPSTRING",
-					"value" : "C compiler"
+					"value" : "Path to a program."
 				}
 			],
-			"type" : "STRING",
+			"type" : "FILEPATH",
 			"value" : "/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc"
 		},
 		{
@@ -1731,7 +1739,7 @@
 				}
 			],
 			"type" : "PATH",
-			"value" : "Zephyr_DIR-NOTFOUND"
+			"value" : "/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake"
 		},
 		{
 			"name" : "_Python3_EXECUTABLE",

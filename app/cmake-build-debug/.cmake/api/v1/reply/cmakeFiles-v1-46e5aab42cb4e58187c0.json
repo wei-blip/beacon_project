@@ -8082,11 +8082,19 @@
 		},
 		{
 			"isExternal" : true,
+			"path" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/drivers/uwb/CMakeLists.txt"
+		},
+		{
+			"isExternal" : true,
 			"path" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/drivers/led_strip/CMakeLists.txt"
 		},
 		{
 			"isExternal" : true,
 			"path" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/subsys/CMakeLists.txt"
+		},
+		{
+			"isExternal" : true,
+			"path" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/subsys/meshposition/CMakeLists.txt"
 		},
 		{
 			"isExternal" : true,

@@ -15,6 +15,6 @@
 #define KERNEL_PATCHLEVEL      0
 #define KERNEL_VERSION_STRING  "3.0.0"
 
-#define BUILD_VERSION          zephyr-v3.0.0-10-ge8787c714968
+#define BUILD_VERSION          zephyr-v3.0.0-11-g56d616960590
 
 #endif /* _KERNEL_VERSION_H_ */

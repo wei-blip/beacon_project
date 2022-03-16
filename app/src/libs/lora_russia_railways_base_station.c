@@ -2,20 +2,11 @@
 // Created by rts on 05.02.2022.
 //
 
-#include "lora_russia_railways_base_station.h"
-#include <drivers/gpio.h>
+#include "lora_russia_railways_common.h"
 
+#if CUR_DEVICE == BASE_STATION
 #include <logging/log.h>
     LOG_MODULE_REGISTER(base_station);
-
-/**
- * My threads ids begin
- * */
-extern const k_tid_t proc_task_id;
-extern const k_tid_t modem_task_id;
-/**
- * My threads ids end
- * */
 
 
 /**
@@ -79,17 +70,17 @@ static void system_init(void)
     /**
      * Init IRQ begin
      * */
-    button_homeward_gpio_dev_ptr = device_get_binding(BUTTON_HOMEWARD_GPIO_PORT);
-
-    gpio_pin_configure(button_homeward_gpio_dev_ptr, BUTTON_HOMEWARD_GPIO_PIN,
-                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
-
-    gpio_pin_interrupt_configure(button_homeward_gpio_dev_ptr, BUTTON_HOMEWARD_GPIO_PIN,
-                                 GPIO_INT_EDGE_TO_ACTIVE);
-
-    gpio_init_callback(&button_homeward_cb, button_homeward_pressed_cb, BIT(BUTTON_HOMEWARD_GPIO_PIN));
-
-    gpio_add_callback(button_homeward_gpio_dev_ptr, &button_homeward_cb);
+//    button_homeward_gpio_dev_ptr = device_get_binding(BUTTON_HOMEWARD_GPIO_PORT);
+//
+//    gpio_pin_configure(button_homeward_gpio_dev_ptr, BUTTON_HOMEWARD_GPIO_PIN,
+//                       (GPIO_INPUT | GPIO_PUSH_PULL | GPIO_ACTIVE_LOW));
+//
+//    gpio_pin_interrupt_configure(button_homeward_gpio_dev_ptr, BUTTON_HOMEWARD_GPIO_PIN,
+//                                 GPIO_INT_EDGE_TO_ACTIVE);
+//
+//    gpio_init_callback(&button_homeward_cb, button_homeward_pressed_cb, BIT(BUTTON_HOMEWARD_GPIO_PIN));
+//
+//    gpio_add_callback(button_homeward_gpio_dev_ptr, &button_homeward_cb);
     /**
      * Init IRQ end
      * */
@@ -130,13 +121,13 @@ static void system_init(void)
     * Filling structure end
     * */
     k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_SINGLE);
-//    buzzer_mode.single = true;
+
     k_work_submit(&work_buzzer);
     k_timer_start(&periodic_timer, K_NO_WAIT, K_MSEC(PERIOD_TIME_MSEC));
 }
 
 
-_Noreturn void base_station_proc_task()
+_Noreturn void base_station_proc_task(void)
 {
     uint8_t rssi_num = 0;
     int16_t rssi = 0;
@@ -150,11 +141,6 @@ _Noreturn void base_station_proc_task()
     while(1) {
         if (k_msgq_num_used_get(&msgq_rx_msg)) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
-            k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
-            if (is_empty_msg(rx_buf_proc, MESSAGE_LEN_IN_BYTES)) {
-                LOG_DBG("Empty message");
-                continue;
-            }
 
             /**
              * Processing receive data
@@ -213,12 +199,6 @@ _Noreturn void base_station_proc_task()
                             // TODO: On signalization, calculate workers_safe_zone
                             k_work_submit(&work_buzzer);
                             k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_CONTINUOUS);
-//                            buzzer_mode.continuous = true;
-//                            k_mutex_unlock(&mut_buzzer_mode);
-                            // wait while work_buzzer is busy
-//                            while(k_work_busy_get(&work_buzzer)) {
-//                                k_sleep(K_MSEC(10));
-//                            }
                             msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio;
                             break;
 
@@ -281,6 +261,7 @@ _Noreturn void base_station_proc_task()
             if (msgq_cur_msg_tx_ptr)
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
 
+            k_msgq_get(&msgq_rssi, &rssi, K_MSEC(1));
             rssi_num = check_rssi(rssi);
             atomic_set(&status_ind.led_strip_state.status.con_status, rssi_num);
             atomic_set(&status_ind.led_strip_state.status.people_num, rx_msg_proc.workers_in_safe_zone);
@@ -292,7 +273,7 @@ _Noreturn void base_station_proc_task()
 }
 
 
-_Noreturn void base_station_modem_task()
+_Noreturn void base_station_modem_task(void)
 {
     /**
      * Lora config begin
@@ -339,9 +320,4 @@ static void periodic_timer_handler(struct k_timer* tim)
 /**
  * Function definition area end
  * */
-
-
-
-
-
-
+#endif

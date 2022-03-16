@@ -273,11 +273,17 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/drivers/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/drivers/CMakeFiles/rebuild_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/drivers/uwb/CMakeFiles/..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__uwb.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/drivers/uwb/CMakeFiles/edit_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/drivers/uwb/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/drivers/led_strip/CMakeFiles/..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__led_strip.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/drivers/led_strip/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/drivers/led_strip/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/subsys/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/subsys/CMakeFiles/rebuild_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/subsys/meshposition/CMakeFiles/..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__meshposition.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/subsys/meshposition/CMakeFiles/edit_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/subsys/meshposition/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/subsys/led_utils/CMakeFiles/..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__led_utils.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/subsys/led_utils/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/modules/rts-zephyr/subsys/led_utils/CMakeFiles/rebuild_cache.dir

@@ -2,20 +2,12 @@
 // Created by rts on 07.02.2022.
 //
 
-#include "lora_russia_railways_brigade_chief.h"
+#include "lora_russia_railways_common.h"
+
+#if CUR_DEVICE == BRIGADE_CHIEF
 
 #include <logging/log.h>
 LOG_MODULE_REGISTER(brigade_chief);
-
-
-/**
- * My threads ids begin
- * */
-extern const k_tid_t proc_task_id;
-extern const k_tid_t modem_task_id;
-/**
- * My threads ids end
- * */
 
 
 /**
@@ -164,12 +156,6 @@ _Noreturn void brigade_chief_proc_task(void)
     while(1) {
         if (k_msgq_num_used_get(&msgq_rx_msg)) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
-            k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
-            if (is_empty_msg(rx_buf_proc, MESSAGE_LEN_IN_BYTES)) {
-                LOG_DBG("Empty message");
-                k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
-                continue;
-            }
 
             /**
              * Processing receive data
@@ -257,8 +243,6 @@ _Noreturn void brigade_chief_proc_task(void)
 
                                 k_work_submit(&work_buzzer);
                                 k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_DING_DONG);
-//                                buzzer_mode.ding_dong = true;
-//                                while(k_work_busy_get(&work_buzzer));
                             }
                             msgq_cur_msg_tx_ptr = NULL;
                             break;
@@ -279,8 +263,6 @@ _Noreturn void brigade_chief_proc_task(void)
                                 strip_ind = &msg_recv_ind;
                                 k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
-//                                buzzer_mode.ding_dong = true;
-//                                while(k_work_busy_get(&work_buzzer));
                                 k_work_submit(&work_buzzer);
                                 k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_DING_DONG);
                             }
@@ -293,10 +275,6 @@ _Noreturn void brigade_chief_proc_task(void)
                                 strip_ind = &msg_recv_ind;
                                 k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
 
-//                                buzzer_mode.ding_dong = true;
-//                                while(k_work_busy_get(&work_buzzer)) {
-//                                    k_sleep(K_MSEC(10));
-//                                }
                                 k_work_submit(&work_buzzer);
                                 k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_DING_DONG);
                             }
@@ -319,6 +297,7 @@ _Noreturn void brigade_chief_proc_task(void)
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
             }
 
+            k_msgq_get(&msgq_rssi, &rssi, K_MSEC(1));
             rssi_num = check_rssi(rssi);
             atomic_set(&status_ind.led_strip_state.status.con_status, rssi_num);
             atomic_set(&status_ind.led_strip_state.status.people_num, rx_msg_proc.workers_in_safe_zone);
@@ -363,7 +342,7 @@ _Noreturn void brigade_chief_modem_task(void)
     /**
      * Receive starting sync message begin
      * */
-    lora_recv_async(lora_dev_ptr, lora_receive_cb);
+    lora_recv_async(lora_dev_ptr, lora_receive_cb, lora_receive_error_timeout);
     /**
      * Receive starting sync message end
      * */
@@ -427,13 +406,14 @@ static void periodic_timer_handler(struct k_timer *tim)
         indicate_cnt++;
     }
 
-    if (cnt == (SYNC_COUNT+CURRENT_DEVICE_NUM)) {
-        k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
-        cnt = 0;
-    }
+//    if (cnt == (SYNC_COUNT+CURRENT_DEVICE_NUM)) {
+//        k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
+//        cnt = 0;
+//    }
     cnt++;
     k_wakeup(modem_task_id);
 }
 /**
  * Function definition area end
  * */
+#endif

@@ -2,7 +2,7 @@
 	"artifacts" : 
 	[
 		{
-			"path" : "zephyr/zephyr.elf"
+			"path" : "zephyr/zephyr_pre0.elf"
 		}
 	],
 	"backtrace" : 1,
@@ -13,8 +13,7 @@
 			"add_executable",
 			"target_link_libraries",
 			"toolchain_ld_link_elf",
-			"add_dependencies",
-			"add_custom_command"
+			"add_dependencies"
 		],
 		"files" : 
 		[
@@ -29,13 +28,13 @@
 			{
 				"command" : 0,
 				"file" : 0,
-				"line" : 1341,
+				"line" : 1075,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 1342,
+				"line" : 1076,
 				"parent" : 0
 			},
 			{
@@ -45,33 +44,15 @@
 				"parent" : 2
 			},
 			{
-				"command" : 1,
-				"file" : 0,
-				"line" : 1383,
-				"parent" : 0
-			},
-			{
 				"command" : 3,
 				"file" : 0,
 				"line" : 737,
 				"parent" : 0
 			},
 			{
-				"command" : 4,
-				"file" : 0,
-				"line" : 807,
-				"parent" : 0
-			},
-			{
-				"command" : 4,
-				"file" : 0,
-				"line" : 1108,
-				"parent" : 0
-			},
-			{
 				"command" : 3,
 				"file" : 0,
-				"line" : 1351,
+				"line" : 1088,
 				"parent" : 0
 			}
 		]
@@ -323,9 +304,7 @@
 			"language" : "C",
 			"sourceIndexes" : 
 			[
-				0,
-				1,
-				2
+				0
 			]
 		}
 	],
@@ -340,31 +319,24 @@
 			"id" : "zephyr::@d36e55b69c1b90fb26b2"
 		},
 		{
-			"backtrace" : 5,
+			"backtrace" : 4,
 			"id" : "syscall_list_h_target::@d36e55b69c1b90fb26b2"
 		},
 		{
-			"backtrace" : 5,
+			"backtrace" : 4,
 			"id" : "driver_validation_h_target::@d36e55b69c1b90fb26b2"
 		},
 		{
-			"backtrace" : 5,
+			"backtrace" : 4,
 			"id" : "kobj_types_h_target::@d36e55b69c1b90fb26b2"
 		},
 		{
+			"backtrace" : 5,
 			"id" : "offsets::@d36e55b69c1b90fb26b2"
 		},
 		{
-			"backtrace" : 6,
-			"id" : "zephyr_pre0::@d36e55b69c1b90fb26b2"
-		},
-		{
-			"backtrace" : 7,
-			"id" : "zephyr_pre1::@d36e55b69c1b90fb26b2"
-		},
-		{
-			"backtrace" : 8,
-			"id" : "linker_zephyr_final_script_target::@d36e55b69c1b90fb26b2"
+			"backtrace" : 5,
+			"id" : "linker_zephyr_pre0_script::@d36e55b69c1b90fb26b2"
 		},
 		{
 			"backtrace" : 3,
@@ -444,7 +416,15 @@
 		},
 		{
 			"backtrace" : 3,
+			"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__uwb::@58581631158f7ee21125"
+		},
+		{
+			"backtrace" : 3,
 			"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__led_strip::@f523609f88a538216f08"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__meshposition::@6c515ab669537e91021e"
 		},
 		{
 			"backtrace" : 3,
@@ -455,7 +435,7 @@
 			"id" : "kernel::@84e783bf488a9f887759"
 		}
 	],
-	"id" : "zephyr_final::@d36e55b69c1b90fb26b2",
+	"id" : "zephyr_pre0::@d36e55b69c1b90fb26b2",
 	"link" : 
 	{
 		"commandFragments" : 
@@ -481,12 +461,12 @@
 			},
 			{
 				"backtrace" : 3,
-				"fragment" : "zephyr/linker.cmd",
+				"fragment" : "zephyr/linker_zephyr_pre0.cmd",
 				"role" : "libraries"
 			},
 			{
 				"backtrace" : 3,
-				"fragment" : "-Wl,-Map=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/zephyr_final.map",
+				"fragment" : "-Wl,-Map=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app/cmake-build-debug/zephyr/zephyr_pre0.map",
 				"role" : "libraries"
 			},
 			{
@@ -596,7 +576,17 @@
 			},
 			{
 				"backtrace" : 3,
+				"fragment" : "modules/rts-zephyr/drivers/uwb/lib..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__uwb.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
 				"fragment" : "modules/rts-zephyr/drivers/led_strip/lib..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__led_strip.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "modules/rts-zephyr/subsys/meshposition/lib..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__meshposition.a",
 				"role" : "libraries"
 			},
 			{
@@ -627,11 +617,6 @@
 			{
 				"backtrace" : 3,
 				"fragment" : "-lgcc",
-				"role" : "libraries"
-			},
-			{
-				"backtrace" : 4,
-				"fragment" : "-Wl,--print-memory-usage",
 				"role" : "libraries"
 			},
 			{
@@ -735,10 +720,10 @@
 				"role" : "libraries"
 			}
 		],
-		"language" : "C"
+		"language" : "CXX"
 	},
-	"name" : "zephyr_final",
-	"nameOnDisk" : "zephyr.elf",
+	"name" : "zephyr_pre0",
+	"nameOnDisk" : "zephyr_pre0.elf",
 	"paths" : 
 	{
 		"build" : "zephyr",
@@ -750,17 +735,7 @@
 			"name" : "Source Files",
 			"sourceIndexes" : 
 			[
-				0,
-				1,
-				2
-			]
-		},
-		{
-			"name" : "CMake Rules",
-			"sourceIndexes" : 
-			[
-				3,
-				4
+				0
 			]
 		}
 	],
@@ -771,32 +746,6 @@
 			"compileGroupIndex" : 0,
 			"path" : "/home/rts/zephyr-rts-master/zephyr/misc/empty_file.c",
 			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 0,
-			"isGenerated" : true,
-			"path" : "cmake-build-debug/zephyr/dev_handles.c",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 1,
-			"compileGroupIndex" : 0,
-			"isGenerated" : true,
-			"path" : "cmake-build-debug/zephyr/isr_tables.c",
-			"sourceGroupIndex" : 0
-		},
-		{
-			"backtrace" : 0,
-			"isGenerated" : true,
-			"path" : "cmake-build-debug/zephyr/dev_handles.c.rule",
-			"sourceGroupIndex" : 1
-		},
-		{
-			"backtrace" : 0,
-			"isGenerated" : true,
-			"path" : "cmake-build-debug/zephyr/isr_tables.c.rule",
-			"sourceGroupIndex" : 1
 		}
 	],
 	"type" : "EXECUTABLE"

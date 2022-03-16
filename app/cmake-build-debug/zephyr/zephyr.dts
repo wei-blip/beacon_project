@@ -190,7 +190,7 @@
 			can1_rx_pa11: can1_rx_pa11 {
 				pinmux = < 0x169 >;
 				bias-pull-up;
-				phandle = < 0x12 >;
+				phandle = < 0x16 >;
 			};
 			can1_rx_pb5: can1_rx_pb5 {
 				pinmux = < 0x2a3 >;
@@ -206,7 +206,7 @@
 			};
 			can1_tx_pa12: can1_tx_pa12 {
 				pinmux = < 0x189 >;
-				phandle = < 0x13 >;
+				phandle = < 0x17 >;
 			};
 			can1_tx_pb6: can1_tx_pb6 {
 				pinmux = < 0x2c8 >;
@@ -420,6 +420,7 @@
 			spi2_miso_pb14: spi2_miso_pb14 {
 				pinmux = < 0x3c5 >;
 				bias-pull-down;
+				phandle = < 0x13 >;
 			};
 			spi2_miso_pc2: spi2_miso_pc2 {
 				pinmux = < 0x445 >;
@@ -449,6 +450,7 @@
 			spi2_mosi_pb15: spi2_mosi_pb15 {
 				pinmux = < 0x3e5 >;
 				bias-pull-down;
+				phandle = < 0x14 >;
 			};
 			spi2_mosi_pc3: spi2_mosi_pc3 {
 				pinmux = < 0x465 >;
@@ -515,6 +517,7 @@
 				pinmux = < 0x3a5 >;
 				bias-pull-down;
 				slew-rate = "very-high-speed";
+				phandle = < 0x12 >;
 			};
 			spi3_sck_pb3: spi3_sck_pb3 {
 				pinmux = < 0x266 >;
@@ -963,7 +966,7 @@
 				#pwm-cells = < 0x3 >;
 				pinctrl-0 = < &tim2_ch1_pa0 &tim2_ch2_pa1 >;
 				pinctrl-names = "default";
-				phandle = < 0x16 >;
+				phandle = < 0x19 >;
 			};
 		};
 		timers6: timers@40001000 {
@@ -1118,8 +1121,21 @@
 			reg = < 0x40003800 0x400 >;
 			clocks = < &rcc 0x2 0x4000 >;
 			interrupts = < 0x24 0x5 >;
-			status = "disabled";
+			status = "okay";
 			label = "SPI_2";
+			pinctrl-0 = < &spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15 >;
+			pinctrl-names = "default";
+			cs-gpios = < &gpioc 0x4 0x11 >;
+			uwb: dw1000@0 {
+				compatible = "decawave,dw1000";
+				reg = < 0x0 >;
+				label = "DW1000";
+				spi-max-frequency = < 0x7a1200 >;
+				reset-gpios = < &gpioa 0x8 0x1 >;
+				int-gpios = < &gpiob 0xa 0x20 >;
+				tx-ant-delay = < 0x4042 >;
+				rx-ant-delay = < 0x4042 >;
+			};
 		};
 		spi3: spi@40003c00 {
 			compatible = "st,stm32-spi-fifo", "st,stm32-spi";
@@ -1212,7 +1228,7 @@
 			compatible = "fixed-clock";
 			clock-frequency = < 0xf42400 >;
 			status = "okay";
-			phandle = < 0x14 >;
+			phandle = < 0x18 >;
 		};
 		clk_msi: clk-msi {
 			#clock-cells = < 0x0 >;

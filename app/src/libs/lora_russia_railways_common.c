@@ -141,9 +141,11 @@ const modem_state_t transmit_state = {
 };
 
 modem_state_t current_state = {0};
+atomic_t reconfig_modem = ATOMIC_INIT(0);
 
 struct message_s tx_msg = {0};
 
+/*TODO: Change buffer length*/
 uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 
@@ -237,14 +239,6 @@ void work_button_pressed_handler(struct k_work *item)
     if (short_pressed_is_set) {
         k_work_submit(&work_buzzer);
         k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_SINGLE);
-//        if (!k_mutex_lock(&mut_buzzer_mode, K_USEC(500))) {
-//            buzzer_mode.single = true;
-//            k_mutex_unlock(&mut_buzzer_mode);
-//            while(k_work_busy_get(&work_buzzer)) {
-//                K_MSEC(10);
-//            }
-//            k_work_submit(&work_buzzer);
-//        }
     }
 
     /* Do action */
@@ -309,6 +303,7 @@ void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int
      * SENDER_ADDR = BASE_STATION, RECV_ADDR = BROADCAST, MESSAGE_TYPE = SYNC  */
     static struct k_spinlock spin;
     static k_spinlock_key_t key;
+    volatile uint16_t len = size;
     key = k_spin_lock(&spin);
     if ((*data) == 13) {
         LOG_DBG(" REQUEST");
@@ -318,8 +313,29 @@ void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int
         k_sleep(K_MSEC(DELAY_TIME_MSEC));
         k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC), K_MSEC(PERIOD_TIME_MSEC));
     }
+
+    if (is_empty_msg(data, size)) {
+        LOG_DBG("Empty message");
+        atomic_set(&reconfig_modem, 1);
+        k_spin_unlock(&spin, key);
+        return;
+    }
     k_msgq_put(&msgq_rx_msg, data, K_NO_WAIT);
     k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
+    k_spin_unlock(&spin, key);
+}
+
+
+void lora_receive_error_timeout(void)
+{
+    static struct k_spinlock spin;
+    static k_spinlock_key_t key;
+    key = k_spin_lock(&spin);
+
+    /* Restart receive */
+    lora_recv_async(lora_dev_ptr, NULL, NULL);
+    lora_recv_async(lora_dev_ptr, lora_receive_cb, lora_receive_error_timeout);
+
     k_spin_unlock(&spin, key);
 }
 

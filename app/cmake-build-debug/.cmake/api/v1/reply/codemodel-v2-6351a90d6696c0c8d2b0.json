@@ -19,21 +19,21 @@
 					"source" : ".",
 					"targetIndexes" : 
 					[
-						3,
-						8,
+						5,
 						10,
 						12,
-						13,
 						14,
 						15,
-						18,
-						32,
-						33,
-						39,
-						44,
-						48,
-						52,
-						63
+						16,
+						17,
+						20,
+						34,
+						35,
+						41,
+						46,
+						50,
+						54,
+						65
 					]
 				},
 				{
@@ -90,10 +90,10 @@
 						108,
 						109,
 						110,
-						115,
-						116,
 						117,
-						118
+						118,
+						119,
+						120
 					],
 					"jsonFile" : "directory-zephyr-Debug-172679a89ac64102f083.json",
 					"minimumCMakeVersion" : 
@@ -105,22 +105,22 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr",
 					"targetIndexes" : 
 					[
-						19,
-						36,
-						40,
-						41,
+						21,
+						38,
 						42,
-						45,
-						46,
+						43,
+						44,
 						47,
-						51,
-						55,
+						48,
+						49,
+						53,
 						57,
-						58,
 						59,
 						60,
 						61,
-						62
+						62,
+						63,
+						64
 					]
 				},
 				{
@@ -151,8 +151,8 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/arch/common",
 					"targetIndexes" : 
 					[
-						7,
-						34
+						9,
+						36
 					]
 				},
 				{
@@ -187,7 +187,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/arch/arm/core/aarch32",
 					"targetIndexes" : 
 					[
-						4
+						6
 					]
 				},
 				{
@@ -202,7 +202,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/arch/arm/core/aarch32/cortex_m",
 					"targetIndexes" : 
 					[
-						5
+						7
 					]
 				},
 				{
@@ -217,7 +217,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/arch/arm/core/aarch32/mpu",
 					"targetIndexes" : 
 					[
-						6
+						8
 					]
 				},
 				{
@@ -266,7 +266,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/lib/libc/newlib",
 					"targetIndexes" : 
 					[
-						37
+						39
 					]
 				},
 				{
@@ -281,7 +281,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/lib/posix",
 					"targetIndexes" : 
 					[
-						38
+						40
 					]
 				},
 				{
@@ -345,7 +345,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/soc/arm/common/cortex_m",
 					"targetIndexes" : 
 					[
-						54
+						56
 					]
 				},
 				{
@@ -671,7 +671,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/interrupt_controller",
 					"targetIndexes" : 
 					[
-						23
+						25
 					]
 				},
 				{
@@ -730,7 +730,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/clock_control",
 					"targetIndexes" : 
 					[
-						20
+						22
 					]
 				},
 				{
@@ -745,7 +745,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/console",
 					"targetIndexes" : 
 					[
-						21
+						23
 					]
 				},
 				{
@@ -760,7 +760,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/gpio",
 					"targetIndexes" : 
 					[
-						22
+						24
 					]
 				},
 				{
@@ -775,7 +775,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/led_strip",
 					"targetIndexes" : 
 					[
-						24
+						26
 					]
 				},
 				{
@@ -790,7 +790,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/pwm",
 					"targetIndexes" : 
 					[
-						26
+						28
 					]
 				},
 				{
@@ -805,7 +805,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/spi",
 					"targetIndexes" : 
 					[
-						28
+						30
 					]
 				},
 				{
@@ -820,7 +820,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/lora",
 					"targetIndexes" : 
 					[
-						43
+						45
 					]
 				},
 				{
@@ -835,7 +835,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/serial",
 					"targetIndexes" : 
 					[
-						27
+						29
 					]
 				},
 				{
@@ -850,7 +850,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/timer",
 					"targetIndexes" : 
 					[
-						29
+						31
 					]
 				},
 				{
@@ -865,7 +865,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/drivers/pinctrl",
 					"targetIndexes" : 
 					[
-						25
+						27
 					]
 				},
 				{
@@ -1213,7 +1213,7 @@
 					"source" : "/home/rts/zephyr-rts-master/modules/hal/stm32/stm32cube",
 					"targetIndexes" : 
 					[
-						2
+						4
 					]
 				},
 				{
@@ -1515,7 +1515,7 @@
 					"childIndexes" : 
 					[
 						111,
-						113
+						114
 					],
 					"jsonFile" : "directory-modules.rts-zephyr-Debug-08098d33287ac3e95a16.json",
 					"minimumCMakeVersion" : 
@@ -1530,7 +1530,8 @@
 					"build" : "modules/rts-zephyr/drivers",
 					"childIndexes" : 
 					[
-						112
+						112,
+						113
 					],
 					"jsonFile" : "directory-modules.rts-zephyr.drivers-Debug-ec3ba57f765b624ba7cf.json",
 					"minimumCMakeVersion" : 
@@ -1540,6 +1541,21 @@
 					"parentIndex" : 110,
 					"projectIndex" : 1,
 					"source" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/drivers"
+				},
+				{
+					"build" : "modules/rts-zephyr/drivers/uwb",
+					"jsonFile" : "directory-modules.rts-zephyr.drivers.uwb-Debug-cdfce085dbdecb39959e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.20.0"
+					},
+					"parentIndex" : 111,
+					"projectIndex" : 1,
+					"source" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/drivers/uwb",
+					"targetIndexes" : 
+					[
+						1
+					]
 				},
 				{
 					"build" : "modules/rts-zephyr/drivers/led_strip",
@@ -1560,7 +1576,8 @@
 					"build" : "modules/rts-zephyr/subsys",
 					"childIndexes" : 
 					[
-						114
+						115,
+						116
 					],
 					"jsonFile" : "directory-modules.rts-zephyr.subsys-Debug-8607877e79a3370dbcd0.json",
 					"minimumCMakeVersion" : 
@@ -1572,18 +1589,33 @@
 					"source" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/subsys"
 				},
 				{
+					"build" : "modules/rts-zephyr/subsys/meshposition",
+					"jsonFile" : "directory-modules.rts-zephyr.subsys.meshposition-Debug-ba648007866f35c3ae2a.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.20.0"
+					},
+					"parentIndex" : 114,
+					"projectIndex" : 1,
+					"source" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/subsys/meshposition",
+					"targetIndexes" : 
+					[
+						3
+					]
+				},
+				{
 					"build" : "modules/rts-zephyr/subsys/led_utils",
 					"jsonFile" : "directory-modules.rts-zephyr.subsys.led_utils-Debug-0a5444e451c8a6283037.json",
 					"minimumCMakeVersion" : 
 					{
 						"string" : "3.20.0"
 					},
-					"parentIndex" : 113,
+					"parentIndex" : 114,
 					"projectIndex" : 1,
 					"source" : "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/subsys/led_utils",
 					"targetIndexes" : 
 					[
-						1
+						2
 					]
 				},
 				{
@@ -1598,7 +1630,7 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/kernel",
 					"targetIndexes" : 
 					[
-						35
+						37
 					]
 				},
 				{
@@ -1613,10 +1645,10 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/cmake/flash",
 					"targetIndexes" : 
 					[
-						9,
-						16,
-						17,
-						30
+						11,
+						18,
+						19,
+						32
 					]
 				},
 				{
@@ -1631,9 +1663,9 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/cmake/usage",
 					"targetIndexes" : 
 					[
-						11,
-						53,
-						56
+						13,
+						55,
+						58
 					]
 				},
 				{
@@ -1648,9 +1680,9 @@
 					"source" : "/home/rts/zephyr-rts-master/zephyr/cmake/reports",
 					"targetIndexes" : 
 					[
-						31,
-						49,
-						50
+						33,
+						51,
+						52
 					]
 				}
 			],
@@ -1669,21 +1701,21 @@
 					"name" : "lora_russia_railways",
 					"targetIndexes" : 
 					[
-						3,
-						8,
+						5,
 						10,
 						12,
-						13,
 						14,
 						15,
-						18,
-						32,
-						33,
-						39,
-						44,
-						48,
-						52,
-						63
+						16,
+						17,
+						20,
+						34,
+						35,
+						41,
+						46,
+						50,
+						54,
+						65
 					]
 				},
 				{
@@ -1809,7 +1841,9 @@
 						115,
 						116,
 						117,
-						118
+						118,
+						119,
+						120
 					],
 					"name" : "Zephyr-Kernel",
 					"parentIndex" : 0,
@@ -1818,16 +1852,16 @@
 						0,
 						1,
 						2,
+						3,
 						4,
-						5,
 						6,
 						7,
+						8,
 						9,
 						11,
-						16,
-						17,
+						13,
+						18,
 						19,
-						20,
 						21,
 						22,
 						23,
@@ -1839,23 +1873,23 @@
 						29,
 						30,
 						31,
-						34,
-						35,
+						32,
+						33,
 						36,
 						37,
 						38,
+						39,
 						40,
-						41,
 						42,
 						43,
+						44,
 						45,
-						46,
 						47,
+						48,
 						49,
-						50,
 						51,
+						52,
 						53,
-						54,
 						55,
 						56,
 						57,
@@ -1863,7 +1897,9 @@
 						59,
 						60,
 						61,
-						62
+						62,
+						63,
+						64
 					]
 				},
 				{
@@ -1878,17 +1914,31 @@
 			"targets" : 
 			[
 				{
-					"directoryIndex" : 112,
+					"directoryIndex" : 113,
 					"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__led_strip::@f523609f88a538216f08",
 					"jsonFile" : "target-..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__led_strip-Debug-f7ba3a33142f44276484.json",
 					"name" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__led_strip",
 					"projectIndex" : 1
 				},
 				{
-					"directoryIndex" : 114,
+					"directoryIndex" : 112,
+					"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__uwb::@58581631158f7ee21125",
+					"jsonFile" : "target-..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__uwb-Debug-ae761104cfc32e725d1e.json",
+					"name" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__uwb",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 116,
 					"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__led_utils::@1e41730e1b3aae174fac",
 					"jsonFile" : "target-..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__led_utils-Debug-c2d360fe8a87e5683623.json",
 					"name" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__led_utils",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 115,
+					"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__meshposition::@6c515ab669537e91021e",
+					"jsonFile" : "target-..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__meshposition-Debug-a38cffea4ee2f652928b.json",
+					"name" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__meshposition",
 					"projectIndex" : 1
 				},
 				{
@@ -1901,7 +1951,7 @@
 				{
 					"directoryIndex" : 0,
 					"id" : "app::@6890427a1f51a3e7e1df",
-					"jsonFile" : "target-app-Debug-20116b5622914ea9b349.json",
+					"jsonFile" : "target-app-Debug-91ccabcea2058ec77740.json",
 					"name" : "app",
 					"projectIndex" : 0
 				},
@@ -1941,7 +1991,7 @@
 					"projectIndex" : 0
 				},
 				{
-					"directoryIndex" : 116,
+					"directoryIndex" : 118,
 					"id" : "attach::@a247f7a48b0aa9995de3",
 					"jsonFile" : "target-attach-Debug-46e923298a421d98bb12.json",
 					"name" : "attach",
@@ -1955,7 +2005,7 @@
 					"projectIndex" : 0
 				},
 				{
-					"directoryIndex" : 117,
+					"directoryIndex" : 119,
 					"id" : "boards::@94b61706647a07df483a",
 					"jsonFile" : "target-boards-Debug-bd3a61de8847feb1d2cb.json",
 					"name" : "boards",
@@ -1990,14 +2040,14 @@
 					"projectIndex" : 0
 				},
 				{
-					"directoryIndex" : 116,
+					"directoryIndex" : 118,
 					"id" : "debug::@a247f7a48b0aa9995de3",
 					"jsonFile" : "target-debug-Debug-054c8476e6e9663e4b76.json",
 					"name" : "debug",
 					"projectIndex" : 1
 				},
 				{
-					"directoryIndex" : 116,
+					"directoryIndex" : 118,
 					"id" : "debugserver::@a247f7a48b0aa9995de3",
 					"jsonFile" : "target-debugserver-Debug-e726f7b43682b7ba8fd8.json",
 					"name" : "debugserver",
@@ -2088,14 +2138,14 @@
 					"projectIndex" : 1
 				},
 				{
-					"directoryIndex" : 116,
+					"directoryIndex" : 118,
 					"id" : "flash::@a247f7a48b0aa9995de3",
 					"jsonFile" : "target-flash-Debug-b4747c4674323981f7b3.json",
 					"name" : "flash",
 					"projectIndex" : 1
 				},
 				{
-					"directoryIndex" : 118,
+					"directoryIndex" : 120,
 					"id" : "footprint::@ca7f08113abe6c9ed8d3",
 					"jsonFile" : "target-footprint-Debug-6ba6652446897b64fc8a.json",
 					"name" : "footprint",
@@ -2123,7 +2173,7 @@
 					"projectIndex" : 1
 				},
 				{
-					"directoryIndex" : 115,
+					"directoryIndex" : 117,
 					"id" : "kernel::@84e783bf488a9f887759",
 					"jsonFile" : "target-kernel-Debug-1252807b1b91246b35b3.json",
 					"name" : "kernel",
@@ -2221,14 +2271,14 @@
 					"projectIndex" : 0
 				},
 				{
-					"directoryIndex" : 118,
+					"directoryIndex" : 120,
 					"id" : "ram_report::@ca7f08113abe6c9ed8d3",
 					"jsonFile" : "target-ram_report-Debug-70b82952374c00ec5398.json",
 					"name" : "ram_report",
 					"projectIndex" : 1
 				},
 				{
-					"directoryIndex" : 118,
+					"directoryIndex" : 120,
 					"id" : "rom_report::@ca7f08113abe6c9ed8d3",
 					"jsonFile" : "target-rom_report-Debug-ff4e4a63184eda4b1449.json",
 					"name" : "rom_report",
@@ -2249,7 +2299,7 @@
 					"projectIndex" : 0
 				},
 				{
-					"directoryIndex" : 117,
+					"directoryIndex" : 119,
 					"id" : "shields::@94b61706647a07df483a",
 					"jsonFile" : "target-shields-Debug-314b057171a97b1f9585.json",
 					"name" : "shields",
@@ -2270,7 +2320,7 @@
 					"projectIndex" : 1
 				},
 				{
-					"directoryIndex" : 117,
+					"directoryIndex" : 119,
 					"id" : "usage::@94b61706647a07df483a",
 					"jsonFile" : "target-usage-Debug-97250459a2b93295a56c.json",
 					"name" : "usage",
@@ -2293,7 +2343,7 @@
 				{
 					"directoryIndex" : 1,
 					"id" : "zephyr_final::@d36e55b69c1b90fb26b2",
-					"jsonFile" : "target-zephyr_final-Debug-001cfd60d4caa109e2e1.json",
+					"jsonFile" : "target-zephyr_final-Debug-e5d3d6006afc5d5f7bb6.json",
 					"name" : "zephyr_final",
 					"projectIndex" : 1
 				},
@@ -2307,14 +2357,14 @@
 				{
 					"directoryIndex" : 1,
 					"id" : "zephyr_pre0::@d36e55b69c1b90fb26b2",
-					"jsonFile" : "target-zephyr_pre0-Debug-bd8513501f9ef645af4e.json",
+					"jsonFile" : "target-zephyr_pre0-Debug-e2b841a567067beabff9.json",
 					"name" : "zephyr_pre0",
 					"projectIndex" : 1
 				},
 				{
 					"directoryIndex" : 1,
 					"id" : "zephyr_pre1::@d36e55b69c1b90fb26b2",
-					"jsonFile" : "target-zephyr_pre1-Debug-4523e6a6e124b81c1633.json",
+					"jsonFile" : "target-zephyr_pre1-Debug-207b4a8b5c48011c1011.json",
 					"name" : "zephyr_pre1",
 					"projectIndex" : 1
 				},

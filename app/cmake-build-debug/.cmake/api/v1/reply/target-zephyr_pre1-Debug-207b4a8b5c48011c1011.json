@@ -428,7 +428,15 @@
 		},
 		{
 			"backtrace" : 3,
+			"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__uwb::@58581631158f7ee21125"
+		},
+		{
+			"backtrace" : 3,
 			"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__led_strip::@f523609f88a538216f08"
+		},
+		{
+			"backtrace" : 3,
+			"id" : "..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__meshposition::@6c515ab669537e91021e"
 		},
 		{
 			"backtrace" : 3,
@@ -580,7 +588,17 @@
 			},
 			{
 				"backtrace" : 3,
+				"fragment" : "modules/rts-zephyr/drivers/uwb/lib..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__uwb.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
 				"fragment" : "modules/rts-zephyr/drivers/led_strip/lib..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__drivers__led_strip.a",
+				"role" : "libraries"
+			},
+			{
+				"backtrace" : 3,
+				"fragment" : "modules/rts-zephyr/subsys/meshposition/lib..__..__tmp__projects__beacon_project_rzd__lora_russia_railways__modules__rts-zephyr__subsys__meshposition.a",
 				"role" : "libraries"
 			},
 			{
@@ -714,7 +732,7 @@
 				"role" : "libraries"
 			}
 		],
-		"language" : "C"
+		"language" : "CXX"
 	},
 	"name" : "zephyr_pre1",
 	"nameOnDisk" : "zephyr_pre1.elf",

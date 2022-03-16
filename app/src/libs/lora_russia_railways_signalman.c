@@ -1,22 +1,13 @@
 //
 // Created by rts on 21.01.2022.
 //
-#include "lora_russia_railways_signalman.h"
-#include <drivers/gpio.h>
+#include "lora_russia_railways_common.h"
+#if CUR_DEVICE == SIGNALMAN
 
 #include <logging/log.h>
     LOG_MODULE_REGISTER(signalman);
 
 atomic_t anti_dream_active = ATOMIC_INIT(0);
-
-/**
- * My threads ids area begin
- * */
-extern const k_tid_t proc_task_id;
-extern const k_tid_t modem_task_id;
-/**
- * My threads ids area end
- * */
 
 
 /**
@@ -176,12 +167,6 @@ _Noreturn void signalman_proc_task()
     while(1) {
         if (k_msgq_num_used_get(&msgq_rx_msg)) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
-            k_msgq_get(&msgq_rssi, &rssi, K_NO_WAIT);
-            if (is_empty_msg(rx_buf_proc, MESSAGE_LEN_IN_BYTES)) {
-                LOG_DBG("Empty message");
-                k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
-                continue;
-            }
 
             /**
              * Processing receive data
@@ -334,6 +319,7 @@ _Noreturn void signalman_proc_task()
             if (msgq_cur_msg_tx_ptr)
                 k_msgq_put(msgq_cur_msg_tx_ptr, &tx_msg_proc, K_NO_WAIT);
 
+            k_msgq_get(&msgq_rssi, &rssi, K_MSEC(1));
             rssi_num = check_rssi(rssi);
             atomic_set(&status_ind.led_strip_state.status.con_status, rssi_num);
             atomic_set(&status_ind.led_strip_state.status.people_num, rx_msg_proc.workers_in_safe_zone);
@@ -378,7 +364,7 @@ _Noreturn void signalman_modem_task()
     /**
      * Receive sync message begin
      * */
-    lora_recv_async(lora_dev_ptr, lora_receive_cb);
+    lora_recv_async(lora_dev_ptr, lora_receive_cb, lora_receive_error_timeout);
     /**
      * Receive sync message end
      * */
@@ -451,10 +437,11 @@ static void periodic_timer_handler(struct k_timer *tim)
 //        k_work_submit(&work_anti_dream);
 //        anti_dream_cnt = 0;
 //    }
-    if (cnt == (SYNC_COUNT+CURRENT_DEVICE_NUM)) {
-        k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
-        cnt = 0;
-    }
+
+//    if (cnt == (SYNC_COUNT+CURRENT_DEVICE_NUM)) {
+//        k_msgq_put(&msgq_tx_msg, &sync_msg, K_NO_WAIT);
+//        cnt = 0;
+//    }
     cnt++;
     anti_dream_cnt++;
     k_wakeup(modem_task_id);
@@ -490,3 +477,4 @@ static void work_anti_dream_handler(struct k_work *item)
 /**
  * Function definition area end
  * */
+#endif

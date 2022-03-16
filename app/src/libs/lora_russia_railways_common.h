@@ -14,6 +14,9 @@
 #include "message_format.h"
 #include "indication.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * Available devices begin
@@ -51,15 +54,39 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
  * Common peripheral settings area end
  * */
 
+/**
+ * My thread ids begin
+ * */
+extern const k_tid_t proc_task_id;
+extern const k_tid_t modem_task_id;
+/**
+ * My thread ids end
+ * */
 
 /**
  * Devices settings area begin
  * */
 #if CUR_DEVICE == BASE_STATION
+/**
+ * Base station thread functions begin
+ * */
+void base_station_proc_task(void);
+void base_station_modem_task(void);
+/**
+ * Base station thread functions end
+ * */
 
 #define CURRENT_DEVICE_NUM 0
 
 #elif CUR_DEVICE == SIGNALMAN
+/**
+ * Signalman thread functions begin
+ * */
+void signalman_proc_task(void);
+void signalman_modem_task(void);
+/**
+ * Signalman thread functions end
+ * */
 
 #define CURRENT_DEVICE_NUM 1
 
@@ -84,7 +111,19 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 //#error "Unsupported board: train_passed_sw alias is not defined"
 //#endif
 
+#define ANTI_DREAM_TIME_MIN 1
+#define ANTI_DREAM_START (anti_dream_cnt == 20)
+
 #elif CUR_DEVICE == BRIGADE_CHIEF
+/**
+ * Brigade chief thread functions begin
+ * */
+void brigade_chief_proc_task(void);
+void brigade_chief_modem_task(void);
+/**
+ * Brigade chief thread functions end
+ * */
+
 
 #define CURRENT_DEVICE_NUM 2
 
@@ -158,6 +197,10 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 #define LONG_PRESSED_MIN_VAL (MIDDLE_PRESSED_MAX_VAL+1) /* 2100 ms */
 
 extern atomic_t atomic_interval_count; /* Counted number of function button pressed call */
+extern atomic_t atomic_reg_irq1_dio0;
+extern atomic_t atomic_reg_irq2_dio0;
+extern atomic_t atomic_reg_irq1_dio1;
+extern atomic_t atomic_reg_irq2_dio1;
 
 /**
  * Enum, typedefs and structs area begin
@@ -236,6 +279,7 @@ extern const struct gpio_dt_spec button_train_passed;
  * */
 
 extern struct lora_modem_config lora_cfg;
+extern atomic_t reconfig_modem;
 
 extern const struct device *lora_dev_ptr;
 extern const struct device *buzzer_dev_ptr;
@@ -247,9 +291,6 @@ extern struct k_timer periodic_timer; /* For switching in tx mode */
 extern struct k_work work_buzzer; /* For signalisation */
 extern struct k_work work_button_pressed;
 
-//extern struct k_mutex mut_buzzer_mode; /* Block buzzer_mode */
-
-extern struct buzzer_mode_s buzzer_mode;
 extern struct k_poll_event event_buzzer;
 extern struct k_poll_signal signal_buzzer;
 
@@ -264,6 +305,7 @@ extern const modem_state_t recv_state;
 extern const modem_state_t transmit_state;
 extern modem_state_t current_state;
 
+/*TODO: Change buffer lenght*/
 extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
 extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
 
@@ -285,6 +327,8 @@ extern const struct led_strip_indicate_s msg_recv_ind;
  * */
 void work_buzzer_handler(struct k_work *item);
 void work_button_pressed_handler(struct k_work *item);
+
+void lora_receive_error_timeout(void);
 void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int16_t rssi, int8_t snr);
 /**
  * Function declaration area end
@@ -294,6 +338,20 @@ void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int
 /**
  * Function definition area begin
  * */
+static inline bool is_empty_msg(const uint8_t *buf, size_t len)
+{
+    uint8_t i = 0;
+    uint8_t cnt = 0;
+    while(i < len) {
+        if (!(*(buf + i))) {
+            cnt++;
+        }
+        i++;
+    }
+    return (cnt==len);
+}
+
+
 static inline uint8_t reverse(uint8_t input)
 {
     uint8_t output;
@@ -421,11 +479,17 @@ static inline int32_t modem_fun(void)
             cur_queue = &msgq_tx_msg;
         } else {
             /* Return 1 */
+            if (atomic_cas(&reconfig_modem, 1, 0)) {
+                lora_recv_async(lora_dev_ptr, NULL, NULL);
+                lora_cfg.tx = false;
+                lora_config(lora_dev_ptr, &lora_cfg);
+                lora_recv_async(lora_dev_ptr, lora_receive_cb, lora_receive_error_timeout);
+            }
             return rc;
         }
         key = k_spin_lock(&spin);
         /* Stop receiving */
-        lora_recv_async(lora_dev_ptr, NULL);
+        lora_recv_async(lora_dev_ptr, NULL, NULL);
 
         read_write_message(&new_msg, &tx_msg, true);
         for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
@@ -440,6 +504,7 @@ static inline int32_t modem_fun(void)
             return rc;
         }
 
+        /*TODO: Change MESSAGE_LEN_IN_BYTES*/
         rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
 
         if (!rc) {
@@ -448,7 +513,7 @@ static inline int32_t modem_fun(void)
             if (rc < 0) {
                 return rc;
             } else {
-                lora_recv_async(lora_dev_ptr, lora_receive_cb);
+                lora_recv_async(lora_dev_ptr, lora_receive_cb, lora_receive_error_timeout);
             }
         } else {
             k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
@@ -464,22 +529,12 @@ static inline int32_t modem_fun(void)
      * */
     return rc;
 }
-
-
-static inline bool is_empty_msg(const uint8_t *buf, size_t len)
-{
-    uint8_t i = 0;
-    uint8_t cnt = 0;
-    while(i < len) {
-        if (!(*(buf + i))) {
-            cnt++;
-        }
-        i++;
-    }
-    return (cnt==len);
-}
 /**
  * Function definition area end
  * */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //RADIO_SIGNALMAN_LORA_RUSSIA_RAILWAYS_COMMON_H

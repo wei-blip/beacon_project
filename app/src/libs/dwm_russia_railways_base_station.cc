@@ -1,6 +1,3 @@
-//
-// Created by rts on 14.03.2022.
-//
 /**
  * Copyright (c) 2019 - Frederic Mes, RTLOC
  * Copyright (c) 2015 - Decawave Ltd, Dublin, Ireland.
@@ -25,56 +22,45 @@
 
 #include <meshposition/meshposition.h>
 
-#include <drivers/uwb/dw1000.h>
 #include <drivers/uwb/deca_device_api.h>
 
-#include <cstdio>
 #include <cstring>
 
 // zephyr includes
 #include <zephyr.h>
 #include <sys/printk.h>
-#include <random/rand32.h>
 
-#include <string>
-#include <list>
-#include <map>
 #include <meshposition/json.hh>
 using json = nlohmann::json;
 
-#include <drivers/gpio.h>
-
-#include <logging/log.h>
-LOG_MODULE_REGISTER(dwm_workers, LOG_LEVEL_NONE);
-
 #include "dwm_russia_railways_base_station.h"
 
+#include <logging/log.h>
+LOG_MODULE_REGISTER(dwm_base_station, LOG_LEVEL_NONE);
 
-static bool armed = false;
+#define ZONE_INFO_IDLE 0
+#define ZONE_INFO_FILL 1
+#define ZONE_INFO_PROC 2
+#define ZONE_INFO_RST 3
+atomic_t atomic_zone_info_status = ATOMIC_INIT(ZONE_INFO_IDLE);
 
-#define LED_BLINK_MS 50
+K_MSGQ_DEFINE(msgq_zone_info, sizeof(uint8_t), 10, 1);
 
-#define CHECK_PERIOD_MS 2000
-#define NUMBER_OF_NODES 4
-#define MAX_RANGE_M 5.0
-#define NODE_TIMEOUT_MS 2000
-
-/* UWB microsecond (uus) to device time unit (dtu, around 15.65 ps)
- * conversion factor.
- * 1 uus = 512 / 499.2 usec and 1 usec = 499.2 * 128 dtu. */
-#define UUS_TO_DWT_TIME 65536
-
-#define POLL_RX_TO_RESP_TX_DLY_UUS 1000
-#define RESP_TX_TO_FINAL_RX_DLY_UUS 500
-
-/*rx twr_2_resp after tx twr_1_poll
- protected by responder's mp_request_at(twr_2_resp):POLL_RX_TO_RESP_TX_DLY_UUS
-*/
-#define POLL_TX_TO_RESP_RX_DLY_UUS 300
-#define RESP_RX_TO_FINAL_TX_DLY_UUS 1000
-
-/* Speed of light in air, in metres per second. */
-#define SPEED_OF_LIGHT 299702547.0
+/*
+ * Worker id and him distance to base station
+ * Worker id - map key;
+ * Distance to base station - map value
+ * */
+static std::map<worker_id_t, double> zone_info = {
+  {0, 0.0},
+  {1, 0.0},
+  {2, 0.0},
+  {3, 0.0},
+  {4, 0.0},
+  {5, 0.0},
+  {6, 0.0},
+  {7, 0.0}
+};
 
 struct node {
   double range;
@@ -83,59 +69,76 @@ struct node {
 
 static struct node nodes[NUMBER_OF_NODES] = {{0.0, 0}};
 
-int check_nodes() {
-    int64_t now = k_uptime_get();
-    printk("\033[2J\033[H");
-    int ret = 0;
-    for(int i = 0; i < NUMBER_OF_NODES; ++i) {
-        int64_t delta = now - nodes[i].last_seen;
-        if(nodes[i].range > MAX_RANGE_M) {
-            ret = 1;
-            printk("\033[93m");
-        }
-        if(delta > NODE_TIMEOUT_MS) {
-            ret = 1;
-            printk("\033[31m");
-        }
-        printk("%d: %3.2lf m, %lld ms ago\033[0m\n",
-               i, nodes[i].range, delta);
-    }
-//    for(auto & node : nodes) {
-//        if(node.range > MAX_RANGE_M ||
-//            (now - node.last_seen) > NODE_TIMEOUT_MS) {
-//            return 1;
-//        }
-//    }
-    return ret;
-}
-
-void update_node(unsigned number, double range) {
+void update_node(unsigned number, double range)
+{
     if (number < NUMBER_OF_NODES) {
         nodes[number].range = range;
         nodes[number].last_seen = k_uptime_get();
     }
 }
 
+void dwork_proc_handler(struct k_work *item)
+{
+    uint8_t cnt = 0;
+
+    /* Wait while zone_info_status will be set on ZONE_INFO_IDLE */
+    while (!atomic_cas(&atomic_zone_info_status, ZONE_INFO_IDLE, ZONE_INFO_PROC)) {
+        k_sleep(K_MSEC(10));
+    }
+
+    for (int key = 0; key < NUMBER_OF_NODES; ++key) {
+        if (zone_info.at(key) > SAFE_ZONE_LIMIT_METERS)
+            cnt++;
+    }
+
+    /* If queue is full then clean it  */
+    if (!k_msgq_num_free_get(&msgq_zone_info))
+        k_msgq_purge(&msgq_zone_info);
+
+    k_msgq_put(&msgq_zone_info, &cnt, K_NO_WAIT);
+    atomic_set(&atomic_zone_info_status, ZONE_INFO_IDLE);
+    k_work_reschedule(k_work_delayable_from_work(item), K_SECONDS(PROCESSING_INTERVAL_SEC));
+}
+
+void dwork_rst_handler(struct k_work *item)
+{
+    /* Wait while zone_info_status will be set on ZONE_INFO_IDLE */
+    while (!atomic_cas(&atomic_zone_info_status, ZONE_INFO_IDLE, ZONE_INFO_RST)) {
+        k_sleep(K_MSEC(10));
+    }
+
+    for (int key = 0; key < NUMBER_OF_NODES; ++key) {
+        zone_info.at(key) = 0.0;
+    }
+
+    atomic_set(&atomic_zone_info_status, ZONE_INFO_IDLE);
+    k_work_reschedule(k_work_delayable_from_work(item), K_SECONDS(CLEANING_INTERVAL_SEC));
+}
 
 static uint32_t reg;//force read status
 
 [[noreturn]] void base_station_dwm_task()
 {
     LOG_INF("responder_thread> starting");
-    char dist_str[30] = {'\0'};
+    struct k_work_delayable dwork_proc = {};
+//    struct k_work_delayable dwork_rst = {};
 
     mp_start();
 
-    k_yield();
     uint32_t sequence = 0;
+
+    k_work_init_delayable(&dwork_proc, dwork_proc_handler);
+//    k_work_init_delayable(&dwork_rst, dwork_rst_handler);
+
+    k_work_schedule(&dwork_proc, K_SECONDS(PROCESSING_INTERVAL_SEC));
+//    k_work_schedule(&dwork_rst, K_SECONDS(CLEANING_INTERVAL_SEC));
     while (true) {
         //APP_SET_CLEAR
         // - pulse1: 'request_at : start request resp_2 tx till sent' ;
         // - pulse2: 'receive : pending for receive final_3'
         // - pulse3: 'computing distance'
-        uint32_t reg1 = mp_get_status();
-        LOG_INF("responder> sequence(%u) starting ; statusreg = 0x%08x",
-                sequence,reg1);
+
+        double distance = 0.0;
         mp_rx_now();
         msg_header_t rx_poll_msg;
         if(mp_receive(msg_id_t::twr_1_poll,rx_poll_msg)){
@@ -152,7 +155,6 @@ static uint32_t reg;//force read status
                (uint8_t)(rx_poll_msg.header.sequence + 1),
                rx_poll_msg.header.dest , rx_poll_msg.header.source},0
             };
-
             if(mp_request_at((uint8_t*)&tx_resp_msg,
                              sizeof(msg_header_t), resp_tx_time)){
                 msg_twr_final_t final_msg;
@@ -177,18 +179,20 @@ static uint32_t reg;//force read status
                       ((Ra * Rb - Da * Db) / (Ra + Rb + Da + Db));
 
                     auto tof = (double) tof_dtu * DWT_TIME_UNITS;
-                    auto distance = tof * SPEED_OF_LIGHT;
+                    distance = (double) tof * SPEED_OF_LIGHT;
+
                     update_node(rx_poll_msg.header.source, distance);
-//                    sprintf(dist_str,
-//                            "responder> dist to tag %3u: %3.2lf m\n",
-//                            rx_poll_msg.header.source,
-//                            distance);
-//                    printk("%s", dist_str);
-                }else{
+
+                    if (atomic_cas(&atomic_zone_info_status, ZONE_INFO_IDLE, ZONE_INFO_FILL)) {
+                        zone_info.at(rx_poll_msg.header.source) = distance; /* Set distance value for current node*/
+                        atomic_set(&atomic_zone_info_status, ZONE_INFO_IDLE);
+                    }
+
+                } else {
                     LOG_WRN("mp_receive(twr_3_final) fail at rx frame %u",
                             rx_poll_msg.header.sequence);
                 }
-            }else{
+            } else {
                 LOG_WRN("mp_request_at(twr_2_resp) fail at rx frame %u",
                         rx_poll_msg.header.sequence);
             }
@@ -196,7 +200,7 @@ static uint32_t reg;//force read status
 
         uint32_t reg2 = mp_get_status();
         LOG_INF("responder> sequence(%u) over; statusreg = 0x%08x",
-                sequence,reg2);
+                sequence, reg2);
         sequence++;
     }
 }

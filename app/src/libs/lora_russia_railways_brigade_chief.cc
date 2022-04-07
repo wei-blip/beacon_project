@@ -51,13 +51,13 @@ static void periodic_timer_handler(struct k_timer *tim);
 /**
  * Function definition area begin
  * */
-void system_init(void)
+void system_init()
 {
     volatile int rc = -1;
     uint32_t new_msg = 0;
     int16_t rssi = 0;
     int8_t snr = 0;
-    struct led_strip_indicate_s *strip_ind = NULL;
+    struct led_strip_indicate_s *strip_ind = nullptr;
 
     /**
      * Buzzer init begin
@@ -117,7 +117,7 @@ void system_init(void)
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_button_pressed, work_button_pressed_handler);
 
-    k_timer_init(&periodic_timer, periodic_timer_handler, NULL);
+    k_timer_init(&periodic_timer, periodic_timer_handler, nullptr);
     /**
      * Kernel services init end
      * */
@@ -135,7 +135,6 @@ void system_init(void)
 
     current_state = recv_state;
 
-//    buzzer_mode.single = true;
     k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_SINGLE);
     k_work_submit(&work_buzzer);
 }
@@ -143,6 +142,7 @@ void system_init(void)
 
 [[noreturn]] void brigade_chief_proc_task(void)
 {
+    bool alarm_is_active = false;
     uint8_t rssi_num = 0;
     int16_t rssi = 0;
     uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
@@ -153,7 +153,7 @@ void system_init(void)
     struct led_strip_indicate_s *strip_ind = &status_ind;
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; /* Default queue */
 
-    while(1) {
+    while(true) {
         if (k_msgq_num_used_get(&msgq_rx_msg)) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
 
@@ -165,8 +165,8 @@ void system_init(void)
                 rx_buf_proc[i] = reverse(rx_buf_proc[i]);
                 cur_msg |= (rx_buf_proc[i]) << i*8;
             }
-//            LOG_DBG("Incoming packet...");
-            read_write_message(&cur_msg, &rx_msg_proc, false); // rx_msg struct is fill
+
+            read_write_message(&cur_msg, &rx_msg_proc, false);
             if ( (rx_msg_proc.receiver_addr != BROADCAST_ADDR) &&
                  (rx_msg_proc.receiver_addr != cur_dev_addr) ) {
                 LOG_DBG("addr = 0x%02x, own addr = 0x%02x", rx_msg_proc.receiver_addr, cur_dev_addr);
@@ -174,11 +174,10 @@ void system_init(void)
                 continue;
             }
 
-//            LOG_DBG("Message direction");
             switch (rx_msg_proc.direction) {
                 case REQUEST:
                     LOG_DBG(" REQUEST");
-//                    LOG_DBG("Message type:");
+                    LOG_DBG("Message type:");
 
                     tx_msg_proc.sender_addr = cur_dev_addr;
                     tx_msg_proc.message_type = rx_msg_proc.message_type;
@@ -188,16 +187,11 @@ void system_init(void)
                     tx_msg_proc.receiver_addr = BASE_STATION_ADDR;
 
                     switch (rx_msg_proc.message_type) {
-                        case MESSAGE_TYPE_SYNC:
-                            msgq_cur_msg_tx_ptr = NULL;
-                            break;
 
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
-                            // TODO Indication for signalman and brigade chief
                             switch (rx_msg_proc.sender_addr) {
                                 case BASE_STATION_ADDR:
-                                    // TODO Indicate LED "Base station disabled alarm"
                                     LOG_DBG("Base station disabled alarm");
                                     break;
                                 default:
@@ -208,24 +202,12 @@ void system_init(void)
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
+                            /* TODO: Make indication */
                             msgq_cur_msg_tx_ptr = &msgq_tx_msg;
-                            /// TODO Indication for signalman and brigade chief
                             break;
 
-                        case MESSAGE_TYPE_ALARM:
-                            LOG_DBG(" MESSAGE_TYPE_ALARM");
-                            msgq_cur_msg_tx_ptr = NULL;
-                            continue;
-
-                        case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
-                        case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
-                            LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
-                            msgq_cur_msg_tx_ptr = NULL; // Do nothing, because this message for base station
-                            continue;
-
                         default:
-                            LOG_DBG("Not correct message type");
-                            msgq_cur_msg_tx_ptr = NULL;
+                            LOG_DBG("Do nothing for this message type and direction ...");
                             continue;
                     }
                     break;
@@ -244,17 +226,13 @@ void system_init(void)
                                 k_work_submit(&work_buzzer);
                                 k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_DING_DONG);
                             }
-                            msgq_cur_msg_tx_ptr = NULL;
+                            msgq_cur_msg_tx_ptr = nullptr;
                             break;
-
-                        case MESSAGE_TYPE_HOMEWARD:
-                            LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
-                            msgq_cur_msg_tx_ptr = NULL;
-                            continue;
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
-                            msgq_cur_msg_tx_ptr = NULL;
+                            alarm_is_active = true;
+                            /* TODO: Make indication */
                             continue;
 
                         case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
@@ -266,7 +244,7 @@ void system_init(void)
                                 k_work_submit(&work_buzzer);
                                 k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_DING_DONG);
                             }
-                            msgq_cur_msg_tx_ptr = NULL;
+                            msgq_cur_msg_tx_ptr = nullptr;
                             break;
 
                         case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
@@ -278,19 +256,17 @@ void system_init(void)
                                 k_work_submit(&work_buzzer);
                                 k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_DING_DONG);
                             }
-                            msgq_cur_msg_tx_ptr = NULL;
+                            msgq_cur_msg_tx_ptr = nullptr;
                             break;
 
                         default:
-                            LOG_DBG("Not correct message type");
-                            msgq_cur_msg_tx_ptr = NULL;
+                            LOG_DBG("Do nothing for this message type and direction ...");
                             continue;
                     }
                     break;
 
                 default:
                     LOG_DBG("Not correct message direction");
-                    msgq_cur_msg_tx_ptr = NULL;
                     continue;
             }
             if (msgq_cur_msg_tx_ptr) {
@@ -302,6 +278,7 @@ void system_init(void)
             atomic_set(&status_ind.led_strip_state.status.con_status, rssi_num);
             atomic_set(&status_ind.led_strip_state.status.people_num, rx_msg_proc.workers_in_safe_zone);
             ret = k_poll(&event_indicate, 1, K_NO_WAIT);
+
             if (!ret)
                 strip_ind = &status_ind;
             else if (ret == (-EAGAIN))
@@ -315,22 +292,29 @@ void system_init(void)
 
 [[noreturn]] void brigade_chief_modem_task(void)
 {
-    int8_t snr;
-    int16_t rssi;
     int32_t rc = 0;
-    struct led_strip_indicate_s *strip_ind = NULL;
-
+    const struct device *lora_dev = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
+    struct lora_modem_config lora_cfg = {
+      .frequency = 433000000,
+      .bandwidth = BW_125_KHZ,
+      .datarate = SF_12,
+      .coding_rate = CR_4_5,
+      .preamble_len = 8,
+      .payload_len = MESSAGE_LEN_IN_BYTES,
+      .fixed_len = true,
+      .tx_power = 0,
+      .tx = false,
+    };
+    struct led_strip_indicate_s *strip_ind = nullptr;
 
     /**
      * Lora config begin
      * */
-    lora_cfg.tx = false;
 
-    lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
-    if (!device_is_ready(lora_dev_ptr)) {
+    if (!device_is_ready(lora_dev)) {
         k_sleep(K_FOREVER);
     }
-    if ( lora_config(lora_dev_ptr, &lora_cfg) < 0 ) {
+    if ( lora_config(lora_dev, &lora_cfg) < 0 ) {
         k_sleep(K_FOREVER);
     }
     /**
@@ -342,13 +326,13 @@ void system_init(void)
     /**
      * Receive starting sync message begin
      * */
-    lora_recv_async(lora_dev_ptr, lora_receive_cb, lora_receive_error_timeout);
+    lora_recv_async(lora_dev, lora_receive_cb, lora_receive_error_timeout);
     /**
      * Receive starting sync message end
      * */
 
-    while(1) {
-        rc = modem_fun();
+    while(true) {
+        rc = modem_fun(lora_dev, &lora_cfg);
         if (!rc) {
             strip_ind = &msg_send_good_ind;
             k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
@@ -387,9 +371,8 @@ void button_right_train_pass_pressed_cb(const struct device *dev, struct gpio_ca
 
 static void periodic_timer_handler(struct k_timer *tim)
 {
-//    k_msgq_put(&peripheral_msgq_tx_msg_prio, &alarm_msg, K_NO_WAIT);
     LOG_DBG("Periodic timer handler");
-    struct led_strip_indicate_s *strip_ind = NULL;
+    struct led_strip_indicate_s *strip_ind = nullptr;
     static uint8_t indicate_cnt = 0;
     static uint8_t cnt = 0;
 

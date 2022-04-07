@@ -26,7 +26,7 @@ extern "C" {
 #define BRIGADE_CHIEF 2
 #define WORKERS 3
 
-#define CUR_DEVICE SIGNALMAN
+#define CUR_DEVICE BASE_STATION
 /**
  * Available devices end
  * */
@@ -35,6 +35,8 @@ extern "C" {
 /**
  * Common peripheral settings area begin
  * */
+#if CUR_DEVICE != WORKERS
+
 #define DEFAULT_RADIO_NODE DT_NODELABEL(lora0)
 BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
              "No default LoRa radio specified in DT");
@@ -50,6 +52,8 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 #define PWM_CTLR	DT_INVALID_NODE
 #define PWM_CHANNEL	0
 #define PWM_FLAGS	0
+#endif
+
 #endif
 /**
  * Common peripheral settings area end
@@ -80,7 +84,6 @@ extern const k_tid_t modem_task_id;
  * Base station thread functions end
  * */
 
-extern const k_tid_t dwm_task_id;
 extern struct k_msgq msgq_dwm_distance;
 
 #define CURRENT_DEVICE_NUM 0
@@ -153,6 +156,13 @@ extern struct k_msgq msgq_dwm_distance;
 //#if !DT_NODE_HAS_STATUS(RIGHT_TRAIN_PASSED_NODE, okay)
 //#error "Unsupported board: right_train_passed_sw alias is not defined"
 //#endif
+#elif CUR_DEVICE == WORKERS
+
+#define CURRENT_DEVICE_NUM 0
+
+#include "dwm_russia_railways_workers.h"
+
+extern const k_tid_t dwm_task_id;
 
 #endif
 /**
@@ -163,10 +173,10 @@ extern struct k_msgq msgq_dwm_distance;
 /**
  * Buzzer modes begin
  * */
-#define BUZZER_MODE_SINGLE 0
-#define BUZZER_MODE_CONTINUOUS 1
-#define BUZZER_MODE_DING_DONG 2
-#define BUZZER_MODE_IDLE 3
+#define BUZZER_MODE_SINGLE 1
+#define BUZZER_MODE_CONTINUOUS 2
+#define BUZZER_MODE_DING_DONG 3
+#define BUZZER_MODE_IDLE 4
 /**
 * Buzzer modes end
 * */
@@ -202,7 +212,7 @@ extern struct k_msgq msgq_dwm_distance;
 #define MIDDLE_PRESSED_MAX_VAL 20   /* 2000 ms */
 #define LONG_PRESSED_MIN_VAL (MIDDLE_PRESSED_MAX_VAL+1) /* 2100 ms */
 
-extern atomic_t atomic_interval_count; /* Counted number of function button pressed call */
+extern atomic_t alarm_is_active;
 
 /**
  * Enum, typedefs and structs area begin
@@ -265,11 +275,9 @@ extern struct gpio_dt_spec button_train_passed;
  * Buttons end
  * */
 
-extern struct lora_modem_config lora_cfg;
 extern atomic_t reconfig_modem;
 
-extern const struct device *lora_dev_ptr;
-extern const struct device *buzzer_dev_ptr;
+extern const struct device *buzzer_dev;
 
 extern struct gpio_dt_spec *cur_irq_gpio_ptr;
 
@@ -315,8 +323,10 @@ extern struct led_strip_indicate_s msg_recv_ind;
 void work_buzzer_handler(struct k_work *item);
 void work_button_pressed_handler(struct k_work *item);
 
-void lora_receive_error_timeout(void);
+void lora_receive_error_timeout(const struct device *dev);
 void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int16_t rssi, int8_t snr);
+
+bool proc_recv_data(struct k_msgq *msgq, uint8_t *data, struct message_s *rx_msg, uint8_t cur_dev_addr);
 /**
  * Function declaration area end
  * */
@@ -447,7 +457,7 @@ static inline void read_write_message(uint32_t* new_msg, struct message_s* msg_p
 }
 
 
-static inline int32_t modem_fun()
+static inline int32_t modem_fun(const struct device *lora_dev, struct lora_modem_config* lora_cfg)
 {
     uint32_t new_msg = 0;
     int32_t rc = 1;
@@ -471,7 +481,7 @@ static inline int32_t modem_fun()
         }
         key = k_spin_lock(&spin);
         /* Stop receiving */
-        lora_recv_async(lora_dev_ptr, nullptr, nullptr);
+        lora_recv_async(lora_dev, nullptr, nullptr);
 
         read_write_message(&new_msg, &tx_msg, true);
         for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
@@ -479,8 +489,8 @@ static inline int32_t modem_fun()
             tx_buf[i] = reverse(tx_buf[i]);
         }
 
-        lora_cfg.tx = true;
-        rc = lora_config(lora_dev_ptr, &lora_cfg);
+        lora_cfg->tx = true;
+        rc = lora_config(lora_dev, lora_cfg);
         if (rc < 0) {
             k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
             current_state = *current_state.next;
@@ -488,7 +498,7 @@ static inline int32_t modem_fun()
             return rc;
         }
 
-        rc = lora_send(lora_dev_ptr, tx_buf, MESSAGE_LEN_IN_BYTES);
+        rc = lora_send(lora_dev, tx_buf, MESSAGE_LEN_IN_BYTES);
         /*
          * If message not transmit then putting back him into queue and reconfig modem
          * */
@@ -506,11 +516,11 @@ static inline int32_t modem_fun()
 
     } else {
         if (atomic_cas(&reconfig_modem, 1, 0)) {
-            lora_recv_async(lora_dev_ptr, nullptr, nullptr);
-            lora_cfg.tx = false;
-            rc = lora_config(lora_dev_ptr, &lora_cfg);
+            lora_recv_async(lora_dev, nullptr, nullptr);
+            lora_cfg->tx = false;
+            rc = lora_config(lora_dev, lora_cfg);
             if (!rc) {
-                rc = lora_recv_async(lora_dev_ptr, lora_receive_cb, lora_receive_error_timeout);
+                rc = lora_recv_async(lora_dev, lora_receive_cb, lora_receive_error_timeout);
                 if (rc) {
                     atomic_set(&reconfig_modem, 1);
                 }

@@ -199,51 +199,6 @@ _Noreturn void update_indication_task(void)
                     led_strip_update_rgb(strip_dev, color_rgb, STRIP_NUM_PIXELS);
                     break;
             }
-//            if (blink) {
-//                switch (led_strip_state.strip_param.color) {
-//                    case COMMON_STRIP_COLOR_RED:
-//                        color_hsv = red_hsv;
-//                        break;
-//                    case COMMON_STRIP_COLOR_GREEN:
-//                        color_hsv = green_hsv;
-//                        break;
-//                    case COMMON_STRIP_COLOR_BLUE:
-//                        color_hsv = blue_hsv;
-//                        break;
-//                    case COMMON_STRIP_COLOR_PURPLE:
-//                        color_hsv = purple_hsv;
-//                        break;
-//                    case COMMON_STRIP_COLOR_YELLOW:
-//                        color_hsv = yellow_hsv;
-//                        break;
-//                    default:
-//                        break;
-//                }
-//
-//                cnt = start_led_pos;
-//                while (cnt < (end_led_pos + 1)) {
-//                    led_hsv2rgb(&color_hsv, &color_rgb[cnt++]);
-//                }
-//
-//                cnt = 0;
-//                while (cnt < led_strip_state.strip_param.blink_cnt) {
-//                    led_strip_update_rgb(strip_dev, color_rgb, STRIP_NUM_PIXELS);
-//                    k_sleep(K_MSEC(BLINK_PERIOD_MS));
-//                    led_strip_update_rgb(strip_dev, empty_rgb, STRIP_NUM_PIXELS);
-//                    k_sleep(K_MSEC(BLINK_PERIOD_MS));
-//                    cnt++;
-//                }
-//                led_strip_update_rgb(strip_dev, pixels_rgb, STRIP_NUM_PIXELS);
-//            } else {
-//                cnt = start_led_pos;
-//                if (led_strip_state.status.set_con_status)
-//                    set_con_status_pixels(led_strip_state.status.con_status, &cnt);
-//
-//                if (led_strip_state.status.set_people_num)
-//                    set_people_num_pixels(led_strip_state.status.people_num, &cnt);
-//
-//                led_strip_update_rgb(strip_dev, pixels_rgb, STRIP_NUM_PIXELS);
-//            }
 
         } else {
             k_sleep(K_MSEC(10));

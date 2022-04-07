@@ -15,6 +15,8 @@
 #define STRIP_NODE		DT_ALIAS(led_strip)
 #define STRIP_NUM_PIXELS	DT_PROP(DT_ALIAS(led_strip), chain_length)
 
+#define STANDARD_MODE_INDICATION 1
+#define ALARM_MODE_INDICATION 2
 
 #define HOMEWARD_LED_LEN 1
 #define RSSI_LED_LEN 8

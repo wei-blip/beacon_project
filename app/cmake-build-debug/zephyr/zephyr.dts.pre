@@ -1822,6 +1822,10 @@ arduino_spi: &spi1 {};
     };
 };
 
+&dma1 {
+    status = "okay";
+};
+
 &spi1 {
     status = "okay";
     cs-gpios = <&gpiob 6 ((1 << 0))>;
@@ -1839,6 +1843,26 @@ arduino_spi: &spi1 {};
     };
 };
 
+
+&spi2 {
+    status = "okay";
+    pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpiob 1 ((1 << 0) | (1 << 4))>;
+    status = "okay";
+    dmas = <&dma1 5 1 0x20440>, <&dma1 4 1 0x20480>;
+    dma-names = "tx", "rx";
+    uwb: dw1000@0 {
+        compatible = "decawave,dw1000";
+        reg = <0>;
+        label = "DW1000";
+        spi-max-frequency = <8000000>;
+        reset-gpios = <&gpioa 8 ((1 << 0))>;
+        int-gpios = <&gpiob 10 ((0 << 0) | (1 << 5))>;
+        tx-ant-delay=<0x4042>;
+        rx-ant-delay=<0x4042>;
+    };
+};
 
 &clk_hsi {
     status = "okay";
@@ -1861,24 +1885,6 @@ arduino_spi: &spi1 {};
  ahb-prescaler = <1>;
  apb1-prescaler = <1>;
  apb2-prescaler = <1>;
-};
-
-
-&spi2{
-    status = "okay";
-    pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
-    pinctrl-names = "default";
-    cs-gpios = <&gpioc 4 ((1 << 0) | (1 << 4))>;
-    uwb: dw1000@0 {
-        compatible = "decawave,dw1000";
-        reg = <0>;
-        label = "DW1000";
-        spi-max-frequency = <8000000>;
-        reset-gpios = <&gpioa 8 ((1 << 0))>;
-        int-gpios = <&gpiob 10 ((0 << 0) | (1 << 5))>;
-        tx-ant-delay=<0x4042>;
-        rx-ant-delay=<0x4042>;
-    };
 };
 # 1 "<command-line>" 2
 # 1 "/home/rts/zephyr-rts-master/zephyr/misc/empty_file.c"

@@ -41,6 +41,8 @@ typedef struct
     uint16_t crc;
 }msg_twr_final_t;
 
+void mp_set_cfg_param(const struct device *dev);
+
 void mp_start();
 
 void mp_conf_to_json(dwt_config_t &conf,json &jconf);

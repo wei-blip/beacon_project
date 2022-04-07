@@ -95,7 +95,7 @@
 				reg = < 0x48000000 0x400 >;
 				clocks = < &rcc 0x1 0x1 >;
 				label = "GPIOA";
-				phandle = < 0x15 >;
+				phandle = < 0x16 >;
 			};
 			gpiob: gpio@48000400 {
 				compatible = "st,stm32-gpio";
@@ -190,7 +190,7 @@
 			can1_rx_pa11: can1_rx_pa11 {
 				pinmux = < 0x169 >;
 				bias-pull-up;
-				phandle = < 0x16 >;
+				phandle = < 0x17 >;
 			};
 			can1_rx_pb5: can1_rx_pb5 {
 				pinmux = < 0x2a3 >;
@@ -206,7 +206,7 @@
 			};
 			can1_tx_pa12: can1_tx_pa12 {
 				pinmux = < 0x189 >;
-				phandle = < 0x17 >;
+				phandle = < 0x18 >;
 			};
 			can1_tx_pb6: can1_tx_pb6 {
 				pinmux = < 0x2c8 >;
@@ -966,7 +966,7 @@
 				#pwm-cells = < 0x3 >;
 				pinctrl-0 = < &tim2_ch1_pa0 &tim2_ch2_pa1 >;
 				pinctrl-names = "default";
-				phandle = < 0x19 >;
+				phandle = < 0x1a >;
 			};
 		};
 		timers6: timers@40001000 {
@@ -1045,8 +1045,9 @@
 			interrupts = < 0xb 0x0 0xc 0x0 0xd 0x0 0xe 0x0 0xf 0x0 0x10 0x0 0x11 0x0 >;
 			clocks = < &rcc 0x0 0x1 >;
 			dma-requests = < 0x7 >;
-			status = "disabled";
+			status = "okay";
 			label = "DMA_1";
+			phandle = < 0x15 >;
 		};
 		dma2: dma@40020400 {
 			compatible = "st,stm32-dma-v2";
@@ -1125,7 +1126,9 @@
 			label = "SPI_2";
 			pinctrl-0 = < &spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15 >;
 			pinctrl-names = "default";
-			cs-gpios = < &gpioc 0x4 0x11 >;
+			cs-gpios = < &gpiob 0x1 0x11 >;
+			dmas = < &dma1 0x5 0x1 0x20440 >, < &dma1 0x4 0x1 0x20480 >;
+			dma-names = "tx", "rx";
 			uwb: dw1000@0 {
 				compatible = "decawave,dw1000";
 				reg = < 0x0 >;
@@ -1228,7 +1231,7 @@
 			compatible = "fixed-clock";
 			clock-frequency = < 0xf42400 >;
 			status = "okay";
-			phandle = < 0x18 >;
+			phandle = < 0x19 >;
 		};
 		clk_msi: clk-msi {
 			#clock-cells = < 0x0 >;

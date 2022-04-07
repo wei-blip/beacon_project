@@ -5,8 +5,9 @@
 #include "russia_railways_common.h"
 
 #if CUR_DEVICE == BASE_STATION
+
 #include <logging/log.h>
-    LOG_MODULE_REGISTER(base_station);
+    LOG_MODULE_REGISTER(base_station, LOG_LEVEL_DBG);
 
 
 /**
@@ -14,6 +15,7 @@
  * */
 static struct message_s sync_msg;
 static struct message_s home_msg;
+static struct message_s disable_alarm_msg;
 
 const struct device *button_homeward_gpio_dev_ptr;
 
@@ -26,7 +28,6 @@ struct gpio_callback button_homeward_cb;
 /**
  * Enum area begin
  * */
-static uint8_t workers_in_safe_zone = 8;
 static enum DEVICE_ADDR_e cur_dev_addr = BASE_STATION_ADDR;
 static enum BATTERY_LEVEL_e cur_battery_level = BATTERY_LEVEL_GOOD;
 /**
@@ -38,9 +39,6 @@ static enum BATTERY_LEVEL_e cur_battery_level = BATTERY_LEVEL_GOOD;
  * Function declaration area begin
  * */
 void button_homeward_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
-
-//inline static void send_msg(void);
-//inline static void recv_msg(void);
 
 static void system_init();
 static void periodic_timer_handler(struct k_timer* tim); // callback for periodic_timer
@@ -58,9 +56,9 @@ static void system_init()
     /**
      * Buzzer init begin
      * */
-    buzzer_dev_ptr = DEVICE_DT_GET(PWM_CTLR);
-    if (!device_is_ready(buzzer_dev_ptr)) {
-        LOG_DBG("Error: PWM device %s is not ready\n", buzzer_dev_ptr->name);
+    buzzer_dev = DEVICE_DT_GET(PWM_CTLR);
+    if (!device_is_ready(buzzer_dev)) {
+        LOG_DBG("Error: PWM device %s is not ready\n", buzzer_dev->name);
         k_sleep(K_FOREVER);
     }
     /**
@@ -108,15 +106,22 @@ static void system_init()
     sync_msg.sender_addr = cur_dev_addr;
     sync_msg.message_type = MESSAGE_TYPE_SYNC;
     sync_msg.direction = REQUEST;
-    sync_msg.workers_in_safe_zone = workers_in_safe_zone;
+    sync_msg.workers_in_safe_zone = 8;
     sync_msg.battery_level = BATTERY_LEVEL_GOOD;
 
     home_msg.receiver_addr = BROADCAST_ADDR;
     home_msg.sender_addr = cur_dev_addr;
     home_msg.message_type = MESSAGE_TYPE_HOMEWARD;
     home_msg.direction = REQUEST;
-    home_msg.workers_in_safe_zone = workers_in_safe_zone;
+    home_msg.workers_in_safe_zone = 8;
     home_msg.battery_level = BATTERY_LEVEL_GOOD;
+
+    disable_alarm_msg.sender_addr = BASE_STATION_ADDR;
+    disable_alarm_msg.message_type = MESSAGE_TYPE_DISABLE_ALARM;
+    disable_alarm_msg.direction = REQUEST;
+    disable_alarm_msg.battery_level = BATTERY_LEVEL_GOOD;
+    disable_alarm_msg.workers_in_safe_zone = 0;
+
     /**
     * Filling structure end
     * */
@@ -130,14 +135,13 @@ static void system_init()
 [[noreturn]] void base_station_proc_task(void)
 {
     uint8_t rssi_num = 0;
+    uint8_t workers_in_safe_zone = 8;
+    uint8_t alarm_addr = 0;
     int16_t rssi = 0;
     uint8_t rx_buf_proc[MESSAGE_LEN_IN_BYTES];
-    uint32_t cur_msg = 0;
     struct message_s rx_msg_proc = {0};
     struct message_s tx_msg_proc = {
-      .sender_addr = 0,
       .receiver_addr = BROADCAST_ADDR,
-      .message_type = 0,
       .direction = RESPONSE,
       .battery_level = BATTERY_LEVEL_GOOD,
       .workers_in_safe_zone = workers_in_safe_zone
@@ -146,27 +150,24 @@ static void system_init()
     struct led_strip_indicate_s *strip_ind = nullptr;
     struct k_msgq* msgq_cur_msg_tx_ptr = &msgq_tx_msg; /* Default queue */
 
-    while(true) {
+    while (true) {
+        /* Always update info about workers in safe zone if it is possible */
+        if (!k_msgq_get(&msgq_dwt_dist, &workers_in_safe_zone, K_NO_WAIT)) {
+            sync_msg.workers_in_safe_zone = workers_in_safe_zone;
+            home_msg.workers_in_safe_zone = workers_in_safe_zone;
+            disable_alarm_msg.workers_in_safe_zone = workers_in_safe_zone;
+        }
+
         if (k_msgq_num_used_get(&msgq_rx_msg)) {
             k_msgq_get(&msgq_rx_msg, &rx_buf_proc, K_NO_WAIT);
 
             /**
              * Processing receive data
              * */
-            cur_msg = 0;
-            for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
-                rx_buf_proc[i] = reverse(rx_buf_proc[i]);
-                cur_msg |= (rx_buf_proc[i]) << i*8;
-            }
-//            LOG_DBG("Incoming packet...");
-            read_write_message(&cur_msg, &rx_msg_proc, false); // rx_msg struct is fill
-            if ( (rx_msg_proc.receiver_addr != BROADCAST_ADDR) &&
-            (rx_msg_proc.receiver_addr != cur_dev_addr) ) {
-                LOG_DBG("addr = 0x%02x, own addr = 0x%02x", rx_msg_proc.receiver_addr, cur_dev_addr);
-                LOG_DBG("Packet is filtered");
+            /* Processing receiving data */
+            if (!proc_recv_data(&msgq_rx_msg, rx_buf_proc, &rx_msg_proc, cur_dev_addr)) {
                 continue;
             }
-
 //            LOG_DBG("Message direction");
 
             switch (rx_msg_proc.direction) {
@@ -174,17 +175,11 @@ static void system_init()
                     LOG_DBG(" REQUEST");
                     LOG_DBG("Message type:");
 
-                    if (!k_msgq_get(&msgq_zone_info, &workers_in_safe_zone, K_NO_WAIT)) {
-                        tx_msg_proc.workers_in_safe_zone = workers_in_safe_zone;
-                        sync_msg.workers_in_safe_zone = workers_in_safe_zone;
-                        home_msg.workers_in_safe_zone = workers_in_safe_zone;
-                    }
                     tx_msg_proc.sender_addr = rx_msg_proc.sender_addr;
                     tx_msg_proc.message_type = rx_msg_proc.message_type;
+                    tx_msg_proc.workers_in_safe_zone = workers_in_safe_zone;
 
                     switch (rx_msg_proc.message_type) {
-                        case MESSAGE_TYPE_SYNC:
-                            break;
 
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
@@ -193,11 +188,13 @@ static void system_init()
                                     LOG_DBG("Brigade chief disabled alarm");
                                     k_work_submit(&work_buzzer);
                                     k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_IDLE);
+                                    atomic_set(&alarm_is_active, false);
                                     break;
                                 default:
                                     LOG_DBG("Undefined sender address for this message type");
                                     break;
                             }
+                            /* Retransmit disable alarm message */
                             msgq_cur_msg_tx_ptr = &msgq_tx_msg;
                             break;
 
@@ -205,6 +202,11 @@ static void system_init()
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
                             k_work_submit(&work_buzzer);
                             k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_CONTINUOUS);
+
+                            atomic_set(&alarm_is_active, true);
+                            /* Save alarm address in few railways case */
+                            alarm_addr = rx_msg_proc.sender_addr;
+                            /* Retransmit alarm message */
                             msgq_cur_msg_tx_ptr = &msgq_tx_msg_prio;
                             break;
 
@@ -216,11 +218,10 @@ static void system_init()
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
-                            msgq_cur_msg_tx_ptr = nullptr;
+                            continue;
 
                         default:
                             LOG_DBG("Not correct message type");
-                            msgq_cur_msg_tx_ptr = nullptr;
                             continue;
                     }
                     break;
@@ -231,28 +232,23 @@ static void system_init()
                     switch (rx_msg_proc.message_type) {
                         case MESSAGE_TYPE_DISABLE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
-                            msgq_cur_msg_tx_ptr = nullptr;
                             continue;
 
                         case MESSAGE_TYPE_ALARM:
                             LOG_DBG(" MESSAGE_TYPE_ALARM");
-                            msgq_cur_msg_tx_ptr = nullptr;
                             continue;
 
                         case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
                         case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
                             LOG_DBG(" MESSAGE_TYPE_TRAIN_PASSED");
-                            msgq_cur_msg_tx_ptr = nullptr;
                             continue;
 
                         case MESSAGE_TYPE_HOMEWARD:
                             LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
-                            msgq_cur_msg_tx_ptr = nullptr;
                             continue;
 
                         default:
                             LOG_DBG("Not correct message type");
-                            msgq_cur_msg_tx_ptr = nullptr;
                             continue;
                     }
 
@@ -272,7 +268,34 @@ static void system_init()
             strip_ind = &status_ind;
             k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
         }
-        k_sleep(K_USEC(100));
+
+        if (atomic_get(&alarm_is_active)) {
+            /* If number workers in safe zone equal NUMBER_OF_NODES then buzzer switching in idle mode and
+             * sending message disable_alarm_msg for signalman */
+            if (workers_in_safe_zone == NUMBER_OF_NODES) {
+
+                disable_alarm_msg.workers_in_safe_zone = workers_in_safe_zone;
+                k_work_submit(&work_buzzer);
+                k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_IDLE);
+                atomic_set(&alarm_is_active, false);
+
+                switch (alarm_addr) {
+                    case SIGNALMAN_1_ADDR:
+                        disable_alarm_msg.receiver_addr = SIGNALMAN_1_ADDR;
+                        k_msgq_put(&msgq_tx_msg_prio, &disable_alarm_msg, K_NO_WAIT);
+                        break;
+                    case SIGNALMAN_2_ADDR:
+                        disable_alarm_msg.receiver_addr = SIGNALMAN_2_ADDR;
+                        k_msgq_put(&msgq_tx_msg_prio, &disable_alarm_msg, K_NO_WAIT);
+                        break;
+                    default:
+                        break;
+                }
+
+            }
+        }
+
+        k_sleep(K_MSEC(1));
     }
 }
 
@@ -282,8 +305,21 @@ static void system_init()
     /**
      * Lora config begin
      * */
-    lora_dev_ptr = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
-    if (!device_is_ready(lora_dev_ptr)) {
+
+    const struct device *lora_dev = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
+    struct lora_modem_config lora_cfg = {
+      .frequency = 433000000,
+      .bandwidth = BW_125_KHZ,
+      .datarate = SF_12,
+      .coding_rate = CR_4_5,
+      .preamble_len = 8,
+      .payload_len = MESSAGE_LEN_IN_BYTES,
+      .fixed_len = true,
+      .tx_power = 0,
+      .tx = true,
+    };
+
+    if (!device_is_ready(lora_dev)) {
         k_sleep(K_FOREVER);
     }
     /**
@@ -294,8 +330,8 @@ static void system_init()
     system_init();
     k_sleep(K_FOREVER);
 
-    while(1) {
-        modem_fun();
+    while(true) {
+        modem_fun(lora_dev, &lora_cfg);
         k_sleep(K_USEC(100));
     }
 }

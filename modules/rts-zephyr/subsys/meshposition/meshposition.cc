@@ -9,6 +9,8 @@
 #include <sys/printk.h>
 
 #include <drivers/uwb/deca_regs.h>
+#include <device.h>
+#include <drivers/uwb/dw1000.h>
 
 LOG_MODULE_REGISTER(meshposition, LOG_LEVEL_ERR);
 
@@ -17,6 +19,8 @@ LOG_MODULE_REGISTER(meshposition, LOG_LEVEL_ERR);
 
 static uint32_t status_reg = 0;
 
+dw1000_dev_data* dwt_ctx;
+dw1000_dev_config *dwt_cfg;
 
 std::map<std::string,uint8_t> invmap_dataRate,invmap_rxPAC,invmap_txPreambLength;
 
@@ -152,13 +156,65 @@ void mp_json_to_conf(json &jconf,dwt_config_t &conf)
 	conf.sfdTO 	  			= (uint8) jconf["sfdTO"];
 }
 
+/* Costil #1 */
+void mp_set_cfg_param(const struct device *dev)
+{
+   dwt_ctx = (dw1000_dev_data *) dev->data;
+   dwt_cfg = (dw1000_dev_config *) dev->config;
+}
+
+/* Costil #2 */
+int mp_dwt_reconfig()
+{
+    /* Reset DWM */
+//    dwt_softreset();
+
+    /* Config DWM */
+    dwt_configure(&dwt_ctx->phy_cfg);
+    dwt_setrxantennadelay(dwt_cfg->rx_ant_delay);
+    dwt_settxantennadelay(dwt_cfg->tx_ant_delay);
+
+    int init_cfg = DWT_LOADNONE;
+#if defined(CONFIG_DW1000_STARTUP_LOADUCODE)
+    init_cfg |= DWT_LOADUCODE;
+#endif
+#if defined(CONFIG_DW1000_STARTUP_DW_WAKE_UP)
+    init_cfg |= DWT_DW_WAKE_UP;
+#endif
+#if defined(CONFIG_DW1000_STARTUP_DW_WUP_NO_UCODE)
+    init_cfg |= DWT_DW_WUP_NO_UCODE;
+#endif
+#if defined(CONFIG_DW1000_STARTUP_DW_WUP_RD_OTPREV)
+    init_cfg |= DWT_DW_WUP_RD_OTPREV;
+#endif
+#if defined(CONFIG_DW1000_STARTUP_READ_OTP_PID)
+    init_cfg |= DWT_READ_OTP_PID;
+#endif
+#if defined(CONFIG_DW1000_STARTUP_READ_OTP_LID)
+    init_cfg |= DWT_READ_OTP_LID;
+#endif
+#if defined(CONFIG_DW1000_STARTUP_READ_OTP_BAT)
+    init_cfg |= DWT_READ_OTP_BAT;
+#endif
+#if defined(CONFIG_DW1000_STARTUP_READ_OTP_TMP)
+    init_cfg |= DWT_READ_OTP_TMP;
+#endif
+
+    if (dwt_initialise(init_cfg) == DWT_ERROR) {
+        LOG_ERR("Failed to initialize DW1000");
+        return -EIO;
+    }
+
+    return 0;
+}
+
 void mp_start()
 {
 	inverse_map(map_txPreambLength,invmap_txPreambLength);
 	inverse_map(map_rxPAC,invmap_rxPAC);
 	inverse_map(map_txPreambLength,invmap_dataRate);
 
-    dwt_setleds(0);
+  dwt_setleds(0);
 }
 
 /* RX can be started
@@ -180,12 +236,14 @@ void mp_rx_after_tx(uint32_t delay_us,uint16_t timeout)
 
 uint32_t mp_poll_rx()
 {
-	uint32_t l_status_reg;
-	while (!((l_status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)))
-	{
-	};
-	return l_status_reg;
+    uint32_t l_status_reg;
+    while (!((l_status_reg = dwt_read32bitreg(SYS_STATUS_ID)) & (SYS_STATUS_RXFCG | SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR)))
+    {
+        k_sleep(K_USEC(1));
+    };
+    return l_status_reg;
 }
+
 
 uint32_t mp_get_status()
 {
@@ -198,15 +256,16 @@ bool mp_receive(uint8_t* data, uint16_t expected_size)
 	bool result = false;
 	status_reg = mp_poll_rx();
 	if(status_reg & SYS_STATUS_RXFCG){
-		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);//clearing any rx and tx
+	dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_RXFCG | SYS_STATUS_TXFRS);//clearing any rx and tx
 		uint16_t size = dwt_read32bitreg(RX_FINFO_ID) & RX_FINFO_RXFLEN_MASK;
 		if (size == expected_size) {
 			dwt_readrxdata(data, size, 0);
 			result = true;
-		}else{
+		} else {
 			LOG_ERR("rx size %u != expected_size %u",size,expected_size);
 		}
-	}else{
+	}
+  else {
 		dwt_write32bitreg(SYS_STATUS_ID,SYS_STATUS_ALL_RX_TO | SYS_STATUS_ALL_RX_ERR);//clear errors
 		dwt_rxreset();
 		LOG_WRN("mp_receive() no 'RX Frame Checksum Good'");
@@ -224,13 +283,13 @@ bool mp_receive(msg_id_t id)
 {
 	bool result = false;
 	msg_header_t message;
-	if(mp_receive((uint8_t*)&message, sizeof(msg_header_t))){
-		if(message.header.id == id){//TODO check that dest is self when id is moved as global here
+	if (mp_receive((uint8_t*)&message, sizeof(msg_header_t))) {
+		if (message.header.id == id) {//TODO check that dest is self when id is moved as global here
 			result = true;
-		}else{
+		} else {
 			LOG_ERR("mp_receive() id mismatch id(%u/%u)",(uint8_t)id,(uint8_t)message.header.id);
 		}
-	}else{
+	} else {
 		LOG_ERR("mp_receive(%u) fail",(uint8_t)id);
 	}
 	return result;
@@ -313,14 +372,16 @@ bool mp_send_at(uint8_t* data, uint16_t size, uint64_t tx_time, uint8_t flag)
 	dwt_setdelayedtrxtime(tx_time);
 	dwt_writetxdata(size, data, 0); 
 	dwt_writetxfctrl(size, 0, 1); 
-	bool late = dwt_starttx(DWT_START_TX_DELAYED | flag);
-	if(late == DWT_SUCCESS){
-		while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS))
-		{
-		};
-		dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
-		return true;
-	}else{
+	bool status = dwt_starttx(DWT_START_TX_DELAYED | flag);
+	if(status == DWT_SUCCESS){
+
+      while (!(dwt_read32bitreg(SYS_STATUS_ID) & SYS_STATUS_TXFRS))
+      {
+          k_sleep(K_USEC(1));
+      };
+      dwt_write32bitreg(SYS_STATUS_ID, SYS_STATUS_TXFRS);
+      return true;
+	} else {
 		uint32_t reg2 = dwt_read32bitreg(SYS_STATUS_ID);
 		recover_tx_errors();
 		status_reg = dwt_read32bitreg(SYS_STATUS_ID);

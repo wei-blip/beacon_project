@@ -15,6 +15,8 @@ extern "C" {
  * Devices settings area begin
  * */
 #if CUR_DEVICE == BASE_STATION
+
+
 #elif CUR_DEVICE == SIGNALMAN
 
 struct gpio_dt_spec button_alarm = GPIO_DT_SPEC_GET_OR(ALARM_NODE, gpios,{0});
@@ -99,23 +101,10 @@ K_MSGQ_DEFINE(msgq_rx_msg, MESSAGE_LEN_IN_BYTES, QUEUE_LEN_IN_ELEMENTS, 1);
 /* queue for rssi values */
 K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
 
-const struct device *lora_dev_ptr = {0};
-const struct device *buzzer_dev_ptr = {0};
+const struct device *buzzer_dev = nullptr;
 
-atomic_t atomic_interval_count = ATOMIC_INIT(0);
 atomic_t atomic_device_active = ATOMIC_INIT(0);
-
-struct lora_modem_config lora_cfg = {
-  .frequency = 433000000,
-  .bandwidth = BW_125_KHZ,
-  .datarate = SF_12,
-  .coding_rate = CR_4_5,
-  .preamble_len = 8,
-  .payload_len = MESSAGE_LEN_IN_BYTES,
-  .fixed_len = true,
-  .tx_power = 0,
-  .tx = true,
-};
+atomic_t alarm_is_active = ATOMIC_INIT(false);
 
 struct k_timer periodic_timer = {0};
 
@@ -128,7 +117,7 @@ struct k_poll_event event_buzzer = K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_S
                                                                    &signal_buzzer,
                                                                    0);
 
-struct gpio_dt_spec *cur_irq_gpio_ptr = {0};
+struct gpio_dt_spec *cur_irq_gpio_ptr = nullptr;
 
 const modem_state_t recv_state = {
   .next =  const_cast<modem_state_s *>(&transmit_state),
@@ -230,6 +219,7 @@ struct led_strip_indicate_s middle_pressed_button_ind = {
  * Function definition area begin
  * */
 void work_button_pressed_handler(struct k_work *item) {
+    atomic_t atomic_interval_count = ATOMIC_INIT(0); /* Counted number of function button pressed call */
     bool short_pressed_is_set = false;
     bool middle_pressed_is_set = false;
     bool long_pressed_is_set = false;
@@ -247,7 +237,7 @@ void work_button_pressed_handler(struct k_work *item) {
                 short_pressed_is_set = true;
                 strip_ind = &status_ind;
                 k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-                k_poll_signal_raise(&signal_indicate, 1);
+                k_poll_signal_raise(&signal_indicate, STANDARD_MODE_INDICATION);
             }
         } else if ((atomic_get(&atomic_interval_count) > MIDDLE_PRESSED_MIN_VAL) &&
           (atomic_get(&atomic_interval_count) <= MIDDLE_PRESSED_MAX_VAL)) { /* Middle pressed */
@@ -326,7 +316,9 @@ void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int
     static struct k_spinlock spin;
     static k_spinlock_key_t key;
     volatile uint16_t len = size;
+
     key = k_spin_lock(&spin);
+
     if ((*data) == 13) {
         LOG_DBG(" REQUEST");
         LOG_DBG(" MESSAGE_TYPE_SYNC");
@@ -347,21 +339,21 @@ void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int
     k_spin_unlock(&spin, key);
 }
 
-void lora_receive_error_timeout(void) {
+void lora_receive_error_timeout(const struct device *dev) {
     static struct k_spinlock spin;
     static k_spinlock_key_t key;
     key = k_spin_lock(&spin);
 
     /* Restart receive */
-    lora_recv_async(lora_dev_ptr, nullptr, nullptr);
-    lora_recv_async(lora_dev_ptr, lora_receive_cb, lora_receive_error_timeout);
+    lora_recv_async(dev, nullptr, nullptr);
+    lora_recv_async(dev, lora_receive_cb, lora_receive_error_timeout);
 
     k_spin_unlock(&spin, key);
 }
 
 void work_buzzer_handler(struct k_work *item) {
     uint8_t i = 0;
-//    k_mutex_lock(&mut_buzzer_mode, K_FOREVER);
+
     /* Wait while signal will be raised */
     while (k_poll(&event_buzzer, 1, K_MSEC(1))) {
         k_sleep(K_MSEC(5));
@@ -369,33 +361,56 @@ void work_buzzer_handler(struct k_work *item) {
 
     switch (event_buzzer.signal->result) {
         case BUZZER_MODE_CONTINUOUS:
-            pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+            pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                              BUTTON_PRESSED_PERIOD_TIME_USEC / 2U, PWM_FLAGS);
             break;
         case BUZZER_MODE_DING_DONG:
             i = 0;
             while (i < 2) {
-                pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                                  BUTTON_PRESSED_PERIOD_TIME_USEC / 2U, PWM_FLAGS);
                 k_sleep(K_USEC(2 * BUTTON_PRESSED_PERIOD_TIME_USEC));
-                pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+                pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                                  0, PWM_FLAGS);
                 k_sleep(K_USEC(2 * BUTTON_PRESSED_PERIOD_TIME_USEC));
                 i++;
             }
             break;
         case BUZZER_MODE_SINGLE:
-            pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+            pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                              BUTTON_PRESSED_PERIOD_TIME_USEC / 2U, PWM_FLAGS);
             k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
         case BUZZER_MODE_IDLE:
         default:
-            pwm_pin_set_usec(buzzer_dev_ptr, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
+            pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
                              0, PWM_FLAGS);
             break;
     }
     event_buzzer.signal->signaled = 0;
     event_buzzer.state = K_POLL_STATE_NOT_READY;
+}
+
+
+bool proc_recv_data(struct k_msgq *msgq, uint8_t *data, struct message_s *rx_msg, uint8_t cur_dev_addr)
+{
+    uint32_t cur_msg = 0;
+
+    k_msgq_get(msgq, data, K_NO_WAIT);
+
+    for (uint8_t i = 0; i < MESSAGE_LEN_IN_BYTES; ++i) {
+        data[i] = reverse(data[i]);
+        cur_msg |= (data[i]) << i*8;
+    }
+
+    read_write_message(&cur_msg, rx_msg, false); // fill rx_msg struct
+    if ( (rx_msg->receiver_addr != BROADCAST_ADDR) &&
+      (rx_msg->receiver_addr != cur_dev_addr) ) {
+        LOG_DBG("addr = 0x%02x, own addr = 0x%02x", rx_msg->receiver_addr, cur_dev_addr);
+        LOG_DBG("Packet is filtered");
+        return false;
+    }
+
+    return true;
 }
 /**
  * Function definition area end

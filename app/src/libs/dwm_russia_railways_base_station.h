@@ -9,6 +9,11 @@
 extern "C" {
 #endif
 
+#define TX_DONE 1
+#define RX_DONE 2
+#define RX_TO 3
+#define RX_ERR 4
+
 #define NUMBER_OF_NODES 8
 #define MAX_RANGE_M 5.0
 #define NODE_TIMEOUT_MS 2000
@@ -20,25 +25,23 @@ extern "C" {
  * 1 uus = 512 / 499.2 usec and 1 usec = 499.2 * 128 dtu. */
 #define UUS_TO_DWT_TIME 65536
 
-#define POLL_RX_TO_RESP_TX_DLY_UUS 1000
-#define RESP_TX_TO_FINAL_RX_DLY_UUS 500
+#define FINAL_RX_TIMEOUT_UUS 10000
 
-/*
- * rx twr_2_resp after tx twr_1_poll
- * protected by responder's mp_request_at(twr_2_resp):POLL_RX_TO_RESP_TX_DLY_UUS
+#define POLL_RX_TO_RESP_TX_DLY_UUS 1000
+#define RESP_TX_TO_FINAL_RX_DLY_UUS 300
+
+/*rx twr_2_resp after tx twr_1_poll
+ protected by responder's mp_request_at(twr_2_resp):POLL_RX_TO_RESP_TX_DLY_UUS
 */
-#define POLL_TX_TO_RESP_RX_DLY_UUS 300
-#define RESP_RX_TO_FINAL_TX_DLY_UUS 1000
 
 /* Speed of light in air, in metres per second. */
 #define SPEED_OF_LIGHT 299702547.0
 
-#define PROCESSING_INTERVAL_SEC 3
+#define PROCESSING_INTERVAL_SEC 5
 #define CLEANING_INTERVAL_SEC 10
 
-typedef uint8_t worker_id_t;
-
-extern struct k_msgq msgq_zone_info;
+extern const k_tid_t dwm_task_id;
+extern struct k_msgq msgq_dwt_dist;
 
 [[noreturn]] void base_station_dwm_task();
 

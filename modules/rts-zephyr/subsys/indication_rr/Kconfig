@@ -1,0 +1,9 @@
+menuconfig INDICATION_RR
+	bool "Indication Russia railways Remote call library"
+	default n
+	depends on LED_UTILS
+	depends on LED_STRIP
+	depends on WS2812_STRIP
+	depends on WS2812_STRIP_PWM
+	help
+	  Enable Indication Russia railways functionality.

@@ -1,0 +1,7 @@
+menuconfig DWM_RR
+    bool "DWM Russia railways library"
+    default n
+	depends on MESHPOSITION
+	depends on DW1000_STARTUP_LOADUCODE
+    help
+        DWM Russia railways library.

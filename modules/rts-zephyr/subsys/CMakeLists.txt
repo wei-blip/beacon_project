@@ -1,3 +1,6 @@
 add_subdirectory_ifdef(CONFIG_MESHPOSITION meshposition)
 add_subdirectory_ifdef(CONFIG_COBS cobs)
 add_subdirectory_ifdef(CONFIG_LED_UTILS led_utils)
+add_subdirectory_ifdef(CONFIG_LORA_RR lora_rr)
+add_subdirectory_ifdef(CONFIG_DWM_RR dwm_rr)
+add_subdirectory_ifdef(CONFIG_INDICATION_RR indication_rr)

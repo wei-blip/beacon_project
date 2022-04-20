@@ -6,4 +6,10 @@ rsource "cobs/Kconfig"
 
 rsource "led_utils/Kconfig"
 
+rsource "lora_rr/Kconfig"
+
+rsource "dwm_rr/Kconfig"
+
+rsource "indication_rr/Kconfig"
+
 endmenu

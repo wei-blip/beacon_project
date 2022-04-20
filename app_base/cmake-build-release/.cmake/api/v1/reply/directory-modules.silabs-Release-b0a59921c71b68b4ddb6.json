@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "modules/silabs",
+		"source" : "/home/rts/zephyr-rts-master/modules/hal/silabs"
+	}
+}

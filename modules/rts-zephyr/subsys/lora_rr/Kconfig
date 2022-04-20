@@ -1,0 +1,17 @@
+menuconfig LORA_RR
+	bool "LoRa Russia railways Remote call library"
+	default n
+	depends on INDICATION_RR
+	depends on LORA
+	depends on LORA_SX12XX
+	depends on HAS_SEMTECH_RADIO_DRIVERS
+	help
+	  Enable LoRa Russia railways functionality.
+
+if LORA_RR
+	config CURRENT_DEVICE_NUM
+		int "Device number"
+		default 1
+		help
+			"Device number. Base station has't this value, signalman has value 1, brigade chief 2."
+endif

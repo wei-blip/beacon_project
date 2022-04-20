@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "modules/nanopb",
+		"source" : "/home/rts/zephyr-rts-master/zephyr/modules/nanopb"
+	}
+}

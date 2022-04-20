@@ -1,0 +1,14 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : [],
+		"files" : [],
+		"nodes" : []
+	},
+	"installers" : [],
+	"paths" : 
+	{
+		"build" : "modules/open-amp",
+		"source" : "/home/rts/zephyr-rts-master/modules/lib/open-amp"
+	}
+}

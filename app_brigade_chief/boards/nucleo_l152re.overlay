@@ -1,0 +1,64 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Copyright (c) 2021 Planet Innovation
+ */
+#include <dt-bindings/led/led.h>
+
+/ {
+    led_strip: ws2812 {
+        compatible = "worldsemi,ws2812-pwm";
+        label = "WS2812";
+        chain-length = <16>; /* arbitrary */
+        color-mapping = <LED_COLOR_ID_GREEN
+                         LED_COLOR_ID_RED
+                         LED_COLOR_ID_BLUE>;
+        pwms = <&pwm2 1 0 PWM_POLARITY_NORMAL>;
+        period-ns = <1000>;
+    };
+
+	aliases {
+        led-strip = &led_strip;
+	};
+};
+
+
+&spi1 {
+    pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+    status = "okay";
+    cs-gpios = <&gpiob 6 (GPIO_ACTIVE_LOW)>;
+    lora0: sx1278@0 {
+        compatible = "semtech,sx1276";
+        reg = <0>;
+        label = "sx1278";
+        reset-gpios = <&gpiob 0 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>; // GPIO_ACTIVE_LOW
+        dio-gpios = <&gpioc 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpioc 1 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpioc 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpioc 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+        power-amplifier-output = "pa-boost";
+        spi-max-frequency = <500000>;
+    };
+};
+
+&timers2 {
+    status = "okay";
+    pwm2: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim2_ch1_pa0>;
+    };
+};
+
+/*
+&clk_hsi {
+    status = "okay";
+};
+
+
+&pll {
+    status = "okay";
+    div = <2>;
+    mul = <4>;
+    clocks = <&clk_hsi>;
+};
+*/

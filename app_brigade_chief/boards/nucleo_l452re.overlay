@@ -1,0 +1,138 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Copyright (c) 2021 Planet Innovation
+ */
+#include <dt-bindings/led/led.h>
+
+/ {
+    led_strip: ws2812 {
+        compatible = "worldsemi,ws2812-pwm";
+        label = "WS2812";
+        chain-length = <16>; /* arbitrary */
+        color-mapping = <LED_COLOR_ID_GREEN
+                         LED_COLOR_ID_RED
+                         LED_COLOR_ID_BLUE>;
+        pwms = <&pwm2 1 0 PWM_POLARITY_NORMAL>;
+        period-ns = <1250>;
+    };
+
+    pwmleds {
+        compatible = "pwm-leds";
+        external_pwm_led: external_pwm_led {
+            pwms = <&pwm2 2 0 PWM_POLARITY_NORMAL>;
+        };
+    };
+
+    gpio_keys {
+        compatible = "gpio-keys";
+        button_0: button_0 {
+            label = "BUTTON_0";
+            status = "okay";
+            gpios = <&gpioc 0 (GPIO_ACTIVE_HIGH | GPIO_PUSH_PULL)>;
+        };
+
+        button_1: button_1 {
+            label = "BUTTON_1";
+            status = "okay";
+            gpios = <&gpioc 1 (GPIO_ACTIVE_HIGH | GPIO_PUSH_PULL)>;
+        };
+
+        button_2: button_2 {
+            label = "BUTTON_2";
+            status = "okay";
+            gpios = <&gpioa 4 (GPIO_ACTIVE_HIGH | GPIO_PUSH_PULL)>;
+        };
+    };
+
+	  aliases {
+        sw0 = &button_0;
+        sw1 = &button_1;
+        sw2 = &button_2;
+        led-strip = &led_strip;
+        pwm-sound = &external_pwm_led;
+        lora0 = &lora0;
+    };
+};
+
+
+&timers2 {
+    status = "okay";
+    pwm2: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim2_ch1_pa0 &tim2_ch2_pa1>;
+    };
+};
+
+&dma1 {
+    status = "okay";
+};
+
+&dma2 {
+    status = "okay";
+};
+
+&spi1 {
+    status = "okay";
+    pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpiob 6 (GPIO_ACTIVE_LOW)>;
+    dmas = <&dma2 4 4 0x20440>, <&dma2 3 4 0x20480>;
+    dma-names = "tx", "rx";
+    lora0: sx1278@0 {
+        compatible = "semtech,sx1276";
+        reg = <0>;
+        label = "sx1278";
+        reset-gpios = <&gpiob 0 (GPIO_ACTIVE_LOW | GPIO_OPEN_DRAIN)>; // GPIO_ACTIVE_LOW
+        dio-gpios = <&gpioa 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpiob 10 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpiob 5 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>,
+                    <&gpioc 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+        power-amplifier-output = "pa-boost";
+        spi-max-frequency = <1000000>;
+    };
+};
+
+&spi2 {
+    status = "okay";
+    pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpiob 1 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+    status = "okay";
+//    dmas = <&dma1 5 1 0x20440>, <&dma1 4 1 0x20480>;
+//    dma-names = "tx", "rx";
+    uwb: dw1000@0 {
+        compatible = "decawave,dw1000";
+        reg = <0>;
+        label = "DW1000";
+        spi-max-frequency = <1000000>;
+        reset-gpios = <&gpiob 2 (GPIO_ACTIVE_LOW)>;
+        int-gpios = <&gpioc 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+        tx-ant-delay=<0x4042>;
+        rx-ant-delay=<0x4042>;
+    };
+};
+
+&clk_hsi {
+    status = "okay";
+};
+
+
+&pll {
+    status = "okay";
+    div-m = <1>;            /*  16 / 1  = 16MHz  */
+    mul-n = <20>;           /*  16 * 20 = 320MHz */
+    div-r = <4>;            /* 128 / 2  = 80MHz  */
+    clocks = <&clk_hsi>;
+};
+
+
+&rcc {
+	status = "okay";
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(80)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <1>;
+	apb2-prescaler = <1>;
+};
+

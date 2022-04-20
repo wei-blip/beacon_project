@@ -1,0 +1,13 @@
+# WARNING. THIS FILE IS AUTO-GENERATED. DO NOT MODIFY!
+#
+# This file contains build system settings derived from your modules.
+#
+# Modules may be set via ZEPHYR_MODULES, ZEPHYR_EXTRA_MODULES,
+# and/or the west manifest file.
+#
+# See the Modules guide for more information.
+"DTS_ROOT":"/home/rts/zephyr-rts-master/modules/hal/gigadevice"
+"DTS_ROOT":"/home/rts/zephyr-rts-master/modules/hal/nxp"
+"DTS_ROOT":"/home/rts/zephyr-rts-master/modules/hal/stm32"
+"BOARD_ROOT":"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_signalman/../modules/rts-zephyr"
+"DTS_ROOT":"/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_signalman/../modules/rts-zephyr"

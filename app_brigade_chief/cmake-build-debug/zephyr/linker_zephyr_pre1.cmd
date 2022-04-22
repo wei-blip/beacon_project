@@ -2,7 +2,7 @@
 _region_min_align = 32;
 MEMORY
     {
-    FLASH (rx) : ORIGIN = (0x8000000 + 0x0), LENGTH = (512*1K - 0x0)
+    FLASH (rx) : ORIGIN = (0x8000000 + 0x0), LENGTH = (256*1K - 0x0)
     SRAM (wx) : ORIGIN = 0x20000000, LENGTH = (160 * 1K)
    
    

@@ -20,17 +20,14 @@ APPLICATION_BINARY_DIR:PATH=/home/rts/tmp/projects/beacon_project_rzd/lora_russi
 //Application Source Directory
 APPLICATION_SOURCE_DIR:PATH=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base
 
-//Selected board
-BOARD:STRING=nucleo_l452re
-
 //Path to a file.
-BOARD_DIR:PATH=/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re
+BOARD_DIR:PATH=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/boards/arm/rs_0015_100
 
 //Path to a program.
 BOSSAC:FILEPATH=/opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/bossac
 
 //Selected board
-CACHED_BOARD:STRING=nucleo_l452re
+CACHED_BOARD:STRING=rs_0015_100
 
 //If desired, you can build the application usingthe configuration
 // settings specified in an alternate .conf file using this parameter.
@@ -112,8 +109,8 @@ CMAKE_CXX_FLAGS_RELEASE:STRING=-O3 -DNDEBUG
 //Flags used by the CXX compiler during RELWITHDEBINFO builds.
 CMAKE_CXX_FLAGS_RELWITHDEBINFO:STRING=-O2 -g -DNDEBUG
 
-//Path to a program.
-CMAKE_C_COMPILER:FILEPATH=/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
+//C compiler
+CMAKE_C_COMPILER:STRING=/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
 
 //A wrapper around 'ar' adding the appropriate '--plugin' option
 // for the GCC compiler
@@ -301,7 +298,7 @@ DTC:FILEPATH=/opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/dtc
 // parameter. These settings will override the settings in the
 // board's .dts file. Multiple files may be listed, e.g. DTC_OVERLAY_FILE="dts1.overlay
 // dts2.overlay"
-DTC_OVERLAY_FILE:STRING=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/boards/nucleo_l452re.overlay
+DTC_OVERLAY_FILE:STRING=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/boards/rs_0015_100.overlay
 
 //Path to a program.
 GPERF:FILEPATH=/usr/bin/gperf
@@ -352,7 +349,7 @@ Zephyr-sdk_DIR:PATH=/opt/zephyr-sdk/cmake
 ZephyrBuildConfiguration_DIR:PATH=ZephyrBuildConfiguration_DIR-NOTFOUND
 
 //The directory containing a CMake configuration file for Zephyr.
-Zephyr_DIR:PATH=/home/rts/zephyr-2.7.0/zephyr/share/zephyr-package/cmake
+Zephyr_DIR:PATH=Zephyr_DIR-NOTFOUND
 
 //Value Computed by CMake
 civetweb_BINARY_DIR:STATIC=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/modules/civetweb
@@ -432,6 +429,8 @@ CMAKE_CXX_FLAGS_MINSIZEREL-ADVANCED:INTERNAL=1
 CMAKE_CXX_FLAGS_RELEASE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_CXX_FLAGS_RELWITHDEBINFO
 CMAKE_CXX_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
+//ADVANCED property for variable: CMAKE_C_COMPILER
+CMAKE_C_COMPILER-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_C_COMPILER_AR
 CMAKE_C_COMPILER_AR-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_C_COMPILER_RANLIB
@@ -492,7 +491,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=125
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=126
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP

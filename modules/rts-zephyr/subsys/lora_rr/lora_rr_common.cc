@@ -186,6 +186,9 @@ void set_ind(led_strip_indicate_s **ind, k_timeout_t duration_min)
 //        }
     }
 
+    if (!k_msgq_num_free_get(&msgq_led_strip)) {
+        k_msgq_purge(&msgq_led_strip);
+    }
     k_msgq_put(&msgq_led_strip, ind, K_NO_WAIT);
 }
 

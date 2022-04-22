@@ -372,7 +372,8 @@ static inline int32_t modem_fun(const struct device *lora_dev, struct lora_modem
         rc = lora_config(lora_dev, lora_cfg);
         if (rc < 0) {
             k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
-            current_state = *current_state.next;
+            current_state = recv_state;
+            atomic_set(&reconfig_modem, 1);
             k_spin_unlock(&spin, key);
             return rc;
         }
@@ -389,7 +390,7 @@ static inline int32_t modem_fun(const struct device *lora_dev, struct lora_modem
         if (tx_msg.message_type == MESSAGE_TYPE_SYNC)
             rc = 1;
 
-        current_state = *current_state.next;
+        current_state = recv_state;
         k_spin_unlock(&spin, key);
         return rc;
 
@@ -400,7 +401,7 @@ static inline int32_t modem_fun(const struct device *lora_dev, struct lora_modem
             rc = lora_config(lora_dev, lora_cfg);
             if (!rc) {
                 rc = lora_recv_async(lora_dev, lora_receive_cb, lora_receive_error_timeout);
-                if (rc) {
+                if (rc < 0) {
                     atomic_set(&reconfig_modem, 1);
                 }
             } else {

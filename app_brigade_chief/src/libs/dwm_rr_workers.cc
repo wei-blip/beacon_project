@@ -24,7 +24,7 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_NONE);
 
 #include "dwm_rr/dwm_rr_common.h"
 
-#define INITIATOR_ID 5
+#define INITIATOR_ID 4
 
 struct node {
   double range;
@@ -81,9 +81,9 @@ atomic_t atomic_twr_status = ATOMIC_INIT((atomic_t) msg_id_t::twr_3_final);
     LOG_INF("responder_thread> starting");
     char dist_str[50] = {'\0'};
 
+    dwt_setinterrupt((DWT_INT_TFRS | DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_RFTO
+      | DWT_INT_RXPTO | DWT_INT_SFDT |DWT_INT_ARFE) , 1);
     dwt_setcallbacks(tx_ok_cb, rx_ok_cb, rx_to_cb, rx_err_cb);
-
-    k_sleep(K_SECONDS(1));
 
     init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
 
@@ -92,105 +92,117 @@ atomic_t atomic_twr_status = ATOMIC_INIT((atomic_t) msg_id_t::twr_3_final);
 //    k_work_schedule(&led_off_work, K_MSEC(1000));
 
     while (true) {
-        while (k_poll(&ev_dwm[0], 2, K_NO_WAIT)) {
-            k_sleep(K_MSEC(1));
-            printk("signal inf loop\n");
-        }
-
-        /*
-         * ind = 0 - rx
-         * ind = 1 - tx
-         * */
-//        ev_dwm[0].signal->signaled = 0;
-//        ev_dwm[0].state = K_POLL_STATE_NOT_READY;
-
-        switch (atomic_get(&atomic_twr_status)) {
-            case ((atomic_t) msg_id_t::twr_1_poll): /* RxDone, RxTO, RxError */
-                if (ev_dwm[0].state == K_POLL_STATE_SIGNALED) {
-                    switch (ev_dwm[0].signal->result) {
-                        ev_dwm[0].signal->signaled = 0;
-                        ev_dwm[0].state = K_POLL_STATE_NOT_READY;
-                        ev_dwm[1].signal->signaled = 0;
-                        ev_dwm[1].state = K_POLL_STATE_NOT_READY;
-
-
-                        case RX_DONE:
-                            if (!k_msgq_get(&msgq_dwt_callback_data, &dwt_cb_data, K_MSEC(1))) {
-                                init_twr_2_resp_ds_twr(dwm_dev, &tx_poll_msg, &atomic_twr_status, &dwt_cb_data);
-                            } else {
-                                /* Restart twr */
-                                init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
-                            }
-                            break;
-                        case RX_TO:
-                        case RX_ERR:
-                            /* Restart twr */
-                            init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
-                            break;
-                    }
-                }
-                break;
-            case ((atomic_t) (msg_id_t::twr_2_resp)):
-                if (ev_dwm[1].state == K_POLL_STATE_SIGNALED) {
-
-                    ev_dwm[0].signal->signaled = 0;
-                    ev_dwm[0].state = K_POLL_STATE_NOT_READY;
-                    ev_dwm[1].signal->signaled = 0;
-                    ev_dwm[1].state = K_POLL_STATE_NOT_READY;
-
-                    init_final_msg_poll_ds_twr(&atomic_twr_status);
-                }
-
-                break;
-            case ((atomic_t) msg_id_t::twr_3_final):
-                if (ev_dwm[1].state == K_POLL_STATE_SIGNALED) {
-
-                    ev_dwm[0].signal->signaled = 0;
-                    ev_dwm[0].state = K_POLL_STATE_NOT_READY;
-                    ev_dwm[1].signal->signaled = 0;
-                    ev_dwm[1].state = K_POLL_STATE_NOT_READY;
-
-                    init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
-                }
-
-                break;
-        }
-
-
-
-//        switch (ev_dwm[0].signal->result) {
-//            case TX_DONE:
-//                if (atomic_get(&atomic_twr_status) == (atomic_t) (msg_id_t::twr_3_final)) {
+//        while (k_poll(&ev_dwm[0], 2, K_NO_WAIT)) {
+//            k_sleep(K_MSEC(1));
+//            printk("signal inf loop\n");
+//        }
 //
-//                    init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
+//        /*
+//         * ind = 0 - rx
+//         * ind = 1 - tx
+//         * */
+////        ev_dwm[0].signal->signaled = 0;
+////        ev_dwm[0].state = K_POLL_STATE_NOT_READY;
 //
-//                } else if (atomic_get(&atomic_twr_status) == (atomic_t) (msg_id_t::twr_2_resp)) {
-////                    gpio_pin_set_dt(&led, 1);
-////                    k_work_schedule(&led_off_work, K_MSEC(LED_BLINK_MS));
+//        switch (atomic_get(&atomic_twr_status)) {
+//            case ((atomic_t) msg_id_t::twr_1_poll): /* RxDone, RxTO, RxError */
+//                if (ev_dwm[0].state == K_POLL_STATE_SIGNALED) {
+//                    switch (ev_dwm[0].signal->result) {
+//                        ev_dwm[0].signal->signaled = 0;
+//                        ev_dwm[0].state = K_POLL_STATE_NOT_READY;
+//                        ev_dwm[1].signal->signaled = 0;
+//                        ev_dwm[1].state = K_POLL_STATE_NOT_READY;
+//
+//
+//                        case RX_DONE:
+//                            if (!k_msgq_get(&msgq_dwt_callback_data, &dwt_cb_data, K_MSEC(1))) {
+//                                init_twr_2_resp_ds_twr(dwm_dev, &tx_poll_msg, &atomic_twr_status, &dwt_cb_data);
+//                            } else {
+//                                /* Restart twr */
+//                                init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
+//                            }
+//                            break;
+//                        case RX_TO:
+//                        case RX_ERR:
+//                            /* Restart twr */
+//                            init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
+//                            break;
+//                    }
+//                }
+//                break;
+//            case ((atomic_t) (msg_id_t::twr_2_resp)):
+//                if (ev_dwm[1].state == K_POLL_STATE_SIGNALED) {
+//
+//                    ev_dwm[0].signal->signaled = 0;
+//                    ev_dwm[0].state = K_POLL_STATE_NOT_READY;
+//                    ev_dwm[1].signal->signaled = 0;
+//                    ev_dwm[1].state = K_POLL_STATE_NOT_READY;
+//
 //                    init_final_msg_poll_ds_twr(&atomic_twr_status);
 //                }
-//                break;
 //
-//            case RX_DONE:
-//                if (atomic_get(&atomic_twr_status) == (atomic_t) msg_id_t::twr_1_poll) {
-//                    if (!k_msgq_get(&msgq_dwt_callback_data, &dwt_cb_data, K_MSEC(1))) {
-//                        init_twr_2_resp_ds_twr(dwm_dev, &tx_poll_msg, &atomic_twr_status, &dwt_cb_data);
-//                    } else {
-//                        /* Restart twr */
-//                        init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
-//                    }
-//                } else {
-//                    /* Restart twr */
+//                break;
+//            case ((atomic_t) msg_id_t::twr_3_final):
+//                if (ev_dwm[1].state == K_POLL_STATE_SIGNALED) {
+//
+//                    ev_dwm[0].signal->signaled = 0;
+//                    ev_dwm[0].state = K_POLL_STATE_NOT_READY;
+//                    ev_dwm[1].signal->signaled = 0;
+//                    ev_dwm[1].state = K_POLL_STATE_NOT_READY;
+//
 //                    init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
 //                }
-//                break;
 //
-//            case RX_TO:
-//            case RX_ERR:
-//                /* Restart twr */
-//                init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
 //                break;
 //        }
+
+
+        while (k_poll(&ev_dwm[0], 1, K_NO_WAIT)) {
+            k_sleep(K_MSEC(1));
+        }
+
+        ev_dwm[0].signal->signaled = 0;
+        ev_dwm[0].state = K_POLL_STATE_NOT_READY;
+
+//        printk("Take dwt_cb_data\n");
+        if (k_msgq_get(&msgq_dwt_callback_data, &dwt_cb_data, K_MSEC(1))) {
+            init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
+            continue;
+        }
+
+        switch (ev_dwm[0].signal->result) {
+            case TX_DONE:
+                if (atomic_get(&atomic_twr_status) == (atomic_t) (msg_id_t::twr_3_final)) {
+
+//                    printk("First tx_done\n");
+                    init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
+
+                } else {
+//                    gpio_pin_set_dt(&led, 1);
+//                    k_work_schedule(&led_off_work, K_MSEC(LED_BLINK_MS));
+//                    printk("Second tx_done\n");
+                    init_final_msg_poll_ds_twr(&atomic_twr_status);
+                }
+                break;
+
+            case RX_DONE:
+                if (atomic_get(&atomic_twr_status) == (atomic_t) msg_id_t::twr_1_poll) {
+//                    printk("twr_2_resp send\n");
+                    init_twr_2_resp_ds_twr(dwm_dev, &tx_poll_msg, &atomic_twr_status, &dwt_cb_data);
+                } else {
+                    /* Restart twr */
+//                    printk("Restart after checking rx_done\n");
+                    init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
+                }
+                break;
+
+            case RX_TO:
+            case RX_ERR:
+                /* Restart twr */
+//                printk("Restart after rx_to rx_err\n");
+                init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
+                break;
+        }
     }
 }
 

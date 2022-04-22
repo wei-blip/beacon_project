@@ -21,16 +21,17 @@ static inline void cb_routine(const dwt_cb_data_t* cb_data, int res)
     if (cb_data)
         k_msgq_put(&msgq_dwt_callback_data, cb_data, K_NO_WAIT);
 
-    if (res == TX_DONE) {
-        k_poll_signal_raise(&sig_tx_dwm, res);
-    } else {
-        k_poll_signal_raise(&sig_rx_dwm, res);
-    }
+//    if (res == TX_DONE) {
+//        k_poll_signal_raise(&sig_tx_dwm, res);
+//    } else {
+//        k_poll_signal_raise(&sig_rx_dwm, res);
+//    }
+    k_poll_signal_raise(&sig_rx_dwm, res);
 }
 
 void tx_ok_cb(const dwt_cb_data_t *cb_data)
 {
-    cb_routine(nullptr, TX_DONE);
+    cb_routine(cb_data, TX_DONE);
 }
 
 void rx_ok_cb(const dwt_cb_data_t *cb_data)
@@ -40,12 +41,12 @@ void rx_ok_cb(const dwt_cb_data_t *cb_data)
 
 void rx_to_cb(const dwt_cb_data_t *cb_data)
 {
-    cb_routine(nullptr, RX_TO);
+    cb_routine(cb_data, RX_TO);
 }
 
 void rx_err_cb(const dwt_cb_data_t *cb_data)
 {
-    cb_routine(nullptr, RX_ERR);
+    cb_routine(cb_data, RX_ERR);
 }
 
 bool check_correct_recv(void *expect_msg, size_t expect_size, size_t recv_size)
@@ -90,12 +91,15 @@ void resp_twr_2_resp_ds_twr(msg_header_t *rx_poll_msg, uint64_t poll_rx_ts, msg_
         dwt_writetxfctrl(sizeof(*tx_resp_msg), 0, 1);
 
         if (!dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED)) {
+//            printk("twr_2_resp is send!!!\n");
             atomic_set(twr_status, (atomic_t) msg_id_t::twr_2_resp);
         } else {
             resp_twr_1_poll_ds_twr(twr_status);
+//            printk("Restart transaction trying send twr_2_resp msg!!!\n");
         }
     } else {
         resp_twr_1_poll_ds_twr(twr_status);
+//        printk("Restart transaction after checking rx_poll_msg size!!!\n");
     }
 }
 
@@ -116,7 +120,7 @@ double calc_dist_ds_twr(msg_twr_final_t *final_msg, uint32_t poll_rx_ts, uint32_
 
 void resp_final_msg_poll_ds_twr(msg_twr_final_t *final_msg, uint64_t poll_rx_ts, uint64_t resp_tx_ts,
                                 uint64_t final_rx_ts, double *dist_src, bool *nodes) {
-    static char dist_str[40] = {'\0'};
+//    static char dist_str[40] = {'\0'};
     if (final_msg->header.id == msg_id_t::twr_3_final) {
         auto poll_rx_ts_32 = (uint32_t) poll_rx_ts;
         auto resp_tx_ts_32 = (uint32_t) resp_tx_ts;
@@ -127,11 +131,11 @@ void resp_final_msg_poll_ds_twr(msg_twr_final_t *final_msg, uint64_t poll_rx_ts,
         *(dist_src + final_msg->header.source) = d;
         *(nodes + final_msg->header.source) = true;
 
-        sprintf(dist_str,
-                "responder> dist to tag %3u: %3.2lf m\n",
-                final_msg->header.source,
-                *(dist_src + final_msg->header.source));
-        printk("%s", dist_str);
+//        sprintf(dist_str,
+//                "responder> dist to tag %3u: %3.2lf m\n",
+//                final_msg->header.source,
+//                *(dist_src + final_msg->header.source));
+//        printk("%s", dist_str);
     }
 }
 /*
@@ -144,22 +148,24 @@ void resp_final_msg_poll_ds_twr(msg_twr_final_t *final_msg, uint64_t poll_rx_ts,
  * */
 void init_twr_1_poll_ds_twr(msg_header_t *tx_poll_msg, atomic_t *atomic_twr_status)
 {
+    auto rand_delay =  ((int32_t) sys_rand32_get()) >> 25;
+    k_msleep(RNG_DELAY_MS + rand_delay);
+//    printk("send twr_1_poll\n");
     atomic_set(atomic_twr_status, (atomic_t) msg_id_t::twr_1_poll);
 
     dwt_setrxaftertxdelay(POLL_TX_TO_RESP_RX_DLY_UUS);
     dwt_setrxtimeout(RESP_RX_TIMEOUT_UUS);
+
+    dwt_setcallbacks(nullptr, rx_ok_cb, rx_to_cb, rx_err_cb);
 
     dwt_writetxdata(sizeof(*tx_poll_msg), (uint8_t*) tx_poll_msg, 0);
     dwt_writetxfctrl(sizeof(*tx_poll_msg), 0, 1);
 
     k_msgq_purge(&msgq_dwt_callback_data);
 
-    dwt_setinterrupt((DWT_INT_RFCG | DWT_INT_RPHE | DWT_INT_RFCE | DWT_INT_RFSL | DWT_INT_RFTO
-      | DWT_INT_RXPTO | DWT_INT_SFDT |DWT_INT_ARFE) , 2);
-
     while(dwt_starttx(DWT_START_TX_IMMEDIATE | DWT_RESPONSE_EXPECTED)) {
         k_sleep(K_MSEC(1));
-        printk("inf loop\n");
+//        printk("inf loop\n");
     }
 }
 
@@ -195,20 +201,24 @@ void init_twr_2_resp_ds_twr(const struct device *dwm_dev, msg_header_t *tx_poll_
 
                 dwt_writetxdata(sizeof(final_msg), (uint8_t*) &final_msg, 0); /* Zero offset in TX buffer. */
                 dwt_writetxfctrl(sizeof(final_msg), 0, 1); /* Zero offset in TX buffer, ranging. */
-                dwt_setinterrupt((DWT_INT_TFRS | DWT_INT_SFDT |DWT_INT_ARFE) , 2);
+                dwt_setcallbacks(tx_ok_cb, nullptr, nullptr, nullptr);
                 rc = dwt_starttx(DWT_START_TX_DELAYED);
 
                 if (!rc) {
                     atomic_set(atomic_twr_status, (atomic_t) msg_id_t::twr_2_resp);
+//                    printk("Success in init_twr_2_resp\n");
                 } else {
+//                    printk("Restart after delayed sending in init_twr_2_resp\n");
                     /* Restart twr */
                     init_twr_1_poll_ds_twr(tx_poll_msg, atomic_twr_status);
                 }
             } else {
+//                printk("Restart after cmp msgs in init_twr_2_resp\n");
                 /* Restart twr */
                 init_twr_1_poll_ds_twr(tx_poll_msg, atomic_twr_status);
             }
     } else {
+//        printk("Restart after checking msg in init_twr_2_resp\n");
         /* Restart twr */
         init_twr_1_poll_ds_twr(tx_poll_msg, atomic_twr_status);
     }
@@ -217,9 +227,7 @@ void init_twr_2_resp_ds_twr(const struct device *dwm_dev, msg_header_t *tx_poll_
 void init_final_msg_poll_ds_twr(atomic_t *atomic_twr_status)
 {
     atomic_set(atomic_twr_status, (atomic_t) msg_id_t::twr_3_final);
-    auto rand_delay =  ((int32_t) sys_rand32_get()) >> 25;
-    k_msleep(RNG_DELAY_MS + rand_delay);
-    k_poll_signal_raise(&sig_tx_dwm, TX_DONE);
+    k_poll_signal_raise(&sig_rx_dwm, TX_DONE);
 }
 /*
  * Initiator functions end

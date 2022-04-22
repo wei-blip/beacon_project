@@ -1,25 +1,9 @@
 # 1 "/home/rts/zephyr-rts-master/zephyr/misc/empty_file.c"
 # 1 "<built-in>"
 # 1 "<command-line>"
-# 1 "/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re.dts" 1
-
-
-
-
-
-
-
+# 1 "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/boards/arm/rs_0015_100/rs_0015_100.dts" 1
 /dts-v1/;
-# 1 "/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re_common.dtsi" 1
-
-
-
-
-
-
-
-/dts-v1/;
-# 1 "/home/rts/zephyr-rts-master/zephyr/dts/arm/st/l4/stm32l452Xe.dtsi" 1 3 4
+# 1 "/home/rts/zephyr-rts-master/zephyr/dts/arm/st/l4/stm32l452Xc.dtsi" 1 3 4
 
 
 
@@ -27,7 +11,7 @@
 
 
 # 1 "/home/rts/zephyr-rts-master/zephyr/dts/common/mem.h" 1 3 4
-# 8 "/home/rts/zephyr-rts-master/zephyr/dts/arm/st/l4/stm32l452Xe.dtsi" 2 3 4
+# 8 "/home/rts/zephyr-rts-master/zephyr/dts/arm/st/l4/stm32l452Xc.dtsi" 2 3 4
 # 1 "/home/rts/zephyr-rts-master/zephyr/dts/arm/st/l4/stm32l452.dtsi" 1 3 4
 
 
@@ -631,7 +615,7 @@
   label = "USB_FS_PHY";
  };
 };
-# 9 "/home/rts/zephyr-rts-master/zephyr/dts/arm/st/l4/stm32l452Xe.dtsi" 2 3 4
+# 9 "/home/rts/zephyr-rts-master/zephyr/dts/arm/st/l4/stm32l452Xc.dtsi" 2 3 4
 
 / {
  sram0: memory@20000000 {
@@ -641,169 +625,13 @@
  soc {
   flash-controller@40022000 {
    flash0: flash@8000000 {
-    reg = <0x08000000 ((512) * 1024)>;
+    reg = <0x08000000 ((256) * 1024)>;
    };
   };
  };
 };
-# 10 "/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re_common.dtsi" 2
-# 1 "/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/arduino_r3_connector.dtsi" 1
-
-
-
-
-
-
-/ {
- arduino_header: connector {
-  compatible = "arduino-header-r3";
-  #gpio-cells = <2>;
-  gpio-map-mask = <0xffffffff 0xffffffc0>;
-  gpio-map-pass-thru = <0 0x3f>;
-  gpio-map = <0 0 &gpioa 0 0>,
-      <1 0 &gpioa 1 0>,
-      <2 0 &gpioa 4 0>,
-      <3 0 &gpiob 0 0>,
-      <4 0 &gpioc 1 0>,
-      <5 0 &gpioc 0 0>,
-      <6 0 &gpioa 3 0>,
-      <7 0 &gpioa 2 0>,
-      <8 0 &gpioa 10 0>,
-      <9 0 &gpiob 3 0>,
-      <10 0 &gpiob 5 0>,
-      <11 0 &gpiob 4 0>,
-      <12 0 &gpiob 10 0>,
-      <13 0 &gpioa 8 0>,
-      <14 0 &gpioa 9 0>,
-      <15 0 &gpioc 7 0>,
-      <16 0 &gpiob 6 0>,
-      <17 0 &gpioa 7 0>,
-      <18 0 &gpioa 6 0>,
-      <19 0 &gpioa 5 0>,
-      <20 0 &gpiob 9 0>,
-      <21 0 &gpiob 8 0>;
- };
-};
-
-arduino_i2c: &i2c1 {};
-arduino_spi: &spi1 {};
-# 11 "/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re_common.dtsi" 2
-
-/ {
- model = "STMicroelectronics STM32L452RE-NUCLEO board";
- compatible = "st,stm32l452re-nucleo";
-
- chosen {
-  zephyr,console = &usart2;
-  zephyr,shell-uart = &usart2;
-  zephyr,sram = &sram0;
-  zephyr,flash = &flash0;
-  zephyr,canbus = &can1;
- };
-
- gpio_keys {
-  compatible = "gpio-keys";
-  user_button: button {
-   label = "User";
-   gpios = <&gpioc 13 (1 << 0)>;
-  };
- };
-
- aliases {
-  sw0 = &user_button;
- };
-};
-
-&clk_hsi {
- status = "okay";
-};
-
-&pll {
- div-m = <1>;
- mul-n = <20>;
- div-p = <7>;
- div-q = <2>;
- div-r = <4>;
- clocks = <&clk_hsi>;
- status = "okay";
-};
-
-&rcc {
- clocks = <&pll>;
- clock-frequency = <((80) * 1000 * 1000)>;
- ahb-prescaler = <1>;
- apb1-prescaler = <1>;
- apb2-prescaler = <1>;
-};
-
-&usart1 {
- pinctrl-0 = <&usart1_tx_pa9 &usart1_rx_pa10>;
- pinctrl-names = "default";
- current-speed = <115200>;
-};
-
-&usart2 {
- pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
- pinctrl-names = "default";
- current-speed = <115200>;
- status = "okay";
-};
-
-&spi1 {
- pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
- pinctrl-names = "default";
- cs-gpios = <&gpiob 6 ((1 << 0) | (1 << 4))>;
- status = "okay";
-};
-
-&i2c1 {
- pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb7>;
- pinctrl-names = "default";
- clock-frequency = <400000>;
- status = "okay";
-};
-
-&timers2 {
- status = "okay";
-
- pwm2: pwm {
-  status = "okay";
-  pinctrl-0 = <&tim2_ch1_pa0>;
-  pinctrl-names = "default";
- };
-};
-
-&can1 {
- pinctrl-0 = <&can1_rx_pa11 &can1_tx_pa12>;
- pinctrl-names = "default";
- bus-speed = <125000>;
- status = "okay";
-};
-
-&rtc {
- status = "okay";
-};
-
-&flash0 {
-
-
-
-
- partitions {
-  compatible = "fixed-partitions";
-  #address-cells = <1>;
-  #size-cells = <1>;
-
-
-
-  storage_partition: partition@7c000 {
-   label = "storage";
-   reg = <0x0007c000 0x00008000>;
-  };
- };
-};
-# 10 "/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re.dts" 2
-# 1 "/home/rts/zephyr-rts-master/modules/hal/stm32/dts/st/l4/stm32l452r(c-e)tx-pinctrl.dtsi" 1 3 4
+# 3 "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/boards/arm/rs_0015_100/rs_0015_100.dts" 2
+# 1 "/home/rts/zephyr-rts-master/modules/hal/stm32/dts/st/l4/stm32l452c(c-e)ux-pinctrl.dtsi" 1 3 4
 
 
 
@@ -814,7 +642,7 @@ arduino_spi: &spi1 {};
 # 10 "/home/rts/zephyr-rts-master/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl.h" 3 4
 # 1 "/home/rts/zephyr-rts-master/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl-common.h" 1 3 4
 # 11 "/home/rts/zephyr-rts-master/zephyr/include/dt-bindings/pinctrl/stm32-pinctrl.h" 2 3 4
-# 8 "/home/rts/zephyr-rts-master/modules/hal/stm32/dts/st/l4/stm32l452r(c-e)tx-pinctrl.dtsi" 2 3 4
+# 8 "/home/rts/zephyr-rts-master/modules/hal/stm32/dts/st/l4/stm32l452c(c-e)ux-pinctrl.dtsi" 2 3 4
 
 / {
  soc {
@@ -860,30 +688,6 @@ arduino_spi: &spi1 {};
 
    adc1_in16_pb1: adc1_in16_pb1 {
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((1) & 0xFU) << 5U) | (((0x10) & 0x1FU) << 0U))>;
-   };
-
-   adc1_in1_pc0: adc1_in1_pc0 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((0) & 0xFU) << 5U) | (((0x10) & 0x1FU) << 0U))>;
-   };
-
-   adc1_in2_pc1: adc1_in2_pc1 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((1) & 0xFU) << 5U) | (((0x10) & 0x1FU) << 0U))>;
-   };
-
-   adc1_in3_pc2: adc1_in3_pc2 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((2) & 0xFU) << 5U) | (((0x10) & 0x1FU) << 0U))>;
-   };
-
-   adc1_in4_pc3: adc1_in4_pc3 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((3) & 0xFU) << 5U) | (((0x10) & 0x1FU) << 0U))>;
-   };
-
-   adc1_in13_pc4: adc1_in13_pc4 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((4) & 0xFU) << 5U) | (((0x10) & 0x1FU) << 0U))>;
-   };
-
-   adc1_in14_pc5: adc1_in14_pc5 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((5) & 0xFU) << 5U) | (((0x10) & 0x1FU) << 0U))>;
    };
 
 
@@ -970,12 +774,6 @@ arduino_spi: &spi1 {};
     drive-open-drain;
    };
 
-   i2c3_scl_pc0: i2c3_scl_pc0 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((0) & 0xFU) << 5U) | (((0x4) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    drive-open-drain;
-   };
-
    i2c4_scl_pb6: i2c4_scl_pb6 {
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((6) & 0xFU) << 5U) | (((0x5) & 0x1FU) << 0U))>;
     bias-pull-up;
@@ -984,12 +782,6 @@ arduino_spi: &spi1 {};
 
    i2c4_scl_pb10: i2c4_scl_pb10 {
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((10) & 0xFU) << 5U) | (((0x3) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    drive-open-drain;
-   };
-
-   i2c4_scl_pc0: i2c4_scl_pc0 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((0) & 0xFU) << 5U) | (((0x2) & 0x1FU) << 0U))>;
     bias-pull-up;
     drive-open-drain;
    };
@@ -1032,12 +824,6 @@ arduino_spi: &spi1 {};
     drive-open-drain;
    };
 
-   i2c3_sda_pc1: i2c3_sda_pc1 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((1) & 0xFU) << 5U) | (((0x4) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    drive-open-drain;
-   };
-
    i2c4_sda_pb7: i2c4_sda_pb7 {
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((7) & 0xFU) << 5U) | (((0x5) & 0x1FU) << 0U))>;
     bias-pull-up;
@@ -1046,12 +832,6 @@ arduino_spi: &spi1 {};
 
    i2c4_sda_pb11: i2c4_sda_pb11 {
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((11) & 0xFU) << 5U) | (((0x3) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    drive-open-drain;
-   };
-
-   i2c4_sda_pc1: i2c4_sda_pc1 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((1) & 0xFU) << 5U) | (((0x2) & 0x1FU) << 0U))>;
     bias-pull-up;
     drive-open-drain;
    };
@@ -1100,68 +880,6 @@ arduino_spi: &spi1 {};
 
 
 
-   sdmmc1_d4_pb8: sdmmc1_d4_pb8 {
-    pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((8) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-   sdmmc1_d5_pb9: sdmmc1_d5_pb9 {
-    pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((9) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-   sdmmc1_d6_pc6: sdmmc1_d6_pc6 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((6) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-   sdmmc1_d7_pc7: sdmmc1_d7_pc7 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((7) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-   sdmmc1_d0_pc8: sdmmc1_d0_pc8 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((8) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-   sdmmc1_d1_pc9: sdmmc1_d1_pc9 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((9) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-   sdmmc1_d2_pc10: sdmmc1_d2_pc10 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((10) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-   sdmmc1_d3_pc11: sdmmc1_d3_pc11 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((11) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-   sdmmc1_ck_pc12: sdmmc1_ck_pc12 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((12) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-   sdmmc1_cmd_pd2: sdmmc1_cmd_pd2 {
-    pinmux = <((((('D') - 'A') & 0xFU) << 9U) | (((2) & 0xFU) << 5U) | (((0xc) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    slew-rate = "very-high-speed";
-   };
-
-
-
    spi1_miso_pa6: spi1_miso_pa6 {
     pinmux = <((((('A') - 'A') & 0xFU) << 9U) | (((6) & 0xFU) << 5U) | (((0x5) & 0x1FU) << 0U))>;
     bias-pull-down;
@@ -1182,18 +900,8 @@ arduino_spi: &spi1 {};
     bias-pull-down;
    };
 
-   spi2_miso_pc2: spi2_miso_pc2 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((2) & 0xFU) << 5U) | (((0x5) & 0x1FU) << 0U))>;
-    bias-pull-down;
-   };
-
    spi3_miso_pb4: spi3_miso_pb4 {
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((4) & 0xFU) << 5U) | (((0x6) & 0x1FU) << 0U))>;
-    bias-pull-down;
-   };
-
-   spi3_miso_pc11: spi3_miso_pc11 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((11) & 0xFU) << 5U) | (((0x6) & 0x1FU) << 0U))>;
     bias-pull-down;
    };
 
@@ -1219,18 +927,8 @@ arduino_spi: &spi1 {};
     bias-pull-down;
    };
 
-   spi2_mosi_pc3: spi2_mosi_pc3 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((3) & 0xFU) << 5U) | (((0x5) & 0x1FU) << 0U))>;
-    bias-pull-down;
-   };
-
    spi3_mosi_pb5: spi3_mosi_pb5 {
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((5) & 0xFU) << 5U) | (((0x6) & 0x1FU) << 0U))>;
-    bias-pull-down;
-   };
-
-   spi3_mosi_pc12: spi3_mosi_pc12 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((12) & 0xFU) << 5U) | (((0x6) & 0x1FU) << 0U))>;
     bias-pull-down;
    };
 
@@ -1305,12 +1003,6 @@ arduino_spi: &spi1 {};
 
    spi3_sck_pb3: spi3_sck_pb3 {
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((3) & 0xFU) << 5U) | (((0x6) & 0x1FU) << 0U))>;
-    bias-pull-down;
-    slew-rate = "very-high-speed";
-   };
-
-   spi3_sck_pc10: spi3_sck_pc10 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((10) & 0xFU) << 5U) | (((0x6) & 0x1FU) << 0U))>;
     bias-pull-down;
     slew-rate = "very-high-speed";
    };
@@ -1415,22 +1107,6 @@ arduino_spi: &spi1 {};
 
    tim3_ch2_pb5: tim3_ch2_pb5 {
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((5) & 0xFU) << 5U) | (((0x2) & 0x1FU) << 0U))>;
-   };
-
-   tim3_ch1_pc6: tim3_ch1_pc6 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((6) & 0xFU) << 5U) | (((0x2) & 0x1FU) << 0U))>;
-   };
-
-   tim3_ch2_pc7: tim3_ch2_pc7 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((7) & 0xFU) << 5U) | (((0x2) & 0x1FU) << 0U))>;
-   };
-
-   tim3_ch3_pc8: tim3_ch3_pc8 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((8) & 0xFU) << 5U) | (((0x2) & 0x1FU) << 0U))>;
-   };
-
-   tim3_ch4_pc9: tim3_ch4_pc9 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((9) & 0xFU) << 5U) | (((0x2) & 0x1FU) << 0U))>;
    };
 
    tim15_ch1n_pa1: tim15_ch1n_pa1 {
@@ -1569,12 +1245,6 @@ arduino_spi: &spi1 {};
     drive-open-drain;
    };
 
-   usart3_rts_pd2: usart3_rts_pd2 {
-    pinmux = <((((('D') - 'A') & 0xFU) << 9U) | (((2) & 0xFU) << 5U) | (((0x7) & 0x1FU) << 0U))>;
-    bias-pull-up;
-    drive-open-drain;
-   };
-
    uart4_rts_pa15: uart4_rts_pa15 {
     pinmux = <((((('A') - 'A') & 0xFU) << 9U) | (((15) & 0xFU) << 5U) | (((0x8) & 0x1FU) << 0U))>;
     bias-pull-up;
@@ -1599,10 +1269,6 @@ arduino_spi: &spi1 {};
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((10) & 0xFU) << 5U) | (((0x8) & 0x1FU) << 0U))>;
    };
 
-   lpuart1_rx_pc0: lpuart1_rx_pc0 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((0) & 0xFU) << 5U) | (((0x8) & 0x1FU) << 0U))>;
-   };
-
    usart2_rx_pa3: usart2_rx_pa3 {
     pinmux = <((((('A') - 'A') & 0xFU) << 9U) | (((3) & 0xFU) << 5U) | (((0x7) & 0x1FU) << 0U))>;
    };
@@ -1615,20 +1281,8 @@ arduino_spi: &spi1 {};
     pinmux = <((((('B') - 'A') & 0xFU) << 9U) | (((11) & 0xFU) << 5U) | (((0x7) & 0x1FU) << 0U))>;
    };
 
-   usart3_rx_pc5: usart3_rx_pc5 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((5) & 0xFU) << 5U) | (((0x7) & 0x1FU) << 0U))>;
-   };
-
-   usart3_rx_pc11: usart3_rx_pc11 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((11) & 0xFU) << 5U) | (((0x7) & 0x1FU) << 0U))>;
-   };
-
    uart4_rx_pa1: uart4_rx_pa1 {
     pinmux = <((((('A') - 'A') & 0xFU) << 9U) | (((1) & 0xFU) << 5U) | (((0x8) & 0x1FU) << 0U))>;
-   };
-
-   uart4_rx_pc11: uart4_rx_pc11 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((11) & 0xFU) << 5U) | (((0x8) & 0x1FU) << 0U))>;
    };
 
 
@@ -1653,11 +1307,6 @@ arduino_spi: &spi1 {};
     bias-pull-up;
    };
 
-   lpuart1_tx_pc1: lpuart1_tx_pc1 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((1) & 0xFU) << 5U) | (((0x8) & 0x1FU) << 0U))>;
-    bias-pull-up;
-   };
-
    usart2_tx_pa2: usart2_tx_pa2 {
     pinmux = <((((('A') - 'A') & 0xFU) << 9U) | (((2) & 0xFU) << 5U) | (((0x7) & 0x1FU) << 0U))>;
     bias-pull-up;
@@ -1668,23 +1317,8 @@ arduino_spi: &spi1 {};
     bias-pull-up;
    };
 
-   usart3_tx_pc4: usart3_tx_pc4 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((4) & 0xFU) << 5U) | (((0x7) & 0x1FU) << 0U))>;
-    bias-pull-up;
-   };
-
-   usart3_tx_pc10: usart3_tx_pc10 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((10) & 0xFU) << 5U) | (((0x7) & 0x1FU) << 0U))>;
-    bias-pull-up;
-   };
-
    uart4_tx_pa0: uart4_tx_pa0 {
     pinmux = <((((('A') - 'A') & 0xFU) << 9U) | (((0) & 0xFU) << 5U) | (((0x8) & 0x1FU) << 0U))>;
-    bias-pull-up;
-   };
-
-   uart4_tx_pc10: uart4_tx_pc10 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((10) & 0xFU) << 5U) | (((0x8) & 0x1FU) << 0U))>;
     bias-pull-up;
    };
 
@@ -1702,81 +1336,160 @@ arduino_spi: &spi1 {};
     pinmux = <((((('A') - 'A') & 0xFU) << 9U) | (((13) & 0xFU) << 5U) | (((0xa) & 0x1FU) << 0U))>;
    };
 
-   usb_noe_pc9: usb_noe_pc9 {
-    pinmux = <((((('C') - 'A') & 0xFU) << 9U) | (((9) & 0xFU) << 5U) | (((0xa) & 0x1FU) << 0U))>;
-   };
-
   };
  };
 };
-# 11 "/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re.dts" 2
-# 1 "/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/arduino_r3_connector.dtsi" 1
-
-
-
-
-
+# 4 "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/boards/arm/rs_0015_100/rs_0015_100.dts" 2
 
 / {
- arduino_header: connector {
-  compatible = "arduino-header-r3";
-  #gpio-cells = <2>;
-  gpio-map-mask = <0xffffffff 0xffffffc0>;
-  gpio-map-pass-thru = <0 0x3f>;
-  gpio-map = <0 0 &gpioa 0 0>,
-      <1 0 &gpioa 1 0>,
-      <2 0 &gpioa 4 0>,
-      <3 0 &gpiob 0 0>,
-      <4 0 &gpioc 1 0>,
-      <5 0 &gpioc 0 0>,
-      <6 0 &gpioa 3 0>,
-      <7 0 &gpioa 2 0>,
-      <8 0 &gpioa 10 0>,
-      <9 0 &gpiob 3 0>,
-      <10 0 &gpiob 5 0>,
-      <11 0 &gpiob 4 0>,
-      <12 0 &gpiob 10 0>,
-      <13 0 &gpioa 8 0>,
-      <14 0 &gpioa 9 0>,
-      <15 0 &gpioc 7 0>,
-      <16 0 &gpiob 6 0>,
-      <17 0 &gpioa 7 0>,
-      <18 0 &gpioa 6 0>,
-      <19 0 &gpioa 5 0>,
-      <20 0 &gpiob 9 0>,
-      <21 0 &gpiob 8 0>;
- };
+    model = "RTS RS.0015-100 board";
+    compatible = "rts,rs_0015_100";
+
+    chosen {
+        zephyr,console = &usart2;
+        zephyr,shell-uart = &usart2;
+        zephyr,sram = &sram0;
+        zephyr,flash = &flash0;
+    };
+
+    power-states {
+        stop0: state0 {
+            compatible = "zephyr,power-state";
+            power-state-name = "suspend-to-idle";
+            substate-id = <1>;
+            min-residency-us = <100>;
+        };
+        stop1: state1 {
+            compatible = "zephyr,power-state";
+            power-state-name = "suspend-to-idle";
+            substate-id = <2>;
+            min-residency-us = <500>;
+        };
+        stop2: state2 {
+            compatible = "zephyr,power-state";
+            power-state-name = "suspend-to-idle";
+            substate-id = <3>;
+            min-residency-us = <900>;
+        };
+    };
+
+    leds {
+        compatible = "gpio-leds";
+        led0: led_0 {
+            gpios = <&gpioa 10 (0 << 0)>;
+            label = "User LED0";
+        };
+        led1: led_1 {
+            gpios = <&gpioa 11 (0 << 0)>;
+            label = "User LED1";
+        };
+    };
+
+    aliases {
+        led0 = &led0;
+        led1 = &led1;
+    };
 };
 
-arduino_i2c: &i2c1 {};
-arduino_spi: &spi1 {};
-# 12 "/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re.dts" 2
+&cpu0 {
+    cpu-power-states = <&stop0 &stop1 &stop2>;
+};
 
-/ {
- model = "STMicroelectronics STM32L452RE-NUCLEO board";
- compatible = "st,stm32l452re-nucleo";
+&clk_hsi {
+    status = "okay";
+};
 
- leds {
-  compatible = "gpio-leds";
-  green_led: led_0 {
-   gpios = <&gpioa 5 (0 << 0)>;
-   label = "User LD2";
-  };
- };
+&clk_lsi {
+    status = "okay";
+};
 
- aliases {
-  led0 = &green_led;
- };
+&lptim1 {
+    status = "okay";
+};
+
+&pll {
+    div-m = <1>;
+    mul-n = <20>;
+    div-r = <4>;
+    clocks = <&clk_hsi>;
+    status = "okay";
+};
+
+&rcc {
+    clocks = <&pll>;
+    clock-frequency = <((80) * 1000 * 1000)>;
+    ahb-prescaler = <1>;
+    apb1-prescaler = <1>;
+    apb2-prescaler = <1>;
+};
+
+&usart2 {
+    pinctrl-0 = <&usart2_tx_pa2 &usart2_rx_pa3>;
+    pinctrl-names = "default";
+    current-speed = <115200>;
+    status = "okay";
+};
+
+&dma1 {
+    status = "okay";
+};
+
+&spi2 {
+    pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
+    pinctrl-names = "default";
+    cs-gpios = <&gpiob 12 ((1 << 0) | (1 << 4))>;
+    status = "okay";
+    dmas = <&dma1 5 1 0x20440>, <&dma1 4 1 0x20480>;
+    dma-names = "tx", "rx";
+    uwb: dw1000@0 {
+        compatible = "decawave,dw1000";
+        reg = <0>;
+        label = "DW1000";
+        spi-max-frequency = <8000000>;
+        reset-gpios = <&gpiob 2 (1 << 0)>;
+        int-gpios = <&gpioa 15 ((1 << 5) | (0 << 0))>;
+        tx-ant-delay=<0x4042>;
+        rx-ant-delay=<0x4042>;
+    };
+};
+
+&i2c2 {
+    pinctrl-0 = <&i2c2_scl_pb10 &i2c2_sda_pb11>;
+    pinctrl-names = "default";
+    clock-frequency = <400000>;
+    status = "okay";
+};
+
+&rtc {
+    status = "okay";
+};
+
+&rng {
+    status = "okay";
+};
+
+
+
+
+
+&flash0 {
+    partitions {
+        compatible = "fixed-partitions";
+        #address-cells = <1>;
+        #size-cells = <1>;
+
+
+
+        storage_partition: partition@7c000 {
+            label = "storage";
+            reg = <0x0007c000 0x00008000>;
+        };
+    };
 };
 # 1 "<command-line>" 2
-# 1 "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/boards/nucleo_l452re.overlay" 1
-
-
-
-
-
+# 1 "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/boards/rs_0015_100.overlay" 1
 # 1 "/home/rts/zephyr-rts-master/zephyr/include/dt-bindings/led/led.h" 1 3 4
-# 7 "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/boards/nucleo_l452re.overlay" 2
+# 2 "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/boards/rs_0015_100.overlay" 2
 
 / {
     led_strip: ws2812 {
@@ -1786,16 +1499,14 @@ arduino_spi: &spi1 {};
         color-mapping = <2
                          1
                          3>;
-        pwms = <&pwm2 1 0 (0 << 0)>;
-
-        period-ns = <1250>;
+        pwms = <&pwm2 3 0 (0 << 0)>;
+        period-ns = <1150>;
     };
 
     pwmleds {
         compatible = "pwm-leds";
         external_pwm_led: external_pwm_led {
-
-            pwms = <&pwm2 2 0 (0 << 0)>;
+            pwms = <&pwm15 2 0 (0 << 0)>;
         };
     };
 
@@ -1804,18 +1515,24 @@ arduino_spi: &spi1 {};
         pwm-sound = &external_pwm_led;
     };
 };
-
+# 39 "/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/boards/rs_0015_100.overlay"
 &timers2 {
     status = "okay";
     pwm2: pwm {
         status = "okay";
-        pinctrl-0 = <&tim2_ch1_pa0 &tim2_ch2_pa1>;
+        pinctrl-0 = <&tim2_ch3_pa2>;
         pinctrl-names = "default";
     };
 };
 
-&dma1 {
+&timers15 {
     status = "okay";
+    st,prescaler = <10000>;
+    pwm15: pwm {
+        status = "okay";
+        pinctrl-0 = <&tim15_ch2_pa3>;
+        pinctrl-names = "default";
+    };
 };
 
 &dma2 {
@@ -1824,30 +1541,31 @@ arduino_spi: &spi1 {};
 
 &spi1 {
     status = "okay";
-    pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pa6 &spi1_mosi_pa7>;
+    pinctrl-0 = <&spi1_sck_pb3 &spi1_miso_pb4 &spi1_mosi_pb5>;
     pinctrl-names = "default";
-    cs-gpios = <&gpiob 6 ((1 << 0))>;
+    status = "okay";
+    cs-gpios = <&gpioa 12 ((1 << 0))>;
     dmas = <&dma2 4 4 0x20440>, <&dma2 3 4 0x20480>;
     dma-names = "tx", "rx";
-    lora0: sx1278@0 {
+    lora0: sx1276@0 {
+        status = "okay";
         compatible = "semtech,sx1276";
         reg = <0>;
-        label = "sx1278";
-        reset-gpios = <&gpiob 0 ((1 << 0) | ((1 << 1) | (1 << 2)))>;
-        dio-gpios = <&gpioa 8 ((0 << 0) | (1 << 5))>,
-                    <&gpiob 10 ((0 << 0) | (1 << 5))>,
-                    <&gpiob 5 ((0 << 0) | (1 << 5))>,
-                    <&gpioc 2 ((0 << 0) | (1 << 5))>;
+        label = "sx1276";
+        reset-gpios = <&gpiob 8 ((1 << 0) | ((1 << 1) | (1 << 2)))>;
+        dio-gpios = <&gpiob 6 ((0 << 0) | (1 << 5))>,
+                    <&gpioa 10 ((0 << 0) | (1 << 5))>,
+                    <&gpioa 11 ((0 << 0) | (1 << 5))>,
+                    <&gpioc 14 ((0 << 0) | (1 << 5))>;
         power-amplifier-output = "pa-boost";
-        spi-max-frequency = <1000000>;
+        spi-max-frequency = <5000000>;
     };
 };
 
 &spi2 {
-    status = "okay";
     pinctrl-0 = <&spi2_sck_pb13 &spi2_miso_pb14 &spi2_mosi_pb15>;
     pinctrl-names = "default";
-    cs-gpios = <&gpiob 1 ((1 << 0) | (1 << 4))>;
+    cs-gpios = <&gpiob 12 ((1 << 0) | (1 << 4))>;
     status = "okay";
     dmas = <&dma1 5 1 0x20440>, <&dma1 4 1 0x20480>;
     dma-names = "tx", "rx";
@@ -1856,11 +1574,23 @@ arduino_spi: &spi1 {};
         reg = <0>;
         label = "DW1000";
         spi-max-frequency = <1000000>;
-        reset-gpios = <&gpiob 2 ((1 << 0))>;
-        int-gpios = <&gpioc 3 ((0 << 0) | (1 << 5))>;
+        reset-gpios = <&gpiob 2 (1 << 0)>;
+        int-gpios = <&gpioa 15 ((1 << 5) | (0 << 0))>;
         tx-ant-delay=<0x4042>;
         rx-ant-delay=<0x4042>;
     };
+};
+
+&usart2 {
+    status = "disabled";
+};
+
+&led0 {
+    status = "disabled";
+};
+
+&led1 {
+    status = "disabled";
 };
 
 &clk_hsi {
@@ -1876,12 +1606,12 @@ arduino_spi: &spi1 {};
 };
 
 &rcc {
- status = "okay";
- clocks = <&pll>;
- clock-frequency = <((80) * 1000 * 1000)>;
- ahb-prescaler = <1>;
- apb1-prescaler = <1>;
- apb2-prescaler = <1>;
+    status = "okay";
+    clocks = <&pll>;
+    clock-frequency = <((80) * 1000 * 1000)>;
+    ahb-prescaler = <1>;
+    apb1-prescaler = <1>;
+    apb2-prescaler = <1>;
 };
 # 1 "<command-line>" 2
 # 1 "/home/rts/zephyr-rts-master/zephyr/misc/empty_file.c"

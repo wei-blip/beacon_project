@@ -13,6 +13,7 @@ extern "C" {
 #define PRIORITY_DWM_TASK 5
 
 #define NUMBER_OF_NODES 8
+#define AVAILABLE_WORKERS 1
 
 #define RESPONDER_ID 255
 
@@ -47,8 +48,8 @@ extern "C" {
 /**
  * Timeouts for initiator(workers) begin
  * */
-#define POLL_TX_TO_RESP_RX_DLY_UUS 300
-#define RESP_RX_TO_FINAL_TX_DLY_UUS 2000
+#define POLL_TX_TO_RESP_RX_DLY_UUS 500
+#define RESP_RX_TO_FINAL_TX_DLY_UUS 5000
 
 #define RESP_RX_TIMEOUT_UUS 10000
 /**

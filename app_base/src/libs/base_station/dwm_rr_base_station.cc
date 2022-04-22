@@ -38,7 +38,7 @@
 
 #define MAX_RANGE_M 5.0
 
-#define PROCESSING_INTERVAL_SEC 5
+#define PROCESSING_INTERVAL_SEC 1
 
 K_MUTEX_DEFINE(mtx_dwt_dist);
 
@@ -100,8 +100,10 @@ bool active_nodes[NUMBER_OF_NODES] = {false};
         ev_dwm[0].signal->signaled = 0;
         ev_dwm[0].state = K_POLL_STATE_NOT_READY;
 
-        while(k_msgq_get(&msgq_dwt_callback_data, &dwt_cb_data, K_NO_WAIT)) {
-            k_sleep(K_MSEC(1));
+//        printk("Take dwt_cb_data\n");
+        if (k_msgq_get(&msgq_dwt_callback_data, &dwt_cb_data, K_MSEC(1))) {
+            resp_twr_1_poll_ds_twr(&atomic_twr_status);
+            continue;
         }
 
         switch (ev_dwm[0].signal->result) {
@@ -112,8 +114,10 @@ bool active_nodes[NUMBER_OF_NODES] = {false};
                  * Processing first received frame begin
                  * */
                 if (atomic_get(&atomic_twr_status) == ((atomic_t) msg_id_t::twr_3_final)) {
+//                    printk("First rx_done\n");
 
                     if (!check_correct_recv(&rx_poll_msg, sizeof(rx_poll_msg), dwt_cb_data.datalength)) {
+//                        printk("Restart after first checking correct receive\n");
                         resp_twr_1_poll_ds_twr(&atomic_twr_status);
                         continue;
                     }
@@ -133,7 +137,9 @@ bool active_nodes[NUMBER_OF_NODES] = {false};
 
                 } else if (atomic_get(&atomic_twr_status) == ((atomic_t) msg_id_t::twr_2_resp)) {
 
+//                    printk("Second rx_done\n");
                     if (!check_correct_recv(&final_msg, sizeof(final_msg), dwt_cb_data.datalength)) {
+//                        printk("Restart after second checking correct receive\n");
                         resp_twr_1_poll_ds_twr(&atomic_twr_status);
                         continue;
                     }
@@ -145,6 +151,7 @@ bool active_nodes[NUMBER_OF_NODES] = {false};
                     }
                     resp_final_msg_poll_ds_twr(&final_msg, poll_rx_ts, resp_tx_ts, final_rx_ts, dist, active_nodes);
                     k_mutex_unlock(&mtx_dwt_dist);
+//                    printk("Restart after resp_final_msg\n");
                     resp_twr_1_poll_ds_twr(&atomic_twr_status);
                 }
                 break;
@@ -153,6 +160,7 @@ bool active_nodes[NUMBER_OF_NODES] = {false};
                 LOG_DBG("RxTimeout callback");
             case RX_ERR:
                 LOG_DBG("RxError callback");
+//                printk("Restart transaction after rx_to rx_err!!!\n");
                 resp_twr_1_poll_ds_twr(&atomic_twr_status);
                 break;
         }
@@ -174,9 +182,6 @@ void dwork_send_dist_handler(struct k_work *item)
         }
         i++;
     }
-
-//    /* TODO: This is for test */
-//    cnt = NUMBER_OF_NODES;
 
     k_mutex_unlock(&mtx_dwt_dist);
 

@@ -18,27 +18,27 @@
 #error "Unsupported board: alarm_sw devicetree alias is not defined"
 #endif
 
-#define ANTI_DREAM_NODE	DT_ALIAS(sw1)
-#if !DT_NODE_HAS_STATUS(ANTI_DREAM_NODE, okay)
-#error "Unsupported board: anti_dream_sw devicetree alias is not defined"
-#endif
-
-#define TRAIN_PASSED_NODE DT_ALIAS(sw2)
-#if !DT_NODE_HAS_STATUS(TRAIN_PASSED_NODE, okay)
-#error "Unsupported board: train_passed_sw alias is not defined"
-#endif
+//#define ANTI_DREAM_NODE	DT_ALIAS(sw1)
+//#if !DT_NODE_HAS_STATUS(ANTI_DREAM_NODE, okay)
+//#error "Unsupported board: anti_dream_sw devicetree alias is not defined"
+//#endif
+//
+//#define TRAIN_PASSED_NODE DT_ALIAS(sw2)
+//#if !DT_NODE_HAS_STATUS(TRAIN_PASSED_NODE, okay)
+//#error "Unsupported board: train_passed_sw alias is not defined"
+//#endif
 
 
 /**
  * Structure area begin
  * */
 struct gpio_dt_spec button_alarm = GPIO_DT_SPEC_GET_OR(ALARM_NODE, gpios,{nullptr});
-struct gpio_dt_spec button_anti_dream = GPIO_DT_SPEC_GET_OR(ANTI_DREAM_NODE, gpios,{nullptr});
-struct gpio_dt_spec button_train_passed = GPIO_DT_SPEC_GET_OR(TRAIN_PASSED_NODE, gpios,{nullptr});
+//struct gpio_dt_spec button_anti_dream = GPIO_DT_SPEC_GET_OR(ANTI_DREAM_NODE, gpios,{nullptr});
+//struct gpio_dt_spec button_train_passed = GPIO_DT_SPEC_GET_OR(TRAIN_PASSED_NODE, gpios,{nullptr});
 
-struct gpio_callback button_anti_dream_cb;
 struct gpio_callback button_alarm_cb;
-struct gpio_callback button_train_passed_cb;
+//struct gpio_callback button_anti_dream_cb;
+//struct gpio_callback button_train_passed_cb;
 
 static struct k_work_delayable dwork_anti_dream = {{{nullptr}}};
 
@@ -112,8 +112,8 @@ static struct led_strip_indicate_s anti_dream_ind = {
  * Function declaration area begin
  * */
 void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
-void button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
-void button_anti_dream_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
+//void button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
+//void button_anti_dream_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins);
 
 static void system_init();
 static void dwork_anti_dream_handler(struct k_work *item);
@@ -137,32 +137,32 @@ static void system_init()
          LOG_DBG("Error: button device %s is not ready\n", button_alarm.port->name);
          k_sleep(K_FOREVER);
      }
-
-     if (!device_is_ready(button_anti_dream.port)) {
-         LOG_DBG("Error: button device %s is not ready\n", button_anti_dream.port->name);
-         k_sleep(K_FOREVER);
-     }
-
-    if (!device_is_ready(button_train_passed.port)) {
-        LOG_DBG("Error: button device %s is not ready\n", button_train_passed.port->name);
-        k_sleep(K_FOREVER);
-    }
+//
+//     if (!device_is_ready(button_anti_dream.port)) {
+//         LOG_DBG("Error: button device %s is not ready\n", button_anti_dream.port->name);
+//         k_sleep(K_FOREVER);
+//     }
+//
+//    if (!device_is_ready(button_train_passed.port)) {
+//        LOG_DBG("Error: button device %s is not ready\n", button_train_passed.port->name);
+//        k_sleep(K_FOREVER);
+//    }
 
     gpio_pin_configure_dt(&button_alarm, GPIO_INPUT);
-    gpio_pin_configure_dt(&button_anti_dream, GPIO_INPUT);
-    gpio_pin_configure_dt(&button_train_passed, GPIO_INPUT);
+//    gpio_pin_configure_dt(&button_anti_dream, GPIO_INPUT);
+//    gpio_pin_configure_dt(&button_train_passed, GPIO_INPUT);
 
     gpio_pin_interrupt_configure_dt(&button_alarm, GPIO_INT_EDGE_TO_ACTIVE);
-    gpio_pin_interrupt_configure_dt(&button_anti_dream, GPIO_INT_EDGE_TO_ACTIVE);
-    gpio_pin_interrupt_configure_dt(&button_train_passed, GPIO_INT_EDGE_TO_ACTIVE);
+//    gpio_pin_interrupt_configure_dt(&button_anti_dream, GPIO_INT_EDGE_TO_ACTIVE);
+//    gpio_pin_interrupt_configure_dt(&button_train_passed, GPIO_INT_EDGE_TO_ACTIVE);
 
     gpio_init_callback(&button_alarm_cb, button_alarm_pressed_cb, BIT(button_alarm.pin));
-    gpio_init_callback(&button_anti_dream_cb, button_anti_dream_pressed_cb, BIT(button_anti_dream.pin));
-    gpio_init_callback(&button_train_passed_cb, button_train_pass_pressed_cb, BIT(button_train_passed.pin));
+//    gpio_init_callback(&button_anti_dream_cb, button_anti_dream_pressed_cb, BIT(button_anti_dream.pin));
+//    gpio_init_callback(&button_train_passed_cb, button_train_pass_pressed_cb, BIT(button_train_passed.pin));
 
     gpio_add_callback(button_alarm.port, &button_alarm_cb);
-    gpio_add_callback(button_anti_dream.port, &button_anti_dream_cb);
-    gpio_add_callback(button_train_passed.port, &button_train_passed_cb);
+//    gpio_add_callback(button_anti_dream.port, &button_anti_dream_cb);
+//    gpio_add_callback(button_train_passed.port, &button_train_passed_cb);
     /**
      * Init IRQ end
      * */
@@ -171,7 +171,7 @@ static void system_init()
      * Kernel services init begin
      * */
     common_kernel_services_init();
-    k_work_init_delayable(&dwork_anti_dream, dwork_anti_dream_handler); /* For anti-dream */
+//    k_work_init_delayable(&dwork_anti_dream, dwork_anti_dream_handler); /* For anti-dream */
     /**
      * Kernel services init end
      * */
@@ -388,52 +388,52 @@ void button_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb,
     irq_routine(&button_alarm);
 }
 
-void button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-    LOG_DBG("Button train pass pressed");
-    /* Return if anti-dream started */
-    if (atomic_get(&anti_dream_active)) {
-        return;
-    }
+//void button_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+//{
+//    LOG_DBG("Button train pass pressed");
+//    /* Return if anti-dream started */
+//    if (atomic_get(&anti_dream_active)) {
+//        return;
+//    }
+//
+//    irq_routine(&button_train_passed);
+//}
+//
+//void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins)
+//{
+//    LOG_DBG("Button anti-dream pressed");
+//    irq_routine(&button_anti_dream);
+//}
 
-    irq_routine(&button_train_passed);
-}
-
-void button_anti_dream_pressed_cb(const struct device* dev, struct gpio_callback* cb, uint32_t pins)
-{
-    LOG_DBG("Button anti-dream pressed");
-    irq_routine(&button_anti_dream);
-}
-
-static void dwork_anti_dream_handler(struct k_work *item)
-{
-    /*
-     * Start anti-dream mode if it is not active.
-     * Else anti-dream already started and anti_dream_active == true, then send anti-dream message on base station.
-     * Don't start anti-dream mode if started alarm mode
-     * */
-    struct led_strip_indicate_s *strip_ind = nullptr;
-
-    if (!atomic_get(&alarm_is_active)) {
-        if (!atomic_get(&anti_dream_active)) {
-            set_buzzer_mode(BUZZER_MODE_CONTINUOUS);
-
-            strip_ind = &anti_dream_ind;
-            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-            strip_ind = &alarm_ind;
-            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-            k_wakeup(update_indication_task_id);
-        } else {
-            /* If anti-dream mode not stopped restart indication */
-            set_msg(&anti_dream_msg, true);
-            strip_ind = &anti_dream_ind;
-            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-            strip_ind = &alarm_ind;
-            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-        }
-    }
-    k_work_reschedule(k_work_delayable_from_work(item), K_MSEC(ANTI_DREAM_PERIOD));
-}
+//static void dwork_anti_dream_handler(struct k_work *item)
+//{
+//    /*
+//     * Start anti-dream mode if it is not active.
+//     * Else anti-dream already started and anti_dream_active == true, then send anti-dream message on base station.
+//     * Don't start anti-dream mode if started alarm mode
+//     * */
+//    struct led_strip_indicate_s *strip_ind = nullptr;
+//
+//    if (!atomic_get(&alarm_is_active)) {
+//        if (!atomic_get(&anti_dream_active)) {
+//            set_buzzer_mode(BUZZER_MODE_CONTINUOUS);
+//
+//            strip_ind = &anti_dream_ind;
+//            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+//            strip_ind = &alarm_ind;
+//            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+//            k_wakeup(update_indication_task_id);
+//        } else {
+//            /* If anti-dream mode not stopped restart indication */
+//            set_msg(&anti_dream_msg, true);
+//            strip_ind = &anti_dream_ind;
+//            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+//            strip_ind = &alarm_ind;
+//            k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
+//        }
+//    }
+//    k_work_reschedule(k_work_delayable_from_work(item), K_MSEC(ANTI_DREAM_PERIOD));
+//}
 
 void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio)
 {
@@ -445,24 +445,24 @@ void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio)
         set_msg(&alarm_msg, true);
     }
 
-    /* TODO: Check indication duration */
-    /* Send train passed message */
-    if ((!strcmp(button_train_passed.port->name, irq_gpio->port->name)) &&
-      (irq_gpio->pin == button_train_passed.pin)) {
-        set_msg(&train_passed_msg, false);
-    }
-
-    /* Anti-dream handler */
-    if ((!strcmp(button_anti_dream.port->name, irq_gpio->port->name)) &&
-      (irq_gpio->pin == button_anti_dream.pin)) {
-        /* Disable alarm */
-        set_buzzer_mode(BUZZER_MODE_IDLE);
-
-        /* Enable indication */
-        strip_ind = &status_ind;
-        set_ind(&strip_ind, K_MINUTES(STRIP_INDICATION_TIMEOUT_MIN));
-        atomic_set(&anti_dream_active, false);
-    }
+//    /* TODO: Check indication duration */
+//    /* Send train passed message */
+//    if ((!strcmp(button_train_passed.port->name, irq_gpio->port->name)) &&
+//      (irq_gpio->pin == button_train_passed.pin)) {
+//        set_msg(&train_passed_msg, false);
+//    }
+//
+//    /* Anti-dream handler */
+//    if ((!strcmp(button_anti_dream.port->name, irq_gpio->port->name)) &&
+//      (irq_gpio->pin == button_anti_dream.pin)) {
+//        /* Disable alarm */
+//        set_buzzer_mode(BUZZER_MODE_IDLE);
+//
+//        /* Enable indication */
+//        strip_ind = &status_ind;
+//        set_ind(&strip_ind, K_MINUTES(STRIP_INDICATION_TIMEOUT_MIN));
+//        atomic_set(&anti_dream_active, false);
+//    }
 }
 
 void periodic_timer_handler(struct k_timer *tim)

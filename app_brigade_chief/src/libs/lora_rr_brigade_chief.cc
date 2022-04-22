@@ -19,15 +19,15 @@ LOG_MODULE_REGISTER(brigade_chief);
 #error "Unsupported board: disable_alarm_sw devicetree alias is not defined"
 #endif
 
-#define LEFT_TRAIN_PASSED_NODE	DT_ALIAS(sw1)
-#if !DT_NODE_HAS_STATUS(LEFT_TRAIN_PASSED_NODE, okay)
-#error "Unsupported board: left_train_passed_sw devicetree alias is not defined"
-#endif
-
-#define RIGHT_TRAIN_PASSED_NODE DT_ALIAS(sw2)
-#if !DT_NODE_HAS_STATUS(RIGHT_TRAIN_PASSED_NODE, okay)
-#error "Unsupported board: right_train_passed_sw alias is not defined"
-#endif
+//#define LEFT_TRAIN_PASSED_NODE	DT_ALIAS(sw1)
+//#if !DT_NODE_HAS_STATUS(LEFT_TRAIN_PASSED_NODE, okay)
+//#error "Unsupported board: left_train_passed_sw devicetree alias is not defined"
+//#endif
+//
+//#define RIGHT_TRAIN_PASSED_NODE DT_ALIAS(sw2)
+//#if !DT_NODE_HAS_STATUS(RIGHT_TRAIN_PASSED_NODE, okay)
+//#error "Unsupported board: right_train_passed_sw alias is not defined"
+//#endif
 
 static struct message_s disable_alarm_msg = {
   .sender_addr = BRIGADE_CHIEF_ADDR,
@@ -58,8 +58,8 @@ static struct message_s right_train_passed_msg = {
 
 
 struct gpio_dt_spec button_disable_alarm = GPIO_DT_SPEC_GET_OR(DISABLE_ALARM_NODE, gpios,{0});
-struct gpio_dt_spec button_right_train_passed = GPIO_DT_SPEC_GET_OR(RIGHT_TRAIN_PASSED_NODE, gpios,{0});
-struct gpio_dt_spec button_left_train_passed = GPIO_DT_SPEC_GET_OR(LEFT_TRAIN_PASSED_NODE, gpios,{0});
+//struct gpio_dt_spec button_right_train_passed = GPIO_DT_SPEC_GET_OR(RIGHT_TRAIN_PASSED_NODE, gpios,{0});
+//struct gpio_dt_spec button_left_train_passed = GPIO_DT_SPEC_GET_OR(LEFT_TRAIN_PASSED_NODE, gpios,{0});
 
 /**
  * Structure area begin
@@ -107,38 +107,38 @@ void system_init()
      * Init IRQ begin
      * */
      if (!device_is_ready(button_disable_alarm.port)) {
-         printk("Error: button device %s is not ready\n", button_disable_alarm.port->name);
+//         printk("Error: button device %s is not ready\n", button_disable_alarm.port->name);
          k_sleep(K_FOREVER);
      }
 
-    if (!device_is_ready(button_left_train_passed.port)) {
-        printk("Error: button device %s is not ready\n", button_left_train_passed.port->name);
-        k_sleep(K_FOREVER);
-    }
-
-    if (!device_is_ready(button_right_train_passed.port)) {
-        printk("Error: button device %s is not ready\n", button_right_train_passed.port->name);
-        k_sleep(K_FOREVER);
-    }
+//    if (!device_is_ready(button_left_train_passed.port)) {
+//        printk("Error: button device %s is not ready\n", button_left_train_passed.port->name);
+//        k_sleep(K_FOREVER);
+//    }
+//
+//    if (!device_is_ready(button_right_train_passed.port)) {
+//        printk("Error: button device %s is not ready\n", button_right_train_passed.port->name);
+//        k_sleep(K_FOREVER);
+//    }
 
     gpio_pin_configure_dt(&button_disable_alarm,GPIO_INPUT);
-    gpio_pin_configure_dt(&button_left_train_passed,GPIO_INPUT);
-    gpio_pin_configure_dt(&button_right_train_passed,GPIO_INPUT);
+//    gpio_pin_configure_dt(&button_left_train_passed,GPIO_INPUT);
+//    gpio_pin_configure_dt(&button_right_train_passed,GPIO_INPUT);
 
     gpio_pin_interrupt_configure_dt(&button_disable_alarm,GPIO_INT_EDGE_TO_ACTIVE);
-    gpio_pin_interrupt_configure_dt(&button_left_train_passed,GPIO_INT_EDGE_TO_ACTIVE);
-    gpio_pin_interrupt_configure_dt(&button_right_train_passed,GPIO_INT_EDGE_TO_ACTIVE);
+//    gpio_pin_interrupt_configure_dt(&button_left_train_passed,GPIO_INT_EDGE_TO_ACTIVE);
+//    gpio_pin_interrupt_configure_dt(&button_right_train_passed,GPIO_INT_EDGE_TO_ACTIVE);
 
     gpio_init_callback(&button_disable_alarm_cb, button_disable_alarm_pressed_cb,
                        BIT(button_disable_alarm.pin));
-    gpio_init_callback(&button_right_train_passed_cb, button_right_train_pass_pressed_cb,
-                       BIT(button_left_train_passed.pin));
-    gpio_init_callback(&button_left_train_passed_cb, button_left_train_pass_pressed_cb,
-                       BIT(button_right_train_passed.pin));
+//    gpio_init_callback(&button_right_train_passed_cb, button_right_train_pass_pressed_cb,
+//                       BIT(button_left_train_passed.pin));
+//    gpio_init_callback(&button_left_train_passed_cb, button_left_train_pass_pressed_cb,
+//                       BIT(button_right_train_passed.pin));
 
     gpio_add_callback(button_disable_alarm.port, &button_disable_alarm_cb);
-    gpio_add_callback(button_left_train_passed.port, &button_left_train_passed_cb);
-    gpio_add_callback(button_right_train_passed.port, &button_right_train_passed_cb);
+//    gpio_add_callback(button_left_train_passed.port, &button_left_train_passed_cb);
+//    gpio_add_callback(button_right_train_passed.port, &button_right_train_passed_cb);
     /**
      * Init IRQ end
      * */
@@ -372,17 +372,17 @@ void button_disable_alarm_pressed_cb(const struct device *dev, struct gpio_callb
     irq_routine(&button_disable_alarm);
 }
 
-void button_left_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-    LOG_DBG("Button left train pass pressed");
-    irq_routine(&button_left_train_passed);
-}
-
-void button_right_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
-{
-    LOG_DBG("Button right train pass pressed");
-    irq_routine(&button_right_train_passed);
-}
+//void button_left_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+//{
+//    LOG_DBG("Button left train pass pressed");
+//    irq_routine(&button_left_train_passed);
+//}
+//
+//void button_right_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
+//{
+//    LOG_DBG("Button right train pass pressed");
+//    irq_routine(&button_right_train_passed);
+//}
 
 void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio)
 {
@@ -393,17 +393,17 @@ void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio)
         set_msg(&disable_alarm_msg, true);
     }
 
-    /* Send right train passed message */
-    if ((!strcmp(button_right_train_passed.port->name, irq_gpio->port->name)) &&
-      (irq_gpio->pin == button_right_train_passed.pin)) {
-        set_msg(&right_train_passed_msg, false);
-    }
-
-    /* Send left train passed */
-    if ((!strcmp(button_left_train_passed.port->name, irq_gpio->port->name)) &&
-      (irq_gpio->pin == button_left_train_passed.pin)) {
-        set_msg(&left_train_passed_msg, false);
-    }
+//    /* Send right train passed message */
+//    if ((!strcmp(button_right_train_passed.port->name, irq_gpio->port->name)) &&
+//      (irq_gpio->pin == button_right_train_passed.pin)) {
+//        set_msg(&right_train_passed_msg, false);
+//    }
+//
+//    /* Send left train passed */
+//    if ((!strcmp(button_left_train_passed.port->name, irq_gpio->port->name)) &&
+//      (irq_gpio->pin == button_left_train_passed.pin)) {
+//        set_msg(&left_train_passed_msg, false);
+//    }
 }
 
 void periodic_timer_handler(struct k_timer *tim)

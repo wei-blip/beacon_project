@@ -3,7 +3,7 @@
 //
 #include "lora_rr/lora_rr_common.h"
 #include "dwm_rr/dwm_rr_common.h"
-
+#include <lora/sx12xx_common.h>
 
 #include <logging/log.h>
     LOG_MODULE_REGISTER(base_station, LOG_LEVEL_DBG);
@@ -41,6 +41,7 @@ static struct message_s home_msg = {
 
 static struct message_s disable_alarm_msg = {
   .sender_addr = cur_dev_addr,
+  .receiver_addr = BROADCAST_ADDR,
   .message_type = MESSAGE_TYPE_DISABLE_ALARM,
   .direction = RESPONSE,
   .battery_level = BATTERY_LEVEL_GOOD,
@@ -99,7 +100,7 @@ static void system_init()
      * Kernel services init begin
      * */
     common_kernel_services_init();
-//    k_work_init_delayable(&dwork_sync, dwork_sync_handler);
+    k_work_init_delayable(&dwork_sync, dwork_sync_handler);
     /**
      * Kernel services init end
      * */
@@ -117,9 +118,8 @@ static void system_init()
     * Filling structure end
     * */
     set_buzzer_mode(BUZZER_MODE_SINGLE);
-//    k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_SINGLE);
-//    k_work_submit(&work_buzzer);
-//    k_work_schedule(&dwork_sync, K_NO_WAIT);
+
+    k_work_schedule(&dwork_sync, K_NO_WAIT);
     tim_start(K_NO_WAIT, K_MSEC(PERIOD_TIME_MSEC));
 }
 
@@ -144,7 +144,11 @@ static void system_init()
     while (true) {
         /* Always update info about workers in safe zone if it is possible */
         if (!k_msgq_get(&msgq_dwm_dist, &workers_in_safe_zone, K_NO_WAIT)) {
-            sync_msg.workers_in_safe_zone = workers_in_safe_zone;
+            /* If workers number was changed then send information about it */
+            if (sync_msg.workers_in_safe_zone != workers_in_safe_zone) {
+                sync_msg.workers_in_safe_zone = workers_in_safe_zone;
+                set_msg(&sync_msg, false);
+            }
             home_msg.workers_in_safe_zone = workers_in_safe_zone;
             disable_alarm_msg.workers_in_safe_zone = workers_in_safe_zone;
         }
@@ -261,24 +265,11 @@ static void system_init()
         if (atomic_get(&alarm_is_active)) {
             /* If number workers in safe zone equal NUMBER_OF_NODES then buzzer switching in idle mode and
              * sending message disable_alarm_msg for signalman */
-            if (workers_in_safe_zone == NUMBER_OF_NODES) {
+            if (workers_in_safe_zone == AVAILABLE_WORKERS) {
 
                 disable_alarm_msg.workers_in_safe_zone = workers_in_safe_zone;
                 set_buzzer_mode(BUZZER_MODE_IDLE);
                 atomic_set(&alarm_is_active, false);
-
-                switch (alarm_addr) {
-                    case SIGNALMAN_1_ADDR:
-                        disable_alarm_msg.receiver_addr = SIGNALMAN_1_ADDR;
-                        set_msg(&disable_alarm_msg, true);
-                        break;
-                    case SIGNALMAN_2_ADDR:
-                        disable_alarm_msg.receiver_addr = SIGNALMAN_2_ADDR;
-                        set_msg(&disable_alarm_msg, true);
-                        break;
-                    default:
-                        break;
-                }
 
                 strip_ind = &msg_recv_ind;
                 set_ind(&strip_ind, K_FOREVER);
@@ -336,7 +327,7 @@ static void dwork_sync_handler(struct k_work *item)
 {
     LOG_DBG("Sync delayed work handler");
     set_msg(&sync_msg, false);
-    k_work_reschedule(k_work_delayable_from_work(item), K_MSEC(10*PERIOD_TIME_MSEC));
+    k_work_reschedule(k_work_delayable_from_work(item), K_MSEC(5*PERIOD_TIME_MSEC));
 }
 
 void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio)
@@ -346,15 +337,15 @@ void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio)
 
 void periodic_timer_handler(struct k_timer *tim)
 {
-    static uint8_t cnt = 5;
+//    static uint8_t cnt = 5;
     LOG_DBG("Periodic timer handler");
     current_state = transmit_state;
 
-    if (cnt == 5) {
-        set_msg(&sync_msg, false);
-        cnt = 0;
-    }
-    cnt++;
+//    if (cnt == 5) {
+//        set_msg(&sync_msg, false);
+//        cnt = 0;
+//    }
+//    cnt++;
     k_wakeup(modem_task_id);
 }
 /**

@@ -143,6 +143,8 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/drivers/led_strip/CMakeFiles/drivers__led_strip.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/drivers/led_strip/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/drivers/led_strip/CMakeFiles/rebuild_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/drivers/pinmux/CMakeFiles/edit_cache.dir
+/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/drivers/pinmux/CMakeFiles/rebuild_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/drivers/pwm/CMakeFiles/drivers__pwm.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/drivers/pwm/CMakeFiles/edit_cache.dir
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/drivers/pwm/CMakeFiles/rebuild_cache.dir

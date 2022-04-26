@@ -10,8 +10,6 @@
 extern "C" {
 #endif
 
-#define PRIORITY_DWM_TASK 5
-
 #define NUMBER_OF_NODES 8
 #define AVAILABLE_WORKERS 1
 

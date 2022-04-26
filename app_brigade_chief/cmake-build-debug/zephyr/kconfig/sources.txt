@@ -2,8 +2,6 @@
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_brigade_chief/cmake-build-debug/Kconfig/Kconfig.shield
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_brigade_chief/cmake-build-debug/Kconfig/Kconfig.shield.defconfig
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/Kconfig
-/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/boards/arm/rs_0015_100/Kconfig.board
-/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/boards/arm/rs_0015_100/Kconfig.defconfig
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/drivers/Kconfig
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/drivers/led_strip/Kconfig
 /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/drivers/led_strip/Kconfig.ws2812
@@ -51,6 +49,8 @@
 /home/rts/zephyr-rts-master/zephyr/arch/arm/core/aarch32/mmu/Kconfig
 /home/rts/zephyr-rts-master/zephyr/arch/arm/core/aarch32/mpu/Kconfig
 /home/rts/zephyr-rts-master/zephyr/boards/Kconfig
+/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/Kconfig.board
+/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/Kconfig.defconfig
 /home/rts/zephyr-rts-master/zephyr/boards/shields/adafruit_2_8_tft_touch_v2/Kconfig.defconfig
 /home/rts/zephyr-rts-master/zephyr/boards/shields/adafruit_2_8_tft_touch_v2/Kconfig.shield
 /home/rts/zephyr-rts-master/zephyr/boards/shields/adafruit_winc1500/Kconfig.defconfig

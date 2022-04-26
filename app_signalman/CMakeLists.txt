@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 
 if(NOT DEFINED BOARD)
-#    set(BOARD nucleo_l452re)
-    set(BOARD rs_0015_100)
+    set(BOARD nucleo_l452re)
+#    set(BOARD rs_0015_100)
 endif()
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../modules/rts-zephyr/clion-zephyr.cmake)

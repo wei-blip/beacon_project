@@ -84,11 +84,6 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_signalman/cmake-build-release/zephyr/drivers/pinmux/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
   include("/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_signalman/cmake-build-release/zephyr/drivers/pwm/cmake_install.cmake")
 endif()
 

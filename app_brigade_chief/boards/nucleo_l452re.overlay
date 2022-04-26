@@ -24,8 +24,14 @@
         };
     };
 
-    gpio_keys {
+      gpio_keys {
         compatible = "gpio-keys";
+        button_0: button_0 {
+            label = "BUTTON_0";
+            status = "okay";
+            gpios = <&gpioc 13 (GPIO_ACTIVE_LOW | GPIO_PUSH_PULL)>;
+        };
+/*
         button_0: button_0 {
             label = "BUTTON_0";
             status = "okay";
@@ -43,24 +49,27 @@
             status = "okay";
             gpios = <&gpioa 4 (GPIO_ACTIVE_HIGH | GPIO_PUSH_PULL)>;
         };
+        */
     };
 
 	  aliases {
         sw0 = &button_0;
+        /*
+        sw0 = &button_0;
         sw1 = &button_1;
         sw2 = &button_2;
+         */
         led-strip = &led_strip;
         pwm-sound = &external_pwm_led;
-        lora0 = &lora0;
     };
 };
-
 
 &timers2 {
     status = "okay";
     pwm2: pwm {
         status = "okay";
         pinctrl-0 = <&tim2_ch1_pa0 &tim2_ch2_pa1>;
+        pinctrl-names = "default";
     };
 };
 
@@ -99,8 +108,8 @@
     pinctrl-names = "default";
     cs-gpios = <&gpiob 1 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
     status = "okay";
-//    dmas = <&dma1 5 1 0x20440>, <&dma1 4 1 0x20480>;
-//    dma-names = "tx", "rx";
+    dmas = <&dma1 5 1 0x20440>, <&dma1 4 1 0x20480>;
+    dma-names = "tx", "rx";
     uwb: dw1000@0 {
         compatible = "decawave,dw1000";
         reg = <0>;
@@ -117,7 +126,6 @@
     status = "okay";
 };
 
-
 &pll {
     status = "okay";
     div-m = <1>;            /*  16 / 1  = 16MHz  */
@@ -126,13 +134,13 @@
     clocks = <&clk_hsi>;
 };
 
-
 &rcc {
-	status = "okay";
-	clocks = <&pll>;
-	clock-frequency = <DT_FREQ_M(80)>;
-	ahb-prescaler = <1>;
-	apb1-prescaler = <1>;
-	apb2-prescaler = <1>;
+    status = "okay";
+    clocks = <&pll>;
+    clock-frequency = <DT_FREQ_M(80)>;
+    ahb-prescaler = <1>;
+    apb1-prescaler = <1>;
+    apb2-prescaler = <1>;
 };
+
 

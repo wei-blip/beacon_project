@@ -56,8 +56,6 @@ atomic_t atomic_twr_status = ATOMIC_INIT((atomic_t) msg_id_t::twr_3_final);
     uint64_t final_tx_ts = 0;
     int rc = 0;
 
-//    gpio_pin_configure_dt(&led, GPIO_OUTPUT);
-
     uint8_t sequence = 0;
 
     const struct device *dwm_dev =  DEVICE_DT_GET(DT_INST(0, decawave_dw1000));
@@ -86,80 +84,20 @@ atomic_t atomic_twr_status = ATOMIC_INIT((atomic_t) msg_id_t::twr_3_final);
     dwt_setcallbacks(tx_ok_cb, rx_ok_cb, rx_to_cb, rx_err_cb);
 
     init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
-
-
-//    gpio_pin_set_dt(&led, 1);
-//    k_work_schedule(&led_off_work, K_MSEC(1000));
+    uint32_t cnt = 0;
 
     while (true) {
-//        while (k_poll(&ev_dwm[0], 2, K_NO_WAIT)) {
-//            k_sleep(K_MSEC(1));
-//            printk("signal inf loop\n");
-//        }
-//
-//        /*
-//         * ind = 0 - rx
-//         * ind = 1 - tx
-//         * */
-////        ev_dwm[0].signal->signaled = 0;
-////        ev_dwm[0].state = K_POLL_STATE_NOT_READY;
-//
-//        switch (atomic_get(&atomic_twr_status)) {
-//            case ((atomic_t) msg_id_t::twr_1_poll): /* RxDone, RxTO, RxError */
-//                if (ev_dwm[0].state == K_POLL_STATE_SIGNALED) {
-//                    switch (ev_dwm[0].signal->result) {
-//                        ev_dwm[0].signal->signaled = 0;
-//                        ev_dwm[0].state = K_POLL_STATE_NOT_READY;
-//                        ev_dwm[1].signal->signaled = 0;
-//                        ev_dwm[1].state = K_POLL_STATE_NOT_READY;
-//
-//
-//                        case RX_DONE:
-//                            if (!k_msgq_get(&msgq_dwt_callback_data, &dwt_cb_data, K_MSEC(1))) {
-//                                init_twr_2_resp_ds_twr(dwm_dev, &tx_poll_msg, &atomic_twr_status, &dwt_cb_data);
-//                            } else {
-//                                /* Restart twr */
-//                                init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
-//                            }
-//                            break;
-//                        case RX_TO:
-//                        case RX_ERR:
-//                            /* Restart twr */
-//                            init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
-//                            break;
-//                    }
-//                }
-//                break;
-//            case ((atomic_t) (msg_id_t::twr_2_resp)):
-//                if (ev_dwm[1].state == K_POLL_STATE_SIGNALED) {
-//
-//                    ev_dwm[0].signal->signaled = 0;
-//                    ev_dwm[0].state = K_POLL_STATE_NOT_READY;
-//                    ev_dwm[1].signal->signaled = 0;
-//                    ev_dwm[1].state = K_POLL_STATE_NOT_READY;
-//
-//                    init_final_msg_poll_ds_twr(&atomic_twr_status);
-//                }
-//
-//                break;
-//            case ((atomic_t) msg_id_t::twr_3_final):
-//                if (ev_dwm[1].state == K_POLL_STATE_SIGNALED) {
-//
-//                    ev_dwm[0].signal->signaled = 0;
-//                    ev_dwm[0].state = K_POLL_STATE_NOT_READY;
-//                    ev_dwm[1].signal->signaled = 0;
-//                    ev_dwm[1].state = K_POLL_STATE_NOT_READY;
-//
-//                    init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
-//                }
-//
-//                break;
-//        }
-
-
-        while (k_poll(&ev_dwm[0], 1, K_NO_WAIT)) {
+        while (k_poll(ev_dwm, 1, K_NO_WAIT)) {
             k_sleep(K_MSEC(1));
+            /* Bad practices */
+            cnt++;
+            if (cnt == 10000000) {
+                cnt = 0;
+                init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
+                printk("Bad practices dwm is worked\n");
+            }
         }
+        cnt = 0;
 
         ev_dwm[0].signal->signaled = 0;
         ev_dwm[0].state = K_POLL_STATE_NOT_READY;
@@ -173,15 +111,12 @@ atomic_t atomic_twr_status = ATOMIC_INIT((atomic_t) msg_id_t::twr_3_final);
         switch (ev_dwm[0].signal->result) {
             case TX_DONE:
                 if (atomic_get(&atomic_twr_status) == (atomic_t) (msg_id_t::twr_3_final)) {
-
 //                    printk("First tx_done\n");
                     init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
 
                 } else {
-//                    gpio_pin_set_dt(&led, 1);
-//                    k_work_schedule(&led_off_work, K_MSEC(LED_BLINK_MS));
 //                    printk("Second tx_done\n");
-                    init_final_msg_poll_ds_twr(&atomic_twr_status);
+                    init_twr_1_poll_ds_twr(&tx_poll_msg, &atomic_twr_status);
                 }
                 break;
 

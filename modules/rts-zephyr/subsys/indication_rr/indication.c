@@ -136,11 +136,15 @@ _Noreturn void update_indication_task(void)
                     cnt = start_led_pos;
                     if (led_strip_state.status.con_status >= 0)
                         set_con_status_pixels(led_strip_state.status.con_status, &cnt);
+                    else
+                        cnt += STRIP_NUM_PIXELS/2;
 
                     if (led_strip_state.status.people_num >= 0)
                         set_people_num_pixels(led_strip_state.status.people_num, &cnt);
+                    else
+                        cnt += STRIP_NUM_PIXELS/2;
 
-                    led_strip_update_rgb(strip_dev, pixels_rgb, STRIP_NUM_PIXELS);
+                    led_strip_update_rgb(strip_dev, pixels_rgb, end_led_pos);
                     break;
                 case INDICATION_TYPE_BLINK:
                     switch (led_strip_state.strip_param.color) {
@@ -163,9 +167,12 @@ _Noreturn void update_indication_task(void)
                             break;
                     }
 
-                    cnt = start_led_pos;
+                    cnt = 0;
                     while (cnt < end_led_pos) {
-                        led_hsv2rgb(&color_hsv, &color_rgb[cnt++]);
+                        led_hsv2rgb(&empty_hsv, &color_rgb[cnt]);
+                        if ((cnt >= start_led_pos) && (cnt <= end_led_pos))
+                            led_hsv2rgb(&color_hsv, &color_rgb[cnt]);
+                        cnt++;
                     }
 
                     cnt = 0;
@@ -199,9 +206,12 @@ _Noreturn void update_indication_task(void)
                             break;
                     }
 
-                    cnt = start_led_pos;
+                    cnt = 0;
                     while (cnt < end_led_pos) {
-                        led_hsv2rgb(&color_hsv, &color_rgb[cnt++]);
+                        led_hsv2rgb(&empty_hsv, &color_rgb[cnt]);
+                        if ((cnt >= start_led_pos) && (cnt <= end_led_pos))
+                            led_hsv2rgb(&color_hsv, &color_rgb[cnt]);
+                        cnt++;
                     }
 
                     led_strip_update_rgb(strip_dev, color_rgb, end_led_pos);
@@ -213,10 +223,6 @@ _Noreturn void update_indication_task(void)
         }
     }
 }
-
-K_THREAD_DEFINE(update_indication_task_id, 1024,
-                update_indication_task, NULL, NULL, NULL,
-                7, 0, 0);
 /**
  * Function definition end
  * */

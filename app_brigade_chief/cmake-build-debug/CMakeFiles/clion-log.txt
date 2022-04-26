@@ -4,14 +4,14 @@ Including boilerplate (Freestanding): /home/rts/zephyr-rts-master/zephyr/cmake/a
 -- Zephyr version: 3.0.0 (/home/rts/zephyr-rts-master/zephyr)
 -- Found Python3: /usr/bin/python3.10 (found suitable exact version "3.10.2") found components: Interpreter 
 -- Found west (found suitable version "0.12.0", minimum required is "0.7.1")
--- Board: rs_0015_100
+-- Board: nucleo_l452re
 -- Cache files will be written to: /home/rts/.cache/zephyr
 -- ZEPHYR_TOOLCHAIN_VARIANT not set, trying to locate Zephyr SDK
 -- Found host-tools: zephyr 0.13.2 (/opt/zephyr-sdk)
 -- Found dtc: /opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.6.0", minimum required is "1.4.6")
 -- Found toolchain: zephyr 0.13.2 (/opt/zephyr-sdk)
--- Found BOARD.dts: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/boards/arm/rs_0015_100/rs_0015_100.dts
--- Found devicetree overlay: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_brigade_chief/boards/rs_0015_100.overlay
+-- Found BOARD.dts: /home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re.dts
+-- Found devicetree overlay: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_brigade_chief/boards/nucleo_l452re.overlay
 -- Generated zephyr.dts: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_brigade_chief/cmake-build-debug/zephyr/zephyr.dts
 -- Generated devicetree_unfixed.h: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_brigade_chief/cmake-build-debug/zephyr/include/generated/devicetree_unfixed.h
 -- Generated device_extern.h: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_brigade_chief/cmake-build-debug/zephyr/include/generated/device_extern.h

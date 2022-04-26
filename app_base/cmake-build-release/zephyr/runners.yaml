@@ -11,7 +11,7 @@ debug-runner: openocd
 
 # Common runner configuration values.
 config:
-  board_dir: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/boards/arm/rs_0015_100
+  board_dir: /home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re
   # Build outputs:
   elf_file: zephyr.elf
   hex_file: zephyr.hex
@@ -31,5 +31,5 @@ args:
     - verify_image
   jlink:
     - --dt-flash=y
-    - --device=STM32L452CC
+    - --device=STM32L452RE
     - --speed=4000

@@ -38,7 +38,7 @@
 
 #define MAX_RANGE_M 5.0
 
-#define PROCESSING_INTERVAL_SEC 1
+#define PROCESSING_INTERVAL_SEC 3
 
 K_MUTEX_DEFINE(mtx_dwt_dist);
 

@@ -21,10 +21,18 @@
 extern "C" {
 #endif
 
-#define PRIORITY_PROC 6
-#define PRIORITY_MODEM_TASK 5
+/*
+ * Enum value equal "active_events" array indexes into lora_rr_common.cc file.
+ * */
+#define APPLICATION_EVENTS_NUM 3
 
-#define SLOT_TIME_MSEC 765UL /* Time on receive(664ms) + DELAY_TIME_MSEC */
+enum APP_EVENTS_s {
+  EVENT_TX_MODE = 0,
+  EVENT_PROC_RX_DATA,
+  EVENT_RX_MODE
+};
+
+#define SLOT_TIME_MSEC 266UL /* Time on receive(166ms) + DELAY_TIME_MSEC */
 #define PERIOD_TIME_MSEC (4*SLOT_TIME_MSEC)  /* Timer period (super frame time) */
 #define DELAY_TIME_MSEC 100U
 #define DURATION_TIME_MSEC (SLOT_TIME_MSEC*(CONFIG_CURRENT_DEVICE_NUM-1)) /* Started delay for each device */
@@ -57,6 +65,7 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
  * */
 extern const k_tid_t proc_task_id;
 extern const k_tid_t modem_task_id;
+extern const k_tid_t app_task_id;
 /**
  * My thread ids end
  * */
@@ -69,8 +78,7 @@ extern const k_tid_t modem_task_id;
 /**
  * Thread functions begin
  * */
-[[noreturn]] void proc_task(void);
-[[noreturn]] void modem_task(void);
+[[noreturn]] void app_task(void);
 /**
  * Thread functions end
  * */
@@ -119,12 +127,10 @@ enum CONNECTION_QUALITY_RSSI {
     CONNECTION_QUALITY_RSSI_8 = -130
 };
 
-
 enum MODEM_STATES {
     RECEIVE = 0,
     TRANSMIT = 1
 };
-
 
 typedef struct modem_state_s {
     struct modem_state_s* next;
@@ -141,32 +147,9 @@ typedef struct modem_state_s {
 
 extern atomic_t reconfig_modem;
 
-//extern const struct device *buzzer_dev;
-
-//extern struct gpio_dt_spec *irq_gpio_dev;
-
-//extern struct k_timer periodic_timer; /* For switching in tx mode */
-
-//extern struct k_work work_buzzer; /* For signalisation */
-//extern struct k_work work_button_pressed;
-//extern struct k_work_delayable dwork_enable_ind;
-
-//extern struct k_poll_event event_buzzer;
-//extern struct k_poll_signal signal_buzzer;
-
-//extern struct message_s tx_msg;
-
-//extern struct k_msgq msgq_tx_msg_prio;
-//extern struct k_msgq msgq_tx_msg;
-//extern struct k_msgq msgq_rx_msg;
-//extern struct k_msgq msgq_rssi;
-
 extern const modem_state_t recv_state;
 extern const modem_state_t transmit_state;
 extern modem_state_t current_state;
-
-//extern uint8_t tx_buf[MESSAGE_LEN_IN_BYTES];
-//extern uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
 
 /* Indicate structure */
 extern struct led_strip_indicate_s status_ind;
@@ -187,7 +170,7 @@ extern struct led_strip_indicate_s alarm_ind;
 void work_buzzer_handler(struct k_work *item);
 void work_button_pressed_handler(struct k_work *item);
 void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio);
-void dwork_enable_ind_handler(struct k_work *item);
+void dwork_disable_ind_handler(struct k_work *item);
 void periodic_timer_handler(struct k_timer *tim);
 
 void common_kernel_services_init();
@@ -212,6 +195,15 @@ void set_buzzer_mode(uint8_t buzzer_mode);
 void irq_routine(struct gpio_dt_spec *dev);
 
 void set_ind(led_strip_indicate_s **ind, k_timeout_t duration_min);
+
+int8_t wait_app_event();
+int8_t get_app_event();
+
+int32_t modem_fun(const struct device *lora_dev, struct lora_modem_config* lora_cfg);
+void start_rx(const struct device *lora_dev, struct lora_modem_config* lora_cfg);
+void proc_fun(void *dev_data);
+void request_analysis(const struct message_s *rx_msg, struct message_s *tx_msg, struct led_strip_indicate_s *strip_ind);
+void response_analysis(const struct message_s *rx_msg, struct message_s *tx_msg, struct led_strip_indicate_s *strip_ind);
 /**
  * Function declaration area end
  * */
@@ -348,71 +340,6 @@ static inline void read_write_message(uint32_t* new_msg, struct message_s* msg_p
                 break;
         }
     }
-}
-
-
-static inline int32_t modem_fun(const struct device *lora_dev, struct lora_modem_config* lora_cfg)
-{
-    int32_t rc = 1;
-    struct k_msgq *cur_queue = nullptr;
-    static struct k_spinlock spin;
-    static k_spinlock_key_t key;
-    static message_s tx_msg = {0};
-    static uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
-    if (current_state.state == TRANSMIT) {
-        if (!proc_tx_data(cur_queue, tx_buf, sizeof(tx_buf), &tx_msg)) {
-            return 1;
-        }
-        key = k_spin_lock(&spin);
-
-        /* Stop receiving */
-        lora_recv_async(lora_dev, nullptr, nullptr);
-
-        lora_cfg->tx = true;
-        rc = lora_config(lora_dev, lora_cfg);
-        if (rc < 0) {
-            k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
-            current_state = recv_state;
-            atomic_set(&reconfig_modem, 1);
-            k_spin_unlock(&spin, key);
-            return rc;
-        }
-
-        rc = lora_send(lora_dev, tx_buf, MESSAGE_LEN_IN_BYTES);
-        /*
-         * If message not transmit then putting back him into queue and reconfig modem
-         * */
-        if (rc < 0) {
-            k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
-        }
-        atomic_set(&reconfig_modem, 1);
-
-        if (tx_msg.message_type == MESSAGE_TYPE_SYNC)
-            rc = 1;
-
-        current_state = recv_state;
-        k_spin_unlock(&spin, key);
-        return rc;
-
-    } else {
-        if (atomic_cas(&reconfig_modem, 1, 0)) {
-            lora_recv_async(lora_dev, nullptr, nullptr);
-            lora_cfg->tx = false;
-            rc = lora_config(lora_dev, lora_cfg);
-            if (!rc) {
-                rc = lora_recv_async(lora_dev, lora_receive_cb, lora_receive_error_timeout);
-                if (rc < 0) {
-                    atomic_set(&reconfig_modem, 1);
-                }
-            } else {
-                atomic_set(&reconfig_modem, 1);
-            }
-        }
-    }
-    /*
-     * Return 1 if current_state.state != TRANSMIT_STATE
-     * */
-    return rc;
 }
 /**
  * Function definition area end

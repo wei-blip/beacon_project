@@ -107,7 +107,7 @@ void system_init()
      * Init IRQ begin
      * */
      if (!device_is_ready(button_disable_alarm.port)) {
-//         printk("Error: button device %s is not ready\n", button_disable_alarm.port->name);
+         printk("Error: button device %s is not ready\n", button_disable_alarm.port->name);
          k_sleep(K_FOREVER);
      }
 
@@ -160,158 +160,20 @@ void system_init()
     set_buzzer_mode(BUZZER_MODE_SINGLE);
 }
 
-
-
-[[noreturn]] void proc_task()
+[[noreturn]] void app_task()
 {
+    int8_t event = 0;
     uint8_t rssi_num = 0;
-    int16_t rssi = 0;
-    uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
-    bool is_first = true;
-    struct message_s tx_msg = {
-      .receiver_addr = BASE_STATION_ADDR,
-      .direction = RESPONSE,
-      .battery_level = BATTERY_LEVEL_GOOD
-    };
-    struct message_s rx_msg = {0};
-    struct led_strip_indicate_s *strip_ind = &status_ind;
-
-    while(true) {
-        if (!radio_rx_queue_is_empty()) {
-            /**
-             * Processing receive data
-             * */
-            /* Processing receiving data */
-            if (!proc_rx_data(rx_buf, sizeof(rx_buf), &rx_msg, cur_dev_addr)) {
-                continue;
-            }
-
-            switch (rx_msg.direction) {
-                case REQUEST:
-                    LOG_DBG(" REQUEST");
-                    LOG_DBG("Message type:");
-                    tx_msg.sender_addr = cur_dev_addr;
-                    tx_msg.message_type = rx_msg.message_type;
-
-                    switch (rx_msg.message_type) {
-                        case MESSAGE_TYPE_SYNC:
-                            if (is_first) {
-                                strip_ind = &status_ind;
-                                set_ind(&strip_ind, K_MINUTES(STRIP_INDICATION_TIMEOUT_MIN));
-                                is_first = false;
-                            }
-                            break;
-
-                        case MESSAGE_TYPE_DISABLE_ALARM:
-                            LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
-                            switch (rx_msg.sender_addr) {
-                                case BASE_STATION_ADDR:
-                                    LOG_DBG("Base station disabled alarm");
-                                    break;
-                                default:
-                                    LOG_DBG("Undefined sender address for this message type");
-                                    break;
-                            }
-
-                            continue;
-
-                        case MESSAGE_TYPE_HOMEWARD:
-                            LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
-                            /* TODO: Make indication */
-                            set_msg(&tx_msg, false);
-                            break;
-
-                        default:
-                            LOG_DBG("Do nothing for this message type and direction ...");
-                            continue;
-                    }
-                    break;
-
-                case RESPONSE:
-                    LOG_DBG(" RESPONSE");
-                    LOG_DBG("Message type:");
-                    switch (rx_msg.message_type) {
-                        case MESSAGE_TYPE_DISABLE_ALARM:
-                            LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
-                            if (rx_msg.sender_addr == cur_dev_addr) {
-                                LOG_DBG("Brigade chief disabled alarm");
-                                strip_ind = &msg_recv_ind;
-                                set_ind(&strip_ind, K_FOREVER);
-                                strip_ind = &status_ind;
-                                set_ind(&strip_ind, K_MINUTES(STRIP_INDICATION_TIMEOUT_MIN));
-                                atomic_set(&alarm_is_active, false);
-
-                                set_buzzer_mode(BUZZER_MODE_DING_DONG);
-                            }
-                            break;
-
-                        case MESSAGE_TYPE_ALARM:
-                            LOG_DBG(" MESSAGE_TYPE_ALARM");
-                            /* Then received response on alarm message from base station */
-                            strip_ind = &alarm_ind;
-                            set_ind(&strip_ind, K_FOREVER);
-                            atomic_set(&alarm_is_active, true);
-                            continue;
-
-                        case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
-                            LOG_DBG(" MESSAGE_TYPE_RIGHT_TRAIN_PASSED");
-                            if (rx_msg.sender_addr == cur_dev_addr) {
-                                strip_ind = &msg_recv_ind;
-                                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-
-                                set_buzzer_mode(BUZZER_MODE_DING_DONG);
-                            }
-                            break;
-
-                        case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
-                            LOG_DBG(" MESSAGE_TYPE_LEFT_TRAIN_PASSED");
-                            if (rx_msg.sender_addr == cur_dev_addr) {
-                                strip_ind = &msg_recv_ind;
-                                k_msgq_put(&msgq_led_strip, &strip_ind, K_NO_WAIT);
-
-                                set_buzzer_mode(BUZZER_MODE_DING_DONG);
-                            }
-                            break;
-
-                        default:
-                            LOG_DBG("Do nothing for this message type and direction ...");
-                            continue;
-                    }
-                    break;
-
-                default:
-                    LOG_DBG("Not correct message direction");
-                    continue;
-            }
-
-            get_rssi(&rssi);
-            rssi_num = check_rssi(rssi);
-            atomic_set(&status_ind.led_strip_state.status.con_status, rssi_num);
-            atomic_set(&status_ind.led_strip_state.status.people_num, rx_msg.workers_in_safe_zone);
-
-            /* Change indication only if alarm not active */
-            if (!atomic_get(&alarm_is_active)) {
-                if (indicate_is_enabled()) {
-                    strip_ind = &status_ind;
-                    set_ind(&strip_ind, K_MINUTES(STRIP_INDICATION_TIMEOUT_MIN));
-                } else {
-                    strip_ind = &disable_indication;
-                    set_ind(&strip_ind, K_FOREVER);
-                }
-            }
-        }
-        k_sleep(K_USEC(100));
-    }
-}
-
-[[noreturn]] void modem_task()
-{
     int32_t rc = 0;
+
+    /**
+    * Lora config begin
+    * */
     const struct device *lora_dev = DEVICE_DT_GET(DEFAULT_RADIO_NODE);
     struct lora_modem_config lora_cfg = {
       .frequency = 433000000,
       .bandwidth = BW_125_KHZ,
-      .datarate = SF_12,
+      .datarate = SF_10,
       .coding_rate = CR_4_5,
       .preamble_len = 8,
       .payload_len = MESSAGE_LEN_IN_BYTES,
@@ -319,50 +181,220 @@ void system_init()
       .tx_power = 0,
       .tx = false,
     };
-    struct led_strip_indicate_s *strip_ind = nullptr;
-
-    /**
-     * Lora config begin
-     * */
 
     if (!device_is_ready(lora_dev)) {
         k_sleep(K_FOREVER);
     }
+
     if ( lora_config(lora_dev, &lora_cfg) < 0 ) {
         k_sleep(K_FOREVER);
     }
     /**
-     * Lora config end
-     * */
+    * Lora config end
+    * */
 
+    struct led_strip_indicate_s *strip_ind = nullptr;
+
+    /* Init system and put first sync message into queue */
     system_init();
 
-    /**
-     * Receive starting sync message begin
-     * */
     lora_recv_async(lora_dev, lora_receive_cb, lora_receive_error_timeout);
-    /**
-     * Receive starting sync message end
-     * */
+
+    uint32_t cnt = 0;
 
     while(true) {
-        rc = modem_fun(lora_dev, &lora_cfg);
-        if (!rc) {
-            strip_ind = &msg_send_good_ind;
-            set_ind(&strip_ind, K_FOREVER);
+        do {
+            k_sleep(K_MSEC(1));
+            event = wait_app_event();
+            /* Bad practices */
+            cnt++;
 
-        } else if (rc < 0) {
-            strip_ind = &msg_send_bad_ind;
-            set_ind(&strip_ind, K_FOREVER);
+            if (cnt == 20*PERIOD_TIME_MSEC) {
+                printk("Bad practices lora is worked\n");
+                cnt = 0;
+                event = EVENT_RX_MODE;
+            }
+        } while (event < 0);
 
-            if (atomic_get(&alarm_is_active)) {
-                strip_ind = &alarm_ind;
-                set_ind(&strip_ind, K_FOREVER);
+        switch (event) {
+            case EVENT_TX_MODE:
+                LOG_DBG("Tx mode event");
+                rc = modem_fun(lora_dev, &lora_cfg);
+                if (!rc) {
+                    strip_ind = &msg_send_good_ind;
+                    set_ind(&strip_ind, K_FOREVER);
+
+                } else if (rc < 0) {
+                    strip_ind = &msg_send_bad_ind;
+                    set_ind(&strip_ind, K_FOREVER);
+
+                    if (atomic_get(&alarm_is_active)) {
+                        strip_ind = &alarm_ind;
+                        set_ind(&strip_ind, K_FOREVER);
+                    }
+                }
+                break;
+            case EVENT_PROC_RX_DATA:
+                LOG_DBG("Processing data event");
+                proc_fun(&status_ind);
+                cnt = 0;
+                break;
+            case EVENT_RX_MODE:
+                LOG_DBG("Rx mode event");
+                start_rx(lora_dev, &lora_cfg);
+                cnt = 0;
+                break;
+
+            default:
+                LOG_DBG("Event error!!!");
+                break;
+        }
+    }
+}
+
+void proc_fun(void *dev_data)
+{
+    int16_t rssi = 0;
+    struct message_s tx_msg = {
+      .receiver_addr = BASE_STATION_ADDR,
+      .direction = RESPONSE,
+      .battery_level = BATTERY_LEVEL_GOOD
+    };
+    static struct message_s rx_msg = {0};
+    static struct led_strip_indicate_s *strip_ind = &status_ind;
+    static uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
+
+
+    /* Processing receiving data */
+    if (!proc_rx_data(rx_buf, sizeof(rx_buf), &rx_msg, cur_dev_addr)) {
+        return;
+    }
+
+    switch (rx_msg.direction) {
+        case REQUEST:
+            tx_msg.sender_addr = cur_dev_addr;
+            tx_msg.message_type = rx_msg.message_type;
+
+            request_analysis(&rx_msg, &tx_msg, strip_ind);
+            break;
+
+        case RESPONSE:
+            response_analysis(&rx_msg, &tx_msg, strip_ind);
+            break;
+
+        default:
+            LOG_DBG("Not correct message direction");
+            break;
+    }
+
+
+    get_rssi(&rssi);
+    ((led_strip_indicate_s*)(dev_data))->led_strip_state.status.con_status = check_rssi(rssi);
+    ((led_strip_indicate_s*)(dev_data))->led_strip_state.status.people_num = rx_msg.workers_in_safe_zone;
+    /* Change indication only if alarm not active */
+    if (!atomic_get(&alarm_is_active)) {
+        if (indicate_is_enabled()) {
+            strip_ind = &status_ind;
+            set_ind(&strip_ind, K_MINUTES(STRIP_INDICATION_TIMEOUT_MIN));
+        }
+    }
+
+}
+
+void response_analysis(const struct message_s *rx_msg, struct message_s *tx_msg, struct led_strip_indicate_s *strip_ind)
+{
+    LOG_DBG(" RESPONSE");
+    LOG_DBG("Message type:");
+    switch (rx_msg->message_type) {
+        case MESSAGE_TYPE_DISABLE_ALARM:
+            LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
+            atomic_set(&alarm_is_active, false);
+
+            if (rx_msg->sender_addr == cur_dev_addr) {
+                LOG_DBG("Brigade chief disabled alarm");
+            } else {
+                LOG_DBG("Base station disabled alarm");
             }
 
-        } else {
-            k_sleep(K_USEC(100));
-        }
+            strip_ind = &msg_recv_ind;
+            set_ind(&strip_ind, K_FOREVER);
+            strip_ind = &status_ind;
+            set_ind(&strip_ind, K_MINUTES(STRIP_INDICATION_TIMEOUT_MIN));
+
+            set_buzzer_mode(BUZZER_MODE_DING_DONG);
+            break;
+
+        case MESSAGE_TYPE_ALARM:
+            LOG_DBG(" MESSAGE_TYPE_ALARM");
+            /* Then received response on alarm message from base station */
+            strip_ind = &alarm_ind;
+            set_ind(&strip_ind, K_FOREVER);
+            atomic_set(&alarm_is_active, true);
+            break;
+
+        case MESSAGE_TYPE_RIGHT_TRAIN_PASSED:
+            LOG_DBG(" MESSAGE_TYPE_RIGHT_TRAIN_PASSED");
+            if (rx_msg->sender_addr == cur_dev_addr) {
+                strip_ind = &msg_recv_ind;
+                set_ind(&strip_ind, K_FOREVER);
+
+                set_buzzer_mode(BUZZER_MODE_DING_DONG);
+            }
+            break;
+
+        case MESSAGE_TYPE_LEFT_TRAIN_PASSED:
+            LOG_DBG(" MESSAGE_TYPE_LEFT_TRAIN_PASSED");
+            if (rx_msg->sender_addr == cur_dev_addr) {
+                strip_ind = &msg_recv_ind;
+                set_ind(&strip_ind, K_FOREVER);
+
+                set_buzzer_mode(BUZZER_MODE_DING_DONG);
+            }
+            break;
+
+        default:
+            LOG_DBG("Do nothing for this message type and direction ...");
+            break;
+    }
+}
+
+void request_analysis(const struct message_s *rx_msg, struct message_s *tx_msg, struct led_strip_indicate_s *strip_ind)
+{
+    static bool is_first = true;
+
+    LOG_DBG(" REQUEST");
+    LOG_DBG("Message type:");
+    switch (rx_msg->message_type) {
+        case MESSAGE_TYPE_SYNC:
+            if (is_first) {
+                strip_ind = &status_ind;
+                set_ind(&strip_ind, K_MINUTES(STRIP_INDICATION_TIMEOUT_MIN));
+                is_first = false;
+            }
+            break;
+
+        case MESSAGE_TYPE_DISABLE_ALARM:
+            LOG_DBG(" MESSAGE_TYPE_DISABLE_ALARM");
+            switch (rx_msg->sender_addr) {
+                case BASE_STATION_ADDR:
+                    LOG_DBG("Base station disabled alarm");
+                    break;
+                default:
+                    LOG_DBG("Undefined sender address for this message type");
+                    break;
+            }
+
+            break;
+
+        case MESSAGE_TYPE_HOMEWARD:
+            LOG_DBG(" MESSAGE_TYPE_HOMEWARD");
+            /* TODO: Make indication */
+            set_msg(tx_msg, false);
+            break;
+
+        default:
+            LOG_DBG("Do nothing for this message type and direction ...");
+            break;
     }
 }
 
@@ -404,14 +436,6 @@ void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio)
 //      (irq_gpio->pin == button_left_train_passed.pin)) {
 //        set_msg(&left_train_passed_msg, false);
 //    }
-}
-
-void periodic_timer_handler(struct k_timer *tim)
-{
-    LOG_DBG("Periodic timer handler");
-    current_state = transmit_state;
-
-    k_wakeup(modem_task_id);
 }
 /**
  * Function definition area end

@@ -2,7 +2,6 @@
 // Created by rts on 05.02.2022.
 //
 #include "lora_rr/lora_rr_common.h"
-
 #include <logging/log.h>
 LOG_MODULE_REGISTER(lora_rr_common, LOG_LEVEL_DBG);
 
@@ -35,13 +34,34 @@ struct k_timer periodic_timer = {{{{nullptr}}}};
 
 struct k_work work_buzzer = {{nullptr}};
 struct k_work work_button_pressed = {{nullptr}};
-struct k_work_delayable dwork_enable_ind = {{{nullptr}}};
+struct k_work_delayable dwork_disable_ind = {{{nullptr}}};
 
 struct k_poll_signal signal_buzzer = K_POLL_SIGNAL_INITIALIZER(signal_buzzer);
 struct k_poll_event event_buzzer = K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_SIGNAL,
                                                                    K_POLL_MODE_NOTIFY_ONLY,
                                                                    &signal_buzzer,
                                                                    0);
+
+struct k_poll_signal sig_tx_mode = K_POLL_SIGNAL_INITIALIZER(sig_tx_mode);
+struct k_poll_signal sig_proc_rx_data = K_POLL_SIGNAL_INITIALIZER(sig_proc_rx_data);
+struct k_poll_signal sig_rx_mode = K_POLL_SIGNAL_INITIALIZER(sig_rx_mode);
+
+struct k_poll_event event_app[APPLICATION_EVENTS_NUM] = {
+  K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_SIGNAL,
+                                  K_POLL_MODE_NOTIFY_ONLY,
+                                  &sig_tx_mode,
+                                  0),
+  K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_SIGNAL,
+                                  K_POLL_MODE_NOTIFY_ONLY,
+                                  &sig_proc_rx_data,
+                                  0),
+  K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_SIGNAL,
+                                  K_POLL_MODE_NOTIFY_ONLY,
+                                  &sig_rx_mode,
+                                  0)
+};
+
+bool active_events[APPLICATION_EVENTS_NUM] = {false};
 
 struct gpio_dt_spec *irq_gpio_dev = nullptr;
 
@@ -57,12 +77,6 @@ const modem_state_t transmit_state = {
 
 modem_state_t current_state = {nullptr};
 atomic_t reconfig_modem = ATOMIC_INIT(0);
-
-//struct message_s tx_msg = {0};
-
-//uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
-//uint8_t rx_buf[MESSAGE_LEN_IN_BYTES] = {0};
-
 /**
  * Indication structures begin
  * */
@@ -172,18 +186,129 @@ struct led_strip_indicate_s alarm_ind = {
 /**
  * Function definition area begin
  * */
+int32_t modem_fun(const struct device *lora_dev, struct lora_modem_config* lora_cfg)
+{
+    int32_t rc = 1;
+    struct k_msgq *cur_queue = nullptr;
+    static struct k_spinlock spin;
+    static k_spinlock_key_t key;
+    static message_s tx_msg = {0};
+    static uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
+
+    if (!proc_tx_data(cur_queue, tx_buf, sizeof(tx_buf), &tx_msg)) {
+        start_rx(lora_dev, lora_cfg);
+        return 1;
+    }
+    key = k_spin_lock(&spin);
+
+    /* Stop receiving */
+    lora_recv_async(lora_dev, nullptr, nullptr);
+
+    lora_cfg->tx = true;
+    rc = lora_config(lora_dev, lora_cfg);
+
+    if (rc < 0) {
+        k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
+        current_state = recv_state;
+//            atomic_set(&reconfig_modem, 1);
+        start_rx(lora_dev, lora_cfg);
+        k_spin_unlock(&spin, key);
+        return rc;
+    }
+
+    rc = lora_send(lora_dev, tx_buf, MESSAGE_LEN_IN_BYTES);
+    /*
+     * If message not transmit then putting back him into queue and reconfig modem
+     * */
+    if (rc < 0) {
+        k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
+    }
+    start_rx(lora_dev, lora_cfg);
+//        atomic_set(&reconfig_modem, 1);
+
+    if (tx_msg.message_type == MESSAGE_TYPE_SYNC)
+        rc = 1;
+
+    current_state = recv_state;
+
+    k_spin_unlock(&spin, key);
+    return rc;
+}
+
+void start_rx(const struct device *lora_dev, struct lora_modem_config* lora_cfg)
+{
+    volatile int rc = 0;
+    lora_recv_async(lora_dev, nullptr, nullptr);
+    lora_cfg->tx = false;
+    rc = lora_config(lora_dev, lora_cfg);
+    if (!rc) {
+        rc = lora_recv_async(lora_dev, lora_receive_cb, lora_receive_error_timeout);
+        if (rc < 0) {
+            k_poll_signal_raise(&sig_rx_mode, 1);
+        }
+    } else {
+        k_poll_signal_raise(&sig_rx_mode, 1);
+    }
+}
+
+void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int16_t rssi, int8_t snr) {
+    static struct k_spinlock spin;
+    static k_spinlock_key_t key;
+    volatile int rc = 0;
+
+    key = k_spin_lock(&spin);
+
+    if ((size != MESSAGE_LEN_IN_BYTES) || is_empty_msg(data, size)) {
+        LOG_DBG("Reconfig modem");
+        k_poll_signal_raise(&sig_rx_mode, 1);
+        k_spin_unlock(&spin, key);
+        return;
+    }
+
+    /*
+     * Compare first byte in receive message and 13
+     * 13 means thar received message has the following parameters:
+     * SENDER_ADDR = BASE_STATION, RECV_ADDR = BROADCAST, MESSAGE_TYPE = SYNC
+     * */
+    if ((*data) == 13) {
+        LOG_DBG(" REQUEST");
+        LOG_DBG(" MESSAGE_TYPE_SYNC");
+        k_timer_stop(&periodic_timer);
+        k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC + DELAY_TIME_MSEC), K_MSEC(PERIOD_TIME_MSEC));
+    }
+
+    if (!k_msgq_num_free_get(&msgq_rx_msg)) {
+        k_msgq_purge(&msgq_rx_msg);
+    }
+    k_msgq_put(&msgq_rx_msg, data, K_NO_WAIT);
+
+    if (!k_msgq_num_free_get(&msgq_rssi)) {
+        k_msgq_purge(&msgq_rssi);
+    }
+    k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
+
+    rc = k_poll_signal_raise(&sig_proc_rx_data, 1);
+    k_spin_unlock(&spin, key);
+}
+
+void lora_receive_error_timeout(const struct device *dev) {
+    static struct k_spinlock spin;
+    static k_spinlock_key_t key;
+    key = k_spin_lock(&spin);
+
+    /* Restart receive */
+    k_poll_signal_raise(&sig_rx_mode, 1);
+
+    k_spin_unlock(&spin, key);
+}
+
 void set_ind(led_strip_indicate_s **ind, k_timeout_t duration_min)
 {
-//    volatile bool ret = indicate_is_enabled();
-
     if ((duration_min.ticks != K_FOREVER.ticks)) {
         if (!indicate_is_enabled()) {
             enable_ind();
-            k_work_schedule(&dwork_enable_ind, duration_min);
+            k_work_schedule(&dwork_disable_ind, duration_min);
         }
-//        if(!k_work_delayable_busy_get(&dwork_enable_ind)) {
-//            k_work_schedule(&dwork_enable_ind, duration_min);
-//        }
     }
 
     if (!k_msgq_num_free_get(&msgq_led_strip)) {
@@ -275,51 +400,9 @@ void common_kernel_services_init()
 
     k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_button_pressed, work_button_pressed_handler);
-    k_work_init_delayable(&dwork_enable_ind, dwork_enable_ind_handler); /* For enable and disable indication */
+    k_work_init_delayable(&dwork_disable_ind, dwork_disable_ind_handler); /* For enable and disable indication */
+
     k_timer_init(&periodic_timer, periodic_timer_handler, nullptr);
-}
-
-void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int16_t rssi, int8_t snr) {
-    static struct k_spinlock spin;
-    static k_spinlock_key_t key;
-    volatile uint16_t len = size;
-
-    key = k_spin_lock(&spin);
-
-    /*
-     * Compare first byte in receive message and 13
-     * 13 means thar received message has the following parameters:
-     * SENDER_ADDR = BASE_STATION, RECV_ADDR = BROADCAST, MESSAGE_TYPE = SYNC
-     * */
-    if ((*data) == 13) {
-        LOG_DBG(" REQUEST");
-        LOG_DBG(" MESSAGE_TYPE_SYNC");
-        k_timer_stop(&periodic_timer);
-        k_sleep(K_MSEC(DELAY_TIME_MSEC));
-        k_timer_start(&periodic_timer, K_MSEC(DURATION_TIME_MSEC), K_MSEC(PERIOD_TIME_MSEC));
-    }
-
-    if ((size != MESSAGE_LEN_IN_BYTES) || is_empty_msg(data, size)) {
-        LOG_DBG("Reconfig modem");
-        atomic_set(&reconfig_modem, 1);
-        k_spin_unlock(&spin, key);
-        return;
-    }
-    k_msgq_put(&msgq_rx_msg, data, K_NO_WAIT);
-    k_msgq_put(&msgq_rssi, &rssi, K_NO_WAIT);
-    k_spin_unlock(&spin, key);
-}
-
-void lora_receive_error_timeout(const struct device *dev) {
-    static struct k_spinlock spin;
-    static k_spinlock_key_t key;
-    key = k_spin_lock(&spin);
-
-    /* Restart receive */
-    lora_recv_async(dev, nullptr, nullptr);
-    lora_recv_async(dev, lora_receive_cb, lora_receive_error_timeout);
-
-    k_spin_unlock(&spin, key);
 }
 
 void work_buzzer_handler(struct k_work *item) {
@@ -410,9 +493,18 @@ bool proc_tx_data(struct k_msgq *msgq, uint8_t *tx_data, size_t len, struct mess
     return true;
 }
 
-void dwork_enable_ind_handler(struct k_work *item)
+void dwork_disable_ind_handler(struct k_work *item)
 {
+    struct led_strip_indicate_s *strip_ind = nullptr;
     disable_ind();
+    k_sleep(K_MSEC(500));
+    if (!atomic_get(&alarm_is_active)) {
+        strip_ind = &disable_indication;
+        set_ind(&strip_ind, K_FOREVER);
+    } else {
+        strip_ind = &alarm_ind;
+        set_ind(&strip_ind, K_FOREVER);
+    }
 }
 
 bool radio_rx_queue_is_empty()
@@ -492,6 +584,42 @@ void irq_routine(struct gpio_dt_spec *dev)
 {
     irq_gpio_dev = dev;
     k_work_submit(&work_button_pressed);
+}
+
+void periodic_timer_handler(struct k_timer *tim)
+{
+    LOG_DBG("Periodic timer handler");
+    k_poll_signal_raise(&sig_tx_mode, 1);
+    current_state = transmit_state;
+}
+
+int8_t wait_app_event()
+{
+    if (k_poll(event_app, APPLICATION_EVENTS_NUM, K_NO_WAIT)) {
+        return (-1);
+    }
+
+    for (int8_t i = 0; i < APPLICATION_EVENTS_NUM; ++i) {
+        if (event_app[i].state == K_POLL_STATE_SIGNALED) {
+            /* Processing only one event */
+            /* Reset event */
+            event_app[i].signal->signaled = 0;
+            event_app[i].state = K_POLL_STATE_NOT_READY;
+            return i;
+        }
+    }
+    return (-1);
+}
+
+int8_t get_app_event()
+{
+    for (int8_t i = 0; i < APPLICATION_EVENTS_NUM; ++i) {
+        if (active_events[i]) {
+            active_events[i] = false;
+            return i;
+        }
+    }
+    return -1;
 }
 /**
  * Function definition area end

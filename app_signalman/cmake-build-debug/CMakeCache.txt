@@ -21,13 +21,13 @@ APPLICATION_BINARY_DIR:PATH=/home/rts/tmp/projects/beacon_project_rzd/lora_russi
 APPLICATION_SOURCE_DIR:PATH=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_signalman
 
 //Path to a file.
-BOARD_DIR:PATH=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/modules/rts-zephyr/boards/arm/rs_0015_100
+BOARD_DIR:PATH=/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re
 
 //Path to a program.
 BOSSAC:FILEPATH=/opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/bossac
 
 //Selected board
-CACHED_BOARD:STRING=rs_0015_100
+CACHED_BOARD:STRING=nucleo_l452re
 
 //If desired, you can build the application usingthe configuration
 // settings specified in an alternate .conf file using this parameter.
@@ -298,7 +298,7 @@ DTC:FILEPATH=/opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/dtc
 // parameter. These settings will override the settings in the
 // board's .dts file. Multiple files may be listed, e.g. DTC_OVERLAY_FILE="dts1.overlay
 // dts2.overlay"
-DTC_OVERLAY_FILE:STRING=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_signalman/boards/rs_0015_100.overlay
+DTC_OVERLAY_FILE:STRING=/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_signalman/boards/nucleo_l452re.overlay
 
 //Path to a program.
 GPERF:FILEPATH=/usr/bin/gperf
@@ -491,7 +491,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=124
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=123
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP

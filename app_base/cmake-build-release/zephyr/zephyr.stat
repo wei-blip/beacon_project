@@ -8,10 +8,10 @@ ELF Header:
   Type:                              EXEC (Executable file)
   Machine:                           ARM
   Version:                           0x1
-  Entry point address:               0x8004109
+  Entry point address:               0x80033fd
   Start of program headers:          52 (bytes into file)
-  Start of section headers:          3182452 (bytes into file)
-  Flags:                             0x5000400, Version5 EABI, hard-float ABI
+  Start of section headers:          3175304 (bytes into file)
+  Flags:                             0x5000200, Version5 EABI, soft-float ABI
   Size of this header:               52 (bytes)
   Size of program headers:           32 (bytes)
   Number of program headers:         4
@@ -23,37 +23,37 @@ Section Headers:
   [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
   [ 0]                   NULL            00000000 000000 000000 00      0   0  0
   [ 1] rom_start         PROGBITS        08000000 0000c0 000194 00 WAX  0   0  4
-  [ 2] text              PROGBITS        080001a0 000260 011858 00  AX  0   0 16
-  [ 3] .ARM.exidx        ARM_EXIDX       080119f8 011ab8 000008 00  AL  2   0  4
-  [ 4] initlevel         PROGBITS        08011a00 011ac0 0000c0 00   A  0   0  4
-  [ 5] devices           PROGBITS        08011ac0 011b80 0001b0 00   A  0   0  4
-  [ 6] sw_isr_table      PROGBITS        08011c70 011d30 0002a8 00  WA  0   0  4
-  [ 7] ctors             PROGBITS        08011f18 011fd8 000008 00  WA  0   0  1
-  [ 8] init_array        INIT_ARRAY      08011f20 011fe0 000004 04  WA  0   0  4
-  [ 9] device_handles    PROGBITS        08011f24 011fe4 0000d0 00   A  0   0  2
-  [10] rodata            PROGBITS        08011ff8 0120b8 001190 00   A  0   0  8
-  [11] .ramfunc          PROGBITS        20000000 013b40 000000 00   W  0   0  1
-  [12] datas             PROGBITS        20000000 013248 0005e4 00  WA  0   0  4
-  [13] device_states     PROGBITS        200005e4 01382c 000048 00  WA  0   0  4
-  [14] _static_thre[...] PROGBITS        2000062c 013874 0000c0 00  WA  0   0  4
-  [15] k_timer_area      PROGBITS        200006f0 013938 000038 00  WA  0   0  8
-  [16] k_mutex_area      PROGBITS        20000728 013970 000064 00  WA  0   0  4
-  [17] k_msgq_area       PROGBITS        2000078c 0139d4 00016c 00  WA  0   0  4
-  [18] bss               NOBITS          200008f8 013b78 000f02 00  WA  0   0  8
-  [19] noinit            NOBITS          20001800 013b78 0035ea 00  WA  0   0 128
-  [20] .comment          PROGBITS        00000000 013b40 00002e 01  MS  0   0  1
-  [21] .debug_aranges    PROGBITS        00000000 013b70 0020f8 00      0   0  8
-  [22] .debug_info       PROGBITS        00000000 015c68 11b06d 00      0   0  1
-  [23] .debug_abbrev     PROGBITS        00000000 130cd5 012539 00      0   0  1
-  [24] .debug_line       PROGBITS        00000000 14320e 04367a 00      0   0  1
-  [25] .debug_frame      PROGBITS        00000000 186888 0080e8 00      0   0  4
-  [26] .debug_str        PROGBITS        00000000 18e970 0e24f3 01  MS  0   0  1
-  [27] .debug_loc        PROGBITS        00000000 270e63 06cd07 00      0   0  1
-  [28] .debug_ranges     PROGBITS        00000000 2ddb70 018178 00      0   0  8
-  [29] .ARM.attributes   ARM_ATTRIBUTES  00000000 2f5ce8 000039 00      0   0  1
-  [30] .symtab           SYMTAB          00000000 2f5d24 00b410 10     31 1838  4
-  [31] .strtab           STRTAB          00000000 301134 007cdd 00      0   0  1
-  [32] .shstrtab         STRTAB          00000000 308e11 000161 00      0   0  1
+  [ 2] text              PROGBITS        080001a0 000260 0111fe 00  AX  0   0 16
+  [ 3] .ARM.exidx        ARM_EXIDX       080113a0 011460 000008 00  AL  2   0  4
+  [ 4] initlevel         PROGBITS        080113a8 011468 0000c0 00   A  0   0  4
+  [ 5] devices           PROGBITS        08011468 011528 0001b0 00   A  0   0  4
+  [ 6] sw_isr_table      PROGBITS        08011618 0116d8 0002a8 00  WA  0   0  4
+  [ 7] ctors             PROGBITS        080118c0 011980 000008 00  WA  0   0  1
+  [ 8] init_array        INIT_ARRAY      080118c8 011988 000004 04  WA  0   0  4
+  [ 9] device_handles    PROGBITS        080118cc 01198c 0000d0 00   A  0   0  2
+  [10] rodata            PROGBITS        080119a0 011a60 0011b4 00   A  0   0  8
+  [11] .ramfunc          PROGBITS        20000000 013548 000000 00   W  0   0  1
+  [12] datas             PROGBITS        20000000 012c18 000650 00  WA  0   0  4
+  [13] device_states     PROGBITS        20000650 013268 000048 00  WA  0   0  4
+  [14] _static_thre[...] PROGBITS        20000698 0132b0 000090 00  WA  0   0  4
+  [15] k_timer_area      PROGBITS        20000728 013340 000038 00  WA  0   0  8
+  [16] k_mutex_area      PROGBITS        20000760 013378 000064 00  WA  0   0  4
+  [17] k_msgq_area       PROGBITS        200007c4 0133dc 00016c 00  WA  0   0  4
+  [18] bss               NOBITS          20000930 013550 000c92 00  WA  0   0  8
+  [19] noinit            NOBITS          200015e0 013550 00376a 00  WA  0   0 32
+  [20] .comment          PROGBITS        00000000 013548 00002e 01  MS  0   0  1
+  [21] .debug_aranges    PROGBITS        00000000 013578 002140 00      0   0  8
+  [22] .debug_info       PROGBITS        00000000 0156b8 119cfc 00      0   0  1
+  [23] .debug_abbrev     PROGBITS        00000000 12f3b4 012993 00      0   0  1
+  [24] .debug_line       PROGBITS        00000000 141d47 043980 00      0   0  1
+  [25] .debug_frame      PROGBITS        00000000 1856c8 00809c 00      0   0  4
+  [26] .debug_str        PROGBITS        00000000 18d764 0e2c39 01  MS  0   0  1
+  [27] .debug_loc        PROGBITS        00000000 27039d 06be3b 00      0   0  1
+  [28] .debug_ranges     PROGBITS        00000000 2dc1d8 018060 00      0   0  8
+  [29] .ARM.attributes   ARM_ATTRIBUTES  00000000 2f4238 000033 00      0   0  1
+  [30] .symtab           SYMTAB          00000000 2f426c 00b440 10     31 1857  4
+  [31] .strtab           STRTAB          00000000 2ff6ac 007b79 00      0   0  1
+  [32] .shstrtab         STRTAB          00000000 307225 000161 00      0   0  1
 Key to Flags:
   W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
   L (link order), O (extra OS processing required), G (group), T (TLS),
@@ -62,10 +62,10 @@ Key to Flags:
 
 Program Headers:
   Type           Offset   VirtAddr   PhysAddr   FileSiz MemSiz  Flg Align
-  EXIDX          0x011ab8 0x080119f8 0x080119f8 0x00008 0x00008 R   0x4
-  LOAD           0x0000c0 0x08000000 0x08000000 0x13188 0x13188 RWE 0x10
-  LOAD           0x013248 0x20000000 0x08013188 0x008f8 0x008f8 RW  0x8
-  LOAD           0x000000 0x200008f8 0x200008f8 0x00000 0x044f2 RW  0x80
+  EXIDX          0x011460 0x080113a0 0x080113a0 0x00008 0x00008 R   0x4
+  LOAD           0x0000c0 0x08000000 0x08000000 0x12b54 0x12b54 RWE 0x10
+  LOAD           0x012c18 0x20000000 0x08012b54 0x00930 0x00930 RW  0x8
+  LOAD           0x000000 0x20000930 0x20000930 0x00000 0x0441a RW  0x20
 
  Section to Segment mapping:
   Segment Sections...

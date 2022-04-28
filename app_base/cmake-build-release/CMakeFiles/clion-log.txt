@@ -1,12 +1,10 @@
 /usr/bin/cmake -DCMAKE_BUILD_TYPE=Release -G Ninja /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base
-Including boilerplate (Freestanding): /home/rts/zephyr-rts-master/zephyr/cmake/app/boilerplate.cmake
+Including boilerplate (Zephyr base (cached)): /home/rts/zephyr-rts-master/zephyr/cmake/app/boilerplate.cmake
 -- Application: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base
 -- Zephyr version: 3.0.0 (/home/rts/zephyr-rts-master/zephyr)
--- Found Python3: /usr/bin/python3.10 (found suitable exact version "3.10.2") found components: Interpreter 
 -- Found west (found suitable version "0.12.0", minimum required is "0.7.1")
 -- Board: nucleo_l452re
 -- Cache files will be written to: /home/rts/.cache/zephyr
--- ZEPHYR_TOOLCHAIN_VARIANT not set, trying to locate Zephyr SDK
 -- Found host-tools: zephyr 0.13.2 (/opt/zephyr-sdk)
 -- Found dtc: /opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/bin/dtc (found suitable version "1.6.0", minimum required is "1.4.6")
 -- Found toolchain: zephyr 0.13.2 (/opt/zephyr-sdk)
@@ -16,14 +14,20 @@ Including boilerplate (Freestanding): /home/rts/zephyr-rts-master/zephyr/cmake/a
 -- Generated devicetree_unfixed.h: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/include/generated/devicetree_unfixed.h
 -- Generated device_extern.h: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/include/generated/device_extern.h
 -- Including generated dts.cmake file: /home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/dts.cmake
+
+warning: UART_CONSOLE (defined at drivers/console/Kconfig:43) was assigned the value 'y' but got the
+value 'n'. Check these unsatisfied dependencies: CONSOLE (=n). See
+http://docs.zephyrproject.org/latest/reference/kconfig/CONFIG_UART_CONSOLE.html and/or look up
+UART_CONSOLE in the menuconfig/guiconfig interface. The Application Development Primer, Setting
+Configuration Values, and Kconfig - Tips and Best Practices sections of the manual might be helpful
+too.
+
 Parsing /home/rts/zephyr-rts-master/zephyr/Kconfig
-Loaded configuration '/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/.config'
-No change to configuration in '/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/.config'
-No change to Kconfig header in '/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/include/generated/autoconf.h'
--- The C compiler identification is GNU 10.3.0
--- The CXX compiler identification is GNU 10.3.0
--- The ASM compiler identification is GNU
--- Found assembler: /opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gcc
+Loaded configuration '/home/rts/zephyr-rts-master/zephyr/boards/arm/nucleo_l452re/nucleo_l452re_defconfig'
+Merged configuration '/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/prj.Release.conf'
+Merged configuration '/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/prj.conf'
+Configuration saved to '/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/.config'
+Kconfig header saved to '/home/rts/tmp/projects/beacon_project_rzd/lora_russia_railways/app_base/cmake-build-release/zephyr/include/generated/autoconf.h'
 CMake Warning at /home/rts/zephyr-rts-master/zephyr/CMakeLists.txt:775 (message):
   No SOURCES given to Zephyr library: drivers__led_strip
 

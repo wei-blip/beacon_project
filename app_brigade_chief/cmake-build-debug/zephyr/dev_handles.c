@@ -183,7 +183,7 @@ __devicehdl_DT_N_S_soc_S_timers_40000000_S_pwm[] = { 1, DEVICE_HANDLE_SEP, DEVIC
  *   - /soc/spi@40003800/dw1000@0
  */
 const device_handle_t __aligned(2) __attribute__((__section__(".__device_handles_pass2")))
-__devicehdl_DT_N_S_soc_S_spi_40003800[] = { 3, 1, 8, DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, 16, DEVICE_HANDLE_ENDS };
+__devicehdl_DT_N_S_soc_S_spi_40003800[] = { 3, 8, 1, DEVICE_HANDLE_SEP, DEVICE_HANDLE_SEP, 16, DEVICE_HANDLE_ENDS };
 
 /* 15 : /soc/spi@40013000:
  * Direct Dependencies:

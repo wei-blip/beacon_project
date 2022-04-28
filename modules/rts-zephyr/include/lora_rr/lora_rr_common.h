@@ -22,18 +22,32 @@ extern "C" {
 #endif
 
 /*
- * Enum value equal "active_events" array indexes into lora_rr_common.cc file.
+ * Количество событий в массиве app_event.
  * */
 #define APPLICATION_EVENTS_NUM 3
 
+/*
+ * Значения этого еnum'a равны значениям индексов массива событий app_event.
+ * Желательно не менять порядок этих enum'ов, если все таки такая необходимость будет,
+ * то необходимо изменить соответствующим образом порядок в массиве событий app_event.
+ * Если необходимо добавить новые события, то достаточно просто добавить в конец enum'a ещё одно значение и
+ * добавить в конец массива app_event ещё один сигнал, а также поменять значения APPLICATION_EVENTS_NUM
+ * */
 enum APP_EVENTS_s {
   EVENT_TX_MODE = 0,
   EVENT_PROC_RX_DATA,
   EVENT_RX_MODE
 };
 
+/*
+ * SLOT_TIME_MSEC - время одного тайм слота
+ * PERIOD_TIME_MSEC - период на который заводится таймер
+ * DELAY_TIME_MSEC - задержка
+ * DURATION_TIME_MSEC - время, которое должно пройти с момента приёма синхро-кадра
+ * до момента перевода модема в режим приёмника.
+ * */
 #define SLOT_TIME_MSEC 266UL /* Time on receive(166ms) + DELAY_TIME_MSEC */
-#define PERIOD_TIME_MSEC (4*SLOT_TIME_MSEC)  /* Timer period (super frame time) */
+#define PERIOD_TIME_MSEC (CONFIG_NUMBER_OF_DEVICES*SLOT_TIME_MSEC)  /* Timer period (super frame time) */
 #define DELAY_TIME_MSEC 100U
 #define DURATION_TIME_MSEC (SLOT_TIME_MSEC*(CONFIG_CURRENT_DEVICE_NUM-1)) /* Started delay for each device */
 
@@ -63,15 +77,9 @@ BUILD_ASSERT(DT_NODE_HAS_STATUS(DEFAULT_RADIO_NODE, okay),
 /**
  * My thread ids begin
  * */
-extern const k_tid_t proc_task_id;
-extern const k_tid_t modem_task_id;
 extern const k_tid_t app_task_id;
 /**
  * My thread ids end
- * */
-
-/**
- * Devices settings area begin
  * */
 
 
@@ -83,21 +91,6 @@ extern const k_tid_t app_task_id;
  * Thread functions end
  * */
 
-/**
- * Devices settings area end
- * */
-
-
-/**
- * Buzzer modes begin
- * */
-#define BUZZER_MODE_SINGLE 1
-#define BUZZER_MODE_CONTINUOUS 2
-#define BUZZER_MODE_DING_DONG 3
-#define BUZZER_MODE_IDLE 4
-/**
-* Buzzer modes end
-* */
 
 #define QUEUE_LEN_IN_ELEMENTS 10
 
@@ -105,6 +98,7 @@ extern const k_tid_t app_task_id;
 
 #define INTERVAL_TIME_MS 100
 /* Counts interval time for detected pressed */
+/* Задержки для разных типов нажатий */
 #define SHORT_PRESSED_MIN_VAL 4  /* 400 ms */
 #define SHORT_PRESSED_MAX_VAL 10 /* 1000 ms */
 #define MIDDLE_PRESSED_MIN_VAL (SHORT_PRESSED_MAX_VAL+1)  /* 1100 ms */
@@ -116,6 +110,14 @@ extern atomic_t alarm_is_active;
 /**
  * Enum, typedefs and structs area begin
  * */
+
+enum BUZZER_MODES_e {
+  BUZZER_MODE_SINGLE = 1,
+  BUZZER_MODE_CONTINUOUS,
+  BUZZER_MODE_DING_DONG,
+  BUZZER_MODE_IDLE
+};
+
 enum CONNECTION_QUALITY_RSSI {
     CONNECTION_QUALITY_RSSI_1 = -70,
     CONNECTION_QUALITY_RSSI_2 = -80,
@@ -126,16 +128,6 @@ enum CONNECTION_QUALITY_RSSI {
     CONNECTION_QUALITY_RSSI_7 = -127,
     CONNECTION_QUALITY_RSSI_8 = -130
 };
-
-enum MODEM_STATES {
-    RECEIVE = 0,
-    TRANSMIT = 1
-};
-
-typedef struct modem_state_s {
-    struct modem_state_s* next;
-    enum MODEM_STATES state;
-} modem_state_t;
 /**
  * Enum, typedefs and structs area end
  * */
@@ -144,12 +136,6 @@ typedef struct modem_state_s {
 /**
  * Extern variable declaration area begin
  * */
-
-extern atomic_t reconfig_modem;
-
-extern const modem_state_t recv_state;
-extern const modem_state_t transmit_state;
-extern modem_state_t current_state;
 
 /* Indicate structure */
 extern struct led_strip_indicate_s status_ind;
@@ -167,82 +153,179 @@ extern struct led_strip_indicate_s alarm_ind;
 /**
  * Function declaration area begin
  * */
-void work_buzzer_handler(struct k_work *item);
+
+/**
+ *
+ * */
 void work_button_pressed_handler(struct k_work *item);
 void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio);
 void dwork_disable_ind_handler(struct k_work *item);
 void periodic_timer_handler(struct k_timer *tim);
 
+/**
+ * @brief Инициализация и конфигурация сервисов ядра
+ * @return Ничего
+ */
 void common_kernel_services_init();
+
+/**
+ * @brief Колбэк функция для тайм-аута по прийму и ошибки по приёму модема
+ * @param dev     LoRa device
+ *
+ * @return Ничего
+ */
 void lora_receive_error_timeout(const struct device *dev);
+
+/**
+ * @brief Колбэк функция по успешному приёму модема
+ * @param dev     LoRa device
+ * @param data    Указатель на массив с принятыми данными
+ * @param size    Размер принятых данных
+ * @param rssi    rssi значение
+ * @param snr     snr значение
+ *
+ * @return Ничего
+ */
 void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int16_t rssi, int8_t snr);
 
-bool proc_rx_data(uint8_t *recv_data, size_t len, struct message_s *rx_msg, uint8_t cur_dev_addr);
+/**
+ * @brief Функция для фильтрации и преобразования принятых данных из массива в экземпляр структуры message_s
+ * @param recv_data     Указатель на массив с принятыми данными
+ * @param len           Длина массива с принятыми данными
+ * @param rx_msg        Указатель на экземпляр структуры, поля которой будут заполнены
+ * @param cur_dev_addr  Адрес текущего устройства (Данный адрес выбирается из enum'a DEVICE_ADDR_e)
+ *
+ * @return true - если сообщение не отфильтровалось, false в противном случае
+ */
+bool proc_rx_data(uint8_t *recv_data, size_t len, struct message_s *rx_msg, DEVICE_ADDR_e cur_dev_addr);
+
+/**
+ * @brief Функция для взятия из очереди экземпляра структуры message_s и преобразования его в массив
+ * для передачи по радио
+ * @param msgq          Указатель на очередь из которой будет взято сообщение
+ * @param tx_data       Указатель на буффер для передачи по радио
+ * @param len           Длина буффера для передачи по радио
+ * @param tx_msg        Указатель на экземпляр структуры message_s которая будет преобразована
+ * в буффер для передачи по радио
+ *
+ * @return true - если сообщение есть в очереди, false в противном случае
+ */
 bool proc_tx_data(k_msgq *msgq, uint8_t *tx_data, size_t len, struct message_s *tx_msg);
 
 bool radio_rx_queue_is_empty();
 
-void set_rssi(int16_t *rssi);
+/**
+ * @brief Функция для взятия из очереди значения rssi
+ * @param rssi  Указатель на переменную в которую будет записано значение rssi
+ *
+ * @return Ничего
+ */
 void get_rssi(int16_t *rssi);
 
+/**
+ * @brief Функция для вставки экземпляра сообщения в очередь для отправки по радио
+ * @param msg   Указатель на экземпляр сообщения, которое будет вставлено в очередь
+ * @param prio  Если true - сообщение для отправки будет вставлено в приоритетную очередь, в противном случае
+ * в обычную очередь
+ *
+ * @return Ничего
+ */
 void set_msg(struct message_s *msg, bool prio);
 
+/**
+ * @brief Функция для запуска зуммера в указанном режиме
+ * @param buzzer_mode   Режим, в котром требуется запустить зуммер
+ *
+ * @return Ничего
+ */
+void set_buzzer_mode(BUZZER_MODES_e buzzer_mode);
+
+/**
+ * @brief Функция для запуска work'a при возникновении прерывания на кнопке
+ * @param dev   Указатель на структуру gpio, которая в дальнейшем будет анализироваться в work'e
+ *
+ * @return Ничего
+ */
+void button_irq_routine(struct gpio_dt_spec *dev);
+
+/**
+ * @brief Функция для запуска периодического таймера
+ * @param duration   Время до первого прерывания таймера
+ * @param period     Время между прерываниями после срабатывания первого
+ *
+ * @return Ничего
+ */
 void tim_start(k_timeout_t duration, k_timeout_t period);
-void tim_restart(k_timeout_t duration, k_timeout_t period);
 
-void set_buzzer_mode(uint8_t buzzer_mode);
-
-void irq_routine(struct gpio_dt_spec *dev);
-
+/**
+ * @brief Функция для вставки указателя на экземпляр структуры с параметрами индикации
+ * @param ind           Указатель на указатель экзмепляра структуры led_strip_indicate_s с параметрами индикации
+ * @param duration_min  Если не равно K_FOREVER, то будет запущен отложенный вызов, в котором индикация будет выключена,
+ * в противном случае установленная индикация не выключится
+ *
+ * @return Ничего
+ */
 void set_ind(led_strip_indicate_s **ind, k_timeout_t duration_min);
 
+/**
+ * @brief Функция опроса событий массива app_event
+ *
+ * @return Индекс на элемент события в массиве
+ */
 int8_t wait_app_event();
-int8_t get_app_event();
 
-int32_t modem_fun(const struct device *lora_dev, struct lora_modem_config* lora_cfg);
+/**
+ * @brief Функция для перевода модема в режим передачи.
+ *        После выполнения этой функции будет автоматически запущен приём
+ * @param lora_dev  LoRa device
+ * @param lora_cfg  структура с настройками радио
+ *
+ * @return Если больше нуля, то очереди(приоритетная и обычная) для отправки сообщений пусты
+ *         Если равно нулю, то сообщение успешно передано
+ *         Если меньше нуля, то сообшение не отправлено
+ */
+int32_t start_tx(const struct device *lora_dev, struct lora_modem_config* lora_cfg);
+
+/**
+ * @brief Функция для перевода модема в режим передатчика
+ * @param lora_dev  LoRa device
+ * @param lora_cfg  структура с настройками радио
+ *
+ * @return Ничего
+ */
 void start_rx(const struct device *lora_dev, struct lora_modem_config* lora_cfg);
-void proc_fun(void *dev_data);
+
+/**
+ * @brief Функция анализа принятого сообщения
+ * @param rx_msg    Указатель на структуру принятого сообщения
+ * @param dev_data  Указатель на данные характерные для каждого устройства
+ *
+ * @return Ничего
+ */
+void analysis_fun(struct message_s* rx_msg, void *dev_data);
+
+/**
+ * @brief Функция анализа принятого сообщения если поле direction установлено в response
+ * @param rx_msg        Указатель на структуру принятого сообщения
+ * @param tx_msg        Указатель на структуру сообщения для возможног ответа
+ * @param strip_ind     Указатель на структуру с параметрами индикации
+ *
+ * @return Ничего
+ */
 void request_analysis(const struct message_s *rx_msg, struct message_s *tx_msg, struct led_strip_indicate_s *strip_ind);
+
+/**
+ * @brief Функция анализа принятого сообщения если поле direction установлено в response
+ * @param rx_msg        Указатель на структуру принятого сообщения
+ * @param tx_msg        Указатель на структуру сообщения для возможног ответа
+ * @param strip_ind     Указатель на структуру с параметрами индикации
+ *
+ * @return Ничего
+ */
 void response_analysis(const struct message_s *rx_msg, struct message_s *tx_msg, struct led_strip_indicate_s *strip_ind);
 /**
  * Function declaration area end
  * */
-
-
-/**
- * Function definition area begin
- * */
-static inline bool is_empty_msg(const uint8_t *buf, size_t len)
-{
-    uint8_t i = 0;
-    uint8_t cnt = 0;
-    while(i < len) {
-        if (!(*(buf + i))) {
-            cnt++;
-        }
-        i++;
-    }
-    return (cnt==len);
-}
-
-
-static inline uint8_t reverse(uint8_t input)
-{
-    uint8_t output;
-    uint8_t bit = 0;
-    uint8_t pos = 0;
-    while( pos < 7 ) {
-        bit = input & BIT(0);
-        output |= bit;
-        output = output << 1;
-        input = input >> 1;
-        pos++;
-    }
-    bit = input & BIT(0);
-    output |= bit;
-    return output;
-}
-
 
 static inline uint8_t check_rssi(int16_t rssi)
 {
@@ -283,68 +366,6 @@ static inline uint8_t check_rssi(int16_t rssi)
         return leds_num;
     }
 }
-
-
-static inline void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos)
-{
-    uint8_t start_pos = *pos;
-    while ( *pos < start_pos + field_len ) {
-        *msg_ptr &= ( ~BIT(*pos) ); // clear bit
-        *msg_ptr |= ( field_val & BIT((*pos) - start_pos) ) << start_pos;
-        (*pos)++;
-    }
-}
-
-
-static inline void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos)
-{
-    uint8_t start_pos = *pos;
-    while ( *pos < start_pos + field_len ) {
-        *field_val &= ( ~BIT((*pos) - start_pos) ); // clear bit
-        (*field_val) |= ( (*msg_ptr) & BIT((*pos) ) ) >> start_pos;
-        (*pos)++;
-    }
-}
-
-
-static inline void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write)
-{
-    uint8_t pos = 0;
-    for (int cur_field = 0; cur_field < MESSAGE_FIELD_NUMBER; ++cur_field) {
-        switch (cur_field) {
-            case SENDER_ADDR:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->sender_addr, SENDER_ADDR_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->sender_addr, SENDER_ADDR_FIELD_LEN, &pos);
-                break;
-            case RECEIVER_ADDR:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->receiver_addr, RECEIVER_ADDR_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->receiver_addr, RECEIVER_ADDR_FIELD_LEN, &pos);
-                break;
-            case MESSAGE_TYPE:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->message_type, MESSAGE_TYPE_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->message_type, MESSAGE_TYPE_FIELD_LEN, &pos);
-                break;
-            case DIRECTION:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->direction, DIRECTION_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->direction, DIRECTION_FIELD_LEN, &pos);
-                break;
-            case BATTERY:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->battery_level, BATTERY_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->battery_level, BATTERY_FIELD_LEN, &pos);
-                break;
-            case PEOPLE_IN_SAFE_ZONE:
-                write ? fill_msg_bit_field(new_msg, msg_ptr->workers_in_safe_zone, PEOPLE_IN_SAFE_ZONE_FIELD_LEN, &pos) :
-                extract_msg_bit_field(new_msg, &msg_ptr->workers_in_safe_zone, PEOPLE_IN_SAFE_ZONE_FIELD_LEN, &pos);
-                break;
-            default:
-                break;
-        }
-    }
-}
-/**
- * Function definition area end
- * */
-
 
 #ifdef __cplusplus
 }

@@ -4,8 +4,6 @@
 
 #include "lora_rr/lora_rr_common.h"
 
-#if CUR_DEVICE == BRIGADE_CHIEF
-
 #include <logging/log.h>
 LOG_MODULE_REGISTER(brigade_chief);
 
@@ -155,7 +153,7 @@ void system_init()
     strip_ind = &status_ind;
     set_ind(&strip_ind, K_FOREVER);
 
-    current_state = recv_state;
+//    current_state = recv_state;
 
     set_buzzer_mode(BUZZER_MODE_SINGLE);
 }
@@ -165,6 +163,8 @@ void system_init()
     int8_t event = 0;
     uint8_t rssi_num = 0;
     int32_t rc = 0;
+    struct message_s rx_msg = {0};
+    uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
 
     /**
     * Lora config begin
@@ -219,7 +219,7 @@ void system_init()
         switch (event) {
             case EVENT_TX_MODE:
                 LOG_DBG("Tx mode event");
-                rc = modem_fun(lora_dev, &lora_cfg);
+                rc = start_tx(lora_dev, &lora_cfg);
                 if (!rc) {
                     strip_ind = &msg_send_good_ind;
                     set_ind(&strip_ind, K_FOREVER);
@@ -236,7 +236,11 @@ void system_init()
                 break;
             case EVENT_PROC_RX_DATA:
                 LOG_DBG("Processing data event");
-                proc_fun(&status_ind);
+                /* Processing receiving data */
+                if (!proc_rx_data(rx_buf, sizeof(rx_buf), &rx_msg, cur_dev_addr)) {
+                    continue;
+                }
+                analysis_fun(&rx_msg, &status_ind);
                 cnt = 0;
                 break;
             case EVENT_RX_MODE:
@@ -252,7 +256,7 @@ void system_init()
     }
 }
 
-void proc_fun(void *dev_data)
+void analysis_fun(struct message_s* rx_msg, void *dev_data)
 {
     int16_t rssi = 0;
     struct message_s tx_msg = {
@@ -260,26 +264,18 @@ void proc_fun(void *dev_data)
       .direction = RESPONSE,
       .battery_level = BATTERY_LEVEL_GOOD
     };
-    static struct message_s rx_msg = {0};
     static struct led_strip_indicate_s *strip_ind = &status_ind;
-    static uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
 
-
-    /* Processing receiving data */
-    if (!proc_rx_data(rx_buf, sizeof(rx_buf), &rx_msg, cur_dev_addr)) {
-        return;
-    }
-
-    switch (rx_msg.direction) {
+    switch (rx_msg->direction) {
         case REQUEST:
             tx_msg.sender_addr = cur_dev_addr;
-            tx_msg.message_type = rx_msg.message_type;
+            tx_msg.message_type = rx_msg->message_type;
 
-            request_analysis(&rx_msg, &tx_msg, strip_ind);
+            request_analysis(rx_msg, &tx_msg, strip_ind);
             break;
 
         case RESPONSE:
-            response_analysis(&rx_msg, &tx_msg, strip_ind);
+            response_analysis(rx_msg, &tx_msg, strip_ind);
             break;
 
         default:
@@ -287,10 +283,9 @@ void proc_fun(void *dev_data)
             break;
     }
 
-
     get_rssi(&rssi);
     ((led_strip_indicate_s*)(dev_data))->led_strip_state.status.con_status = check_rssi(rssi);
-    ((led_strip_indicate_s*)(dev_data))->led_strip_state.status.people_num = rx_msg.workers_in_safe_zone;
+    ((led_strip_indicate_s*)(dev_data))->led_strip_state.status.people_num = rx_msg->workers_in_safe_zone;
     /* Change indication only if alarm not active */
     if (!atomic_get(&alarm_is_active)) {
         if (indicate_is_enabled()) {
@@ -401,7 +396,7 @@ void request_analysis(const struct message_s *rx_msg, struct message_s *tx_msg, 
 void button_disable_alarm_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 {
     LOG_DBG("Button disable alarm pressed");
-    irq_routine(&button_disable_alarm);
+    button_irq_routine(&button_disable_alarm);
 }
 
 //void button_left_train_pass_pressed_cb(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
@@ -440,4 +435,3 @@ void work_button_pressed_handler_dev(struct gpio_dt_spec *irq_gpio)
 /**
  * Function definition area end
  * */
-#endif

@@ -14,12 +14,16 @@ LOG_MODULE_REGISTER(lora_rr_common, LOG_LEVEL_DBG);
 /**
  * Extern variable definition and initialisation begin
  * */
+/* Очередь для отправки приоритетных сообщений */
 /* priority queue for sending messages */
 K_MSGQ_DEFINE(msgq_tx_msg_prio, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
+/* Очередь для отправки неприоритеных сообщений */
 /* none priority queue for sending messages */
 K_MSGQ_DEFINE(msgq_tx_msg, sizeof(struct message_s), QUEUE_LEN_IN_ELEMENTS, 1);
+/* Очередь для принятых сообщений */
 /* queue for receiving messages */
 K_MSGQ_DEFINE(msgq_rx_msg, MESSAGE_LEN_IN_BYTES, QUEUE_LEN_IN_ELEMENTS, 1);
+/* Очередь для значений rssi */
 /* queue for rssi values */
 K_MSGQ_DEFINE(msgq_rssi, sizeof(int16_t), QUEUE_LEN_IN_ELEMENTS, 2);
 
@@ -28,20 +32,21 @@ K_MUTEX_DEFINE(mtx_buzzer);
 const struct device *buzzer_dev = nullptr;
 
 atomic_t atomic_device_active = ATOMIC_INIT(0);
-atomic_t alarm_is_active = ATOMIC_INIT(false);
+atomic_t alarm_is_active = ATOMIC_INIT(false); /* Для указания активности тревоги */
 
+/* Таймер для перевода в приёмо-передатчика в режим передачи */
 struct k_timer periodic_timer = {{{{nullptr}}}};
 
-struct k_work work_buzzer = {{nullptr}};
+/* work для обработки нажатия кнопки */
 struct k_work work_button_pressed = {{nullptr}};
+/* work для отключения индикации через заданное время */
 struct k_work_delayable dwork_disable_ind = {{{nullptr}}};
 
-struct k_poll_signal signal_buzzer = K_POLL_SIGNAL_INITIALIZER(signal_buzzer);
-struct k_poll_event event_buzzer = K_POLL_EVENT_STATIC_INITIALIZER(K_POLL_TYPE_SIGNAL,
-                                                                   K_POLL_MODE_NOTIFY_ONLY,
-                                                                   &signal_buzzer,
-                                                                   0);
-
+/*
+ * sig_tx_mode - испускается по таймеру для перевода модема в режим передатчика
+ * sig_proc_rx_data - испускается для обработки принятых данных
+ * sig_rx_mod - испускается для перевода модема в режим приёмника
+ * */
 struct k_poll_signal sig_tx_mode = K_POLL_SIGNAL_INITIALIZER(sig_tx_mode);
 struct k_poll_signal sig_proc_rx_data = K_POLL_SIGNAL_INITIALIZER(sig_proc_rx_data);
 struct k_poll_signal sig_rx_mode = K_POLL_SIGNAL_INITIALIZER(sig_rx_mode);
@@ -63,20 +68,10 @@ struct k_poll_event event_app[APPLICATION_EVENTS_NUM] = {
 
 bool active_events[APPLICATION_EVENTS_NUM] = {false};
 
+/* Используется для хранения информации о порте и пине gpio на котором произошло прерывание кнопки
+ * После прерывания эта структура обрабатывается в k_work_button_pressed_handler */
 struct gpio_dt_spec *irq_gpio_dev = nullptr;
 
-const modem_state_t recv_state = {
-  .next =  const_cast<modem_state_s *>(&transmit_state),
-  .state = RECEIVE
-};
-
-const modem_state_t transmit_state = {
-  .next =  const_cast<modem_state_s *>(&recv_state),
-  .state = TRANSMIT
-};
-
-modem_state_t current_state = {nullptr};
-atomic_t reconfig_modem = ATOMIC_INIT(0);
 /**
  * Indication structures begin
  * */
@@ -186,7 +181,95 @@ struct led_strip_indicate_s alarm_ind = {
 /**
  * Function definition area begin
  * */
-int32_t modem_fun(const struct device *lora_dev, struct lora_modem_config* lora_cfg)
+static inline bool is_empty_msg(const uint8_t *buf, size_t len)
+{
+    uint8_t i = 0;
+    uint8_t cnt = 0;
+    while(i < len) {
+        if (!(*(buf + i))) {
+            cnt++;
+        }
+        i++;
+    }
+    return (cnt==len);
+}
+
+
+static inline uint8_t reverse(uint8_t input)
+{
+    uint8_t output;
+    uint8_t bit = 0;
+    uint8_t pos = 0;
+    while( pos < 7 ) {
+        bit = input & BIT(0);
+        output |= bit;
+        output = output << 1;
+        input = input >> 1;
+        pos++;
+    }
+    bit = input & BIT(0);
+    output |= bit;
+    return output;
+}
+
+static inline void fill_msg_bit_field(uint32_t *msg_ptr, const uint8_t field_val, uint8_t field_len, uint8_t *pos)
+{
+    uint8_t start_pos = *pos;
+    while ( *pos < start_pos + field_len ) {
+        *msg_ptr &= ( ~BIT(*pos) ); // clear bit
+        *msg_ptr |= ( field_val & BIT((*pos) - start_pos) ) << start_pos;
+        (*pos)++;
+    }
+}
+
+
+static inline void extract_msg_bit_field(const uint32_t *msg_ptr, uint8_t *field_val, uint8_t field_len, uint8_t *pos)
+{
+    uint8_t start_pos = *pos;
+    while ( *pos < start_pos + field_len ) {
+        *field_val &= ( ~BIT((*pos) - start_pos) ); // clear bit
+        (*field_val) |= ( (*msg_ptr) & BIT((*pos) ) ) >> start_pos;
+        (*pos)++;
+    }
+}
+
+
+static inline void read_write_message(uint32_t* new_msg, struct message_s* msg_ptr, bool write)
+{
+    uint8_t pos = 0;
+    for (int cur_field = 0; cur_field < MESSAGE_FIELD_NUMBER; ++cur_field) {
+        switch (cur_field) {
+            case SENDER_ADDR:
+                write ? fill_msg_bit_field(new_msg, msg_ptr->sender_addr, SENDER_ADDR_FIELD_LEN, &pos) :
+                extract_msg_bit_field(new_msg, &msg_ptr->sender_addr, SENDER_ADDR_FIELD_LEN, &pos);
+                break;
+            case RECEIVER_ADDR:
+                write ? fill_msg_bit_field(new_msg, msg_ptr->receiver_addr, RECEIVER_ADDR_FIELD_LEN, &pos) :
+                extract_msg_bit_field(new_msg, &msg_ptr->receiver_addr, RECEIVER_ADDR_FIELD_LEN, &pos);
+                break;
+            case MESSAGE_TYPE:
+                write ? fill_msg_bit_field(new_msg, msg_ptr->message_type, MESSAGE_TYPE_FIELD_LEN, &pos) :
+                extract_msg_bit_field(new_msg, &msg_ptr->message_type, MESSAGE_TYPE_FIELD_LEN, &pos);
+                break;
+            case DIRECTION:
+                write ? fill_msg_bit_field(new_msg, msg_ptr->direction, DIRECTION_FIELD_LEN, &pos) :
+                extract_msg_bit_field(new_msg, &msg_ptr->direction, DIRECTION_FIELD_LEN, &pos);
+                break;
+            case BATTERY:
+                write ? fill_msg_bit_field(new_msg, msg_ptr->battery_level, BATTERY_FIELD_LEN, &pos) :
+                extract_msg_bit_field(new_msg, &msg_ptr->battery_level, BATTERY_FIELD_LEN, &pos);
+                break;
+            case PEOPLE_IN_SAFE_ZONE:
+                write ? fill_msg_bit_field(new_msg, msg_ptr->workers_in_safe_zone, PEOPLE_IN_SAFE_ZONE_FIELD_LEN, &pos) :
+                extract_msg_bit_field(new_msg, &msg_ptr->workers_in_safe_zone, PEOPLE_IN_SAFE_ZONE_FIELD_LEN, &pos);
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+int32_t start_tx(const struct device *lora_dev, struct lora_modem_config* lora_cfg)
 {
     int32_t rc = 1;
     struct k_msgq *cur_queue = nullptr;
@@ -196,6 +279,8 @@ int32_t modem_fun(const struct device *lora_dev, struct lora_modem_config* lora_
     static uint8_t tx_buf[MESSAGE_LEN_IN_BYTES] = {0};
 
     if (!proc_tx_data(cur_queue, tx_buf, sizeof(tx_buf), &tx_msg)) {
+        /* Перевод модема в режим приёмника даже если модем не прекращал приём
+         * Необходимо для того, чтобы быть уверенным, что модем не завис */
         start_rx(lora_dev, lora_cfg);
         return 1;
     }
@@ -209,8 +294,7 @@ int32_t modem_fun(const struct device *lora_dev, struct lora_modem_config* lora_
 
     if (rc < 0) {
         k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
-        current_state = recv_state;
-//            atomic_set(&reconfig_modem, 1);
+//        current_state = recv_state;
         start_rx(lora_dev, lora_cfg);
         k_spin_unlock(&spin, key);
         return rc;
@@ -224,12 +308,11 @@ int32_t modem_fun(const struct device *lora_dev, struct lora_modem_config* lora_
         k_msgq_put(cur_queue, &tx_msg, K_NO_WAIT);
     }
     start_rx(lora_dev, lora_cfg);
-//        atomic_set(&reconfig_modem, 1);
 
     if (tx_msg.message_type == MESSAGE_TYPE_SYNC)
         rc = 1;
 
-    current_state = recv_state;
+//    current_state = recv_state;
 
     k_spin_unlock(&spin, key);
     return rc;
@@ -258,6 +341,10 @@ void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int
 
     key = k_spin_lock(&spin);
 
+    /*
+     * Иногда модем может принять ошибочный пустой кадр, после которого он зависает.
+     * Чтобы такого не происходило нужно после приёма этого кадра перезапустить приём у модема
+     * */
     if ((size != MESSAGE_LEN_IN_BYTES) || is_empty_msg(data, size)) {
         LOG_DBG("Reconfig modem");
         k_poll_signal_raise(&sig_rx_mode, 1);
@@ -269,6 +356,11 @@ void lora_receive_cb(const struct device *dev, uint8_t *data, uint16_t size, int
      * Compare first byte in receive message and 13
      * 13 means thar received message has the following parameters:
      * SENDER_ADDR = BASE_STATION, RECV_ADDR = BROADCAST, MESSAGE_TYPE = SYNC
+     * */
+    /*
+     * 13 - это значит, что принят синхро-кадр.
+     * Таймер перезапускается прямо в колбэке для того, чтобы уменьшить время между приёмом синхро-кадра
+     * и перезапуском таймера.
      * */
     if ((*data) == 13) {
         LOG_DBG(" REQUEST");
@@ -356,10 +448,9 @@ void work_button_pressed_handler(struct k_work *item) {
         }
     }
 
-    /* Sound indicate */
+    /* Звуковое оповещение нажатия на кнопку */
     if (short_pressed_is_set) {
-        k_work_submit(&work_buzzer);
-        k_poll_signal_raise(&signal_buzzer, BUZZER_MODE_SINGLE);
+        set_buzzer_mode(BUZZER_MODE_SINGLE);
     }
 
     /* Do action */
@@ -376,7 +467,7 @@ void work_button_pressed_handler(struct k_work *item) {
         }
 
     } else if (middle_pressed_is_set && !long_pressed_is_set) { /* Middle pressed */
-        /*  */
+        /* Для каждого устройства эта функция будет выполнять разные действия */
         work_button_pressed_handler_dev(irq_gpio_dev);
 
     } else if (long_pressed_is_set) { /* Long pressed */
@@ -398,54 +489,13 @@ void common_kernel_services_init()
     * Buzzer init end
     * */
 
-    k_work_init(&work_buzzer, work_buzzer_handler);
     k_work_init(&work_button_pressed, work_button_pressed_handler);
     k_work_init_delayable(&dwork_disable_ind, dwork_disable_ind_handler); /* For enable and disable indication */
 
     k_timer_init(&periodic_timer, periodic_timer_handler, nullptr);
 }
 
-void work_buzzer_handler(struct k_work *item) {
-    uint8_t i = 0;
-
-    /* Wait while signal will be raised */
-    while (k_poll(&event_buzzer, 1, K_NO_WAIT)) {
-        k_sleep(K_MSEC(5));
-    }
-
-    switch (event_buzzer.signal->result) {
-        case BUZZER_MODE_CONTINUOUS:
-            pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                             BUTTON_PRESSED_PERIOD_TIME_USEC / 2U, PWM_FLAGS);
-            k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
-            break;
-        case BUZZER_MODE_DING_DONG:
-            i = 0;
-            while (i < 2) {
-                pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                                 BUTTON_PRESSED_PERIOD_TIME_USEC / 2U, PWM_FLAGS);
-                k_sleep(K_USEC(2 * BUTTON_PRESSED_PERIOD_TIME_USEC));
-                pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                                 0, PWM_FLAGS);
-                k_sleep(K_USEC(2 * BUTTON_PRESSED_PERIOD_TIME_USEC));
-                i++;
-            }
-            break;
-        case BUZZER_MODE_SINGLE:
-            pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                             BUTTON_PRESSED_PERIOD_TIME_USEC / 2U, PWM_FLAGS);
-            k_sleep(K_USEC(BUTTON_PRESSED_PERIOD_TIME_USEC));
-        case BUZZER_MODE_IDLE:
-        default:
-            pwm_pin_set_usec(buzzer_dev, PWM_CHANNEL, BUTTON_PRESSED_PERIOD_TIME_USEC,
-                             0, PWM_FLAGS);
-            break;
-    }
-    event_buzzer.signal->signaled = 0;
-    event_buzzer.state = K_POLL_STATE_NOT_READY;
-}
-
-bool proc_rx_data(uint8_t *recv_data, size_t len, struct message_s *rx_msg, uint8_t cur_dev_addr)
+bool proc_rx_data(uint8_t *recv_data, size_t len, struct message_s *rx_msg, DEVICE_ADDR_e cur_dev_addr)
 {
     uint32_t cur_msg = 0;
 
@@ -481,7 +531,7 @@ bool proc_tx_data(struct k_msgq *msgq, uint8_t *tx_data, size_t len, struct mess
         msgq = &msgq_tx_msg;
     } else {
         /* Return 1 */
-        current_state = *current_state.next;
+//        current_state = *current_state.next;
         return false;
     }
 
@@ -530,18 +580,7 @@ void set_msg(struct message_s *msg, bool prio)
         k_msgq_put(&msgq_tx_msg, msg, K_NO_WAIT);
 }
 
-void tim_start(k_timeout_t duration, k_timeout_t period)
-{
-    k_timer_start(&periodic_timer, duration, period);
-}
-
-void tim_restart(k_timeout_t duration, k_timeout_t period)
-{
-    k_timer_stop(&periodic_timer);
-    k_timer_start(&periodic_timer, duration, period);
-}
-
-void set_buzzer_mode(uint8_t buzzer_mode)
+void set_buzzer_mode(BUZZER_MODES_e buzzer_mode)
 {
     uint8_t i = 0;
     /* Wait while signal will be raised */
@@ -580,7 +619,7 @@ void set_buzzer_mode(uint8_t buzzer_mode)
     k_mutex_unlock(&mtx_buzzer);
 }
 
-void irq_routine(struct gpio_dt_spec *dev)
+void button_irq_routine(struct gpio_dt_spec *dev)
 {
     irq_gpio_dev = dev;
     k_work_submit(&work_button_pressed);
@@ -590,7 +629,7 @@ void periodic_timer_handler(struct k_timer *tim)
 {
     LOG_DBG("Periodic timer handler");
     k_poll_signal_raise(&sig_tx_mode, 1);
-    current_state = transmit_state;
+//    current_state = transmit_state;
 }
 
 int8_t wait_app_event()
@@ -611,15 +650,9 @@ int8_t wait_app_event()
     return (-1);
 }
 
-int8_t get_app_event()
+void tim_start(k_timeout_t duration, k_timeout_t period)
 {
-    for (int8_t i = 0; i < APPLICATION_EVENTS_NUM; ++i) {
-        if (active_events[i]) {
-            active_events[i] = false;
-            return i;
-        }
-    }
-    return -1;
+    k_timer_start(&periodic_timer, duration, period);
 }
 /**
  * Function definition area end

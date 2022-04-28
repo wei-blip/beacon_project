@@ -10,16 +10,20 @@
 extern "C" {
 #endif
 
+/* Workers number */
 #define NUMBER_OF_NODES 8
-#define AVAILABLE_WORKERS 1
+/* AVAILABLE_WORKERS value can't be greater them NUMBER_OF_NODES */
+#define AVAILABLE_WORKERS NUMBER_OF_NODES
 
 #define RESPONDER_ID 255
 
+/* Transaction flags */
 #define TX_DONE 1
 #define RX_DONE 2
 #define RX_TO 3
 #define RX_ERR 4
 
+/* For slave device sleeping */
 #define RNG_DELAY_MS 500
 
 /* Speed of light in air, in metres per second. */
@@ -77,17 +81,64 @@ void rx_err_cb(const dwt_cb_data_t *cb_data); /* RxError */
 bool check_correct_recv(void *expect_msg, size_t expect_size, size_t recv_size);
 
 /* Responder functions */
+/**
+ * @brief Функция для приёма первого (стартового) сообщения от инициатора
+ *        и соответсвтующих действий после него для запрашивающего устройства
+ * @param atomic_twr_status  Указатель на переменную с текущим состоянием транзакции
+ *
+ * @return Ничего
+ */
 void resp_twr_1_poll_ds_twr(atomic_t *atomic_twr_status);
-void resp_twr_2_resp_ds_twr(msg_header_t *rx_poll_msg, uint64_t poll_rx_ts, msg_header_t *tx_resp_msg, atomic_t *twr_status);
+
+/**
+ * @brief Функция для отправки второго сообщения инициатору
+ *        и соответсвтующих действий после него для запрашивающего устройства
+ * @param rx_poll_msg  Указатель на принятое в стартовое сосбщение
+ * @param poll_rx_ts   Временная метка принятого стартового сообщения
+ * @param tx_resp_msg  Указатель на сообщение для отправки
+ * @param twr_status   Указатель на переменную с текущим состоянием транзакции
+ *
+ * @return Ничего
+ */
+void resp_twr_2_resp_ds_twr(msg_header_t *rx_poll_msg, uint64_t poll_rx_ts, msg_header_t *tx_resp_msg,
+                            atomic_t *twr_status);
+
+/**
+ * @brief Функция для обработки принятого сообщения полученного в ответ на отправленное второе и
+ *        определения расстояния до узла
+ * @param final_msg     Указатель на принятое финальное сообщение
+ * @param poll_rx_ts    Временная метка принятого стартового сообщения
+ * @param resp_tx_ts    Временная метка отправленного второго сообщения
+ * @param final_rx_ts   Временная метка принятого финального сообщения
+ * @param dist_src      Указатель на массив с расстояниями до узлов
+ * @param nodes         Указатель на массив с активными узлами
+ *
+ * @return Ничего
+ */
 void resp_final_msg_poll_ds_twr(msg_twr_final_t *final_msg, uint64_t poll_rx_ts, uint64_t resp_tx_ts,
                                 uint64_t final_rx_ts, double *dist_src, bool *nodes);
-double calc_dist_ds_twr(msg_twr_final_t *final_msg, uint32_t poll_rx_ts, uint32_t resp_tx_ts, uint32_t final_rx_ts);
 
 /* Initiator functions */
+/**
+ * @brief Функция для отправки стартовго сообщения запросчику
+ * @param tx_poll_msg           Указатель на отправляемое сообщение
+ * @param atomic_twr_status     Указатель на переменную с текущим состоянием транзакции
+ *
+ * @return Ничего
+ */
 void init_twr_1_poll_ds_twr(msg_header_t *tx_poll_msg, atomic_t *atomic_twr_status);
+
+/**
+ * @brief Функция для отправки финального сообщения запросчику
+ * @param dwm_dev               DWM device
+ * @param tx_poll_msg           Указатель на уже отправленное стартовое сообщение
+ * @param atomic_twr_status     Указатель на переменную с текущим состоянием транзакции
+ * @param cb_data               Структура колбэк данных (Не знаю что написать)
+ *
+ * @return Ничего
+ */
 void init_twr_2_resp_ds_twr(const struct device *dwm_dev, msg_header_t *tx_poll_msg, atomic_t *atomic_twr_status,
                             dwt_cb_data_t *cb_data);
-void init_final_msg_poll_ds_twr(atomic_t *atomic_twr);
 /**
 * Function declaration area end
 * */

@@ -39,6 +39,7 @@ enum MESSAGE_FIELD_POSITIONS_e {
 #define BATTERY_FIELD_LEN 1
 #define PEOPLE_IN_SAFE_ZONE_FIELD_LEN 3
 
+/* В случае изменений убедиться что соответсвующей длины поля хватит (см. define'ы со значениями длин полей) */
 enum DEVICE_ADDR_e {
   BASE_STATION_ADDR = 0x00,
   SIGNALMAN_1_ADDR = 0x01,
@@ -47,6 +48,7 @@ enum DEVICE_ADDR_e {
   BROADCAST_ADDR = 0x04
 };
 
+/* В случае изменений убедиться что соответсвующей длины поля хватит (см. define'ы со значениями длин полей) */
 enum MESSAGE_TYPE_e {
   MESSAGE_TYPE_ALARM = 0x00,
   MESSAGE_TYPE_DISABLE_ALARM = 0x01,
@@ -60,11 +62,13 @@ enum MESSAGE_TYPE_e {
 //    MESSAGE_TYPE_RESET_DEVICE = 0x04,
 };
 
+/* В случае изменений убедиться что соответсвующей длины поля хватит (см. define'ы со значениями длин полей) */
 enum MESSAGE_DIRECTION_e {
   RESPONSE = 0x00,
   REQUEST = 0x01
 };
 
+/* В случае изменений убедиться что соответсвующей длины поля хватит (см. define'ы со значениями длин полей) */
 enum BATTERY_LEVEL_e {
   BATTERY_LEVEL_GOOD = 0x00,
   BATTERY_LEVEL_CRITICAL = 0x01

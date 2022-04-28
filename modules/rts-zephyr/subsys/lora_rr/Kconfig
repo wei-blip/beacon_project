@@ -14,4 +14,10 @@ if LORA_RR
 		default 1
 		help
 			"Device number. Base station has't this value, signalman has value 1, brigade chief 2."
+
+	config NUMBER_OF_DEVICES
+		int "Number of devices"
+		default 4
+		help
+			"Number of devices"
 endif

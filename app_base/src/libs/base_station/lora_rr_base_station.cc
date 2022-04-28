@@ -107,8 +107,6 @@ static void system_init()
     /* Light down LED strip */
     set_ind(&strip_ind, K_FOREVER);
 
-    current_state = recv_state;
-
     /**
      * Filling structure begin
      * */
@@ -122,53 +120,13 @@ static void system_init()
     tim_start(K_NO_WAIT, K_MSEC(PERIOD_TIME_MSEC));
 }
 
-void proc_fun(void *dev_data)
-{
-    static led_strip_indicate_s *strip_ind = nullptr;
-    static uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
-    static struct message_s rx_msg = {0};
-    struct message_s tx_msg = {
-      .receiver_addr = BROADCAST_ADDR,
-      .direction = RESPONSE,
-      .battery_level = BATTERY_LEVEL_GOOD,
-      .workers_in_safe_zone = *((uint8_t*)dev_data)
-
-    };
-    /**
-    * Processing receive data
-    * */
-    /* Processing receiving data */
-    if (!proc_rx_data(rx_buf, sizeof(rx_buf), &rx_msg, cur_dev_addr)) {
-        return;
-    }
-
-    switch (rx_msg.direction) {
-        case REQUEST:
-            LOG_DBG(" REQUEST");
-            LOG_DBG("Message type:");
-
-            tx_msg.sender_addr = rx_msg.sender_addr;
-            tx_msg.message_type = rx_msg.message_type;
-            tx_msg.workers_in_safe_zone = *((uint8_t*)dev_data);
-
-            request_analysis(&rx_msg, &tx_msg, strip_ind);
-            break;
-
-        case RESPONSE:
-            response_analysis(&rx_msg, &tx_msg, strip_ind);
-            break;
-
-        default:
-            LOG_DBG("Not correct message direction");
-            break;
-    }
-
-}
-
 [[noreturn]] void app_task()
 {
     int8_t event = 0;
     uint8_t workers_in_safe_zone = 0;
+    struct message_s rx_msg = {0};
+    uint8_t rx_buf[MESSAGE_LEN_IN_BYTES];
+
     /**
     * Lora config begin
     * */
@@ -244,11 +202,15 @@ void proc_fun(void *dev_data)
         switch (event) {
             case EVENT_TX_MODE:
                 LOG_DBG("Tx mode event");
-                modem_fun(lora_dev, &lora_cfg);
+                start_tx(lora_dev, &lora_cfg);
                 break;
             case EVENT_PROC_RX_DATA:
                 LOG_DBG("Processing data event");
-                proc_fun(&workers_in_safe_zone);
+                /* Processing receiving data */
+                if (!proc_rx_data(rx_buf, sizeof(rx_buf), &rx_msg, cur_dev_addr)) {
+                    continue;
+                }
+                analysis_fun(&rx_msg, &status_ind);
                 break;
             case EVENT_RX_MODE:
                 LOG_DBG("Rx mode event");
@@ -259,6 +221,40 @@ void proc_fun(void *dev_data)
                 break;
         }
     }
+}
+
+void analysis_fun(struct message_s* rx_msg, void *dev_data)
+{
+    static led_strip_indicate_s *strip_ind = nullptr;
+    struct message_s tx_msg = {
+      .receiver_addr = BROADCAST_ADDR,
+      .direction = RESPONSE,
+      .battery_level = BATTERY_LEVEL_GOOD,
+      .workers_in_safe_zone = *((uint8_t*)dev_data)
+
+    };
+
+    switch (rx_msg->direction) {
+        case REQUEST:
+            LOG_DBG(" REQUEST");
+            LOG_DBG("Message type:");
+
+            tx_msg.sender_addr = rx_msg->sender_addr;
+            tx_msg.message_type = rx_msg->message_type;
+            tx_msg.workers_in_safe_zone = *((uint8_t*)dev_data);
+
+            request_analysis(rx_msg, &tx_msg, strip_ind);
+            break;
+
+        case RESPONSE:
+            response_analysis(rx_msg, &tx_msg, strip_ind);
+            break;
+
+        default:
+            LOG_DBG("Not correct message direction");
+            break;
+    }
+
 }
 
 void request_analysis(const struct message_s *rx_msg, struct message_s *tx_msg, struct led_strip_indicate_s *strip_ind)
